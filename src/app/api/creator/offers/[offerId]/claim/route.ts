@@ -176,7 +176,7 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     const status = shouldAutoAccept ? "ACCEPTED" : "PENDING_APPROVAL";
     const now = new Date();
 
-    let dueAt: Date | null = null;
+    let dueAtIso: string | null = null;
     await db.transaction(async (tx) => {
       await tx.execute(sql`SELECT id FROM offers WHERE id = ${offer.id} FOR UPDATE`);
 
@@ -232,9 +232,10 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
       }
 
       if (shouldAutoAccept) {
-        dueAt = new Date(
+        const dueAt = new Date(
           now.getTime() + (offer.deadlineDaysAfterDelivery + 14) * 24 * 60 * 60 * 1000,
         );
+        dueAtIso = dueAt.toISOString();
         await tx.insert(deliverables).values({
           id: crypto.randomUUID(),
           matchId,
@@ -342,7 +343,7 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
         shareUrlPath: `/r/${encodeURIComponent(campaignCode)}`,
         discountCreated,
         orderCreated,
-        dueAt: dueAt ? dueAt.toISOString() : null,
+        dueAt: dueAtIso,
       },
     });
   } catch (err) {
