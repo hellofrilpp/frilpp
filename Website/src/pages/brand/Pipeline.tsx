@@ -21,8 +21,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import BrandLayout from "@/components/brand/BrandLayout";
-import { useQuery } from "@tanstack/react-query";
-import { ApiError, BrandDeliverable, BrandMatch, BrandShipment, getBrandDeliverables, getBrandMatches, getBrandShipments, approveBrandMatch, rejectBrandMatch } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, BrandDeliverable, BrandMatch, BrandShipment, getBrandDeliverables, getBrandMatches, getBrandShipments, approveBrandMatch, rejectBrandMatch, verifyBrandDeliverable, failBrandDeliverable } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type Stage = "applied" | "approved" | "shipped" | "posted" | "complete";
@@ -51,6 +51,7 @@ const BrandPipeline = () => {
   const [draggedInfluencer, setDraggedInfluencer] = useState<Influencer | null>(null);
   const [influencersList, setInfluencersList] = useState<Influencer[]>([]);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
 
   const { data: pendingMatchesData, error: matchesError } = useQuery({
     queryKey: ["brand-matches", "pending"],
@@ -202,6 +203,11 @@ const BrandPipeline = () => {
     verifiedDeliverablesData,
   ]);
 
+  const deliverableByMatch = useMemo(() => {
+    const deliverables = dueDeliverablesData?.deliverables ?? [];
+    return new Map(deliverables.map((deliverable) => [deliverable.match.id, deliverable]));
+  }, [dueDeliverablesData]);
+
   useEffect(() => {
     setInfluencersList(computedInfluencers);
   }, [computedInfluencers]);
@@ -323,6 +329,59 @@ const BrandPipeline = () => {
                               <Package className="w-4 h-4 mr-2" />
                               MARK_SHIPPED
                             </DropdownMenuItem>
+                            {influencer.stage === "posted" && deliverableByMatch.has(influencer.id) && (
+                              <>
+                                <DropdownMenuItem
+                                  className="font-mono text-xs"
+                                  onClick={async () => {
+                                    const deliverable = deliverableByMatch.get(influencer.id);
+                                    if (!deliverable) return;
+                                    if (!deliverable.submittedPermalink) {
+                                      toast({
+                                        title: "MISSING LINK",
+                                        description: "Creator has not provided a permalink.",
+                                      });
+                                      return;
+                                    }
+                                    try {
+                                      await verifyBrandDeliverable(deliverable.deliverableId, {
+                                        permalink: deliverable.submittedPermalink ?? undefined,
+                                      });
+                                      toast({ title: "VERIFIED", description: "Deliverable approved." });
+                                      await queryClient.invalidateQueries({ queryKey: ["brand-deliverables"] });
+                                    } catch (err) {
+                                      const message = err instanceof ApiError ? err.message : "Verify failed";
+                                      toast({ title: "VERIFY FAILED", description: message });
+                                    }
+                                  }}
+                                >
+                                  <CheckCircle className="w-4 h-4 mr-2" />
+                                  VERIFY_POST
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  className="font-mono text-xs text-destructive"
+                                  onClick={async () => {
+                                    const deliverable = deliverableByMatch.get(influencer.id);
+                                    if (!deliverable) return;
+                                    const reason =
+                                      window.prompt("Reason for rejection?", "Missing brand tag") ?? undefined;
+                                    try {
+                                      await failBrandDeliverable(deliverable.deliverableId, {
+                                        reason: reason || undefined,
+                                      });
+                                      toast({ title: "REJECTED", description: "Deliverable rejected." });
+                                      await queryClient.invalidateQueries({ queryKey: ["brand-deliverables"] });
+                                    } catch (err) {
+                                      const message = err instanceof ApiError ? err.message : "Reject failed";
+                                      toast({ title: "REJECT FAILED", description: message });
+                                    }
+                                  }}
+                                >
+                                  <XCircle className="w-4 h-4 mr-2" />
+                                  REJECT_POST
+                                </DropdownMenuItem>
+                              </>
+                            )}
                             <DropdownMenuItem
                               className="font-mono text-xs text-destructive"
                               onClick={() => {

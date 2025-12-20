@@ -3,6 +3,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { creators } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { CREATOR_CATEGORIES } from "@/lib/picklists";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,8 @@ const patchSchema = z
     username: z.string().min(1).max(64).nullable().optional(),
     followersCount: z.number().int().min(0).max(50_000_000).nullable().optional(),
     country: z.enum(["US", "IN"]).nullable().optional(),
+    categories: z.array(z.enum(CREATOR_CATEGORIES)).max(20).nullable().optional(),
+    categoriesOther: z.string().trim().min(2).max(64).nullable().optional(),
     fullName: z.string().min(1).max(128).nullable().optional(),
     email: z.string().email().nullable().optional(),
     phone: z.string().min(3).max(32).nullable().optional(),
@@ -20,7 +23,24 @@ const patchSchema = z
     province: z.string().max(64).nullable().optional(),
     zip: z.string().min(1).max(16).nullable().optional(),
   })
-  .strict();
+  .strict()
+  .superRefine((data, ctx) => {
+    const categories = data.categories ?? [];
+    if (categories.includes("OTHER") && !data.categoriesOther) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["categoriesOther"],
+        message: "categoriesOther is required when categories include OTHER",
+      });
+    }
+    if (!categories.includes("OTHER") && data.categoriesOther) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["categoriesOther"],
+        message: "categoriesOther is only allowed when categories include OTHER",
+      });
+    }
+  });
 
 export async function GET(request: Request) {
   if (!process.env.DATABASE_URL) {
@@ -52,6 +72,8 @@ export async function GET(request: Request) {
       username: creator.username,
       followersCount: creator.followersCount,
       country: creator.country,
+      categories: creator.categories ?? null,
+      categoriesOther: creator.categoriesOther ?? null,
       fullName: creator.fullName,
       email: creator.email,
       phone: creator.phone,
@@ -99,6 +121,8 @@ export async function PATCH(request: Request) {
       username: parsed.data.username ?? null,
       followersCount: parsed.data.followersCount ?? null,
       country: parsed.data.country ?? null,
+      categories: parsed.data.categories ?? null,
+      categoriesOther: parsed.data.categoriesOther ?? null,
       fullName: parsed.data.fullName ?? null,
       email: parsed.data.email ?? null,
       phone: parsed.data.phone ?? null,
@@ -123,6 +147,8 @@ export async function PATCH(request: Request) {
       username: updated.username,
       followersCount: updated.followersCount,
       country: updated.country,
+      categories: updated.categories ?? null,
+      categoriesOther: updated.categoriesOther ?? null,
       fullName: updated.fullName,
       email: updated.email,
       phone: updated.phone,

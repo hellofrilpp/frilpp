@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { creators } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { eq } from "drizzle-orm";
+import { CREATOR_CATEGORIES } from "@/lib/picklists";
 
 export const runtime = "nodejs";
 
@@ -10,6 +11,8 @@ const bodySchema = z.object({
   username: z.string().min(1).max(64).optional(),
   followersCount: z.number().int().min(0).max(50_000_000).optional(),
   country: z.enum(["US", "IN"]),
+  categories: z.array(z.enum(CREATOR_CATEGORIES)).max(20).optional(),
+  categoriesOther: z.string().trim().min(2).max(64).optional(),
   fullName: z.string().min(1).max(128),
   email: z.string().email(),
   phone: z.string().min(3).max(32).optional(),
@@ -18,6 +21,22 @@ const bodySchema = z.object({
   city: z.string().min(1).max(64),
   province: z.string().max(64).optional(),
   zip: z.string().min(1).max(16),
+}).superRefine((data, ctx) => {
+  const categories = data.categories ?? [];
+  if (categories.includes("OTHER") && !data.categoriesOther) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["categoriesOther"],
+      message: "categoriesOther is required when categories include OTHER",
+    });
+  }
+  if (!categories.includes("OTHER") && data.categoriesOther) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["categoriesOther"],
+      message: "categoriesOther is only allowed when categories include OTHER",
+    });
+  }
 });
 
 export async function POST(request: Request) {
@@ -51,6 +70,8 @@ export async function POST(request: Request) {
       username: parsed.data.username ?? null,
       followersCount: parsed.data.followersCount ?? null,
       country: parsed.data.country,
+      categories: parsed.data.categories ?? null,
+      categoriesOther: parsed.data.categoriesOther ?? null,
       fullName: parsed.data.fullName,
       email: parsed.data.email,
       phone: parsed.data.phone ?? null,
@@ -66,4 +87,3 @@ export async function POST(request: Request) {
 
   return Response.json({ ok: true });
 }
-

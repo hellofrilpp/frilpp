@@ -72,6 +72,29 @@ export async function requestMagicLink(email: string, next?: string) {
   });
 }
 
+export type AuthUser = {
+  id: string;
+  email: string;
+  name: string | null;
+  activeBrandId: string | null;
+  tosAcceptedAt: string | null;
+  privacyAcceptedAt: string | null;
+  igDataAccessAcceptedAt: string | null;
+  hasCreatorProfile: boolean;
+  memberships: Array<{ brandId: string; role: string; brandName: string }>;
+};
+
+export async function getAuthMe() {
+  return apiFetch<{ ok: boolean; user: AuthUser | null }>("/api/auth/me");
+}
+
+export async function logout() {
+  return apiFetch<{ ok: boolean }>("/api/auth/logout", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export type BrandOffer = {
   id: string;
   title: string;
@@ -99,6 +122,10 @@ export async function createBrandOffer(payload: {
   deadlineDaysAfterDelivery: number;
   followersThreshold: number;
   aboveThresholdAutoAccept: boolean;
+  usageRightsRequired?: boolean;
+  usageRightsScope?: string;
+  products?: Array<{ shopifyProductId: string; shopifyVariantId: string; quantity: number }>;
+  metadata?: Record<string, unknown>;
 }) {
   return apiFetch<{ ok: boolean; offerId: string }>("/api/brand/offers", {
     method: "POST",
@@ -204,6 +231,26 @@ export async function getBrandDeliverables(status?: BrandDeliverable["status"]) 
   );
 }
 
+export async function verifyBrandDeliverable(
+  deliverableId: string,
+  payload?: { permalink?: string },
+) {
+  return apiFetch<{ ok: boolean }>(`/api/brand/deliverables/${deliverableId}/verify`, {
+    method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
+}
+
+export async function failBrandDeliverable(
+  deliverableId: string,
+  payload?: { reason?: string },
+) {
+  return apiFetch<{ ok: boolean }>(`/api/brand/deliverables/${deliverableId}/fail`, {
+    method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
+}
+
 export type BrandAnalyticsOffer = {
   offerId: string;
   title: string;
@@ -216,6 +263,104 @@ export type BrandAnalyticsOffer = {
 
 export async function getBrandAnalytics() {
   return apiFetch<{ ok: boolean; offers: BrandAnalyticsOffer[] }>("/api/brand/analytics");
+}
+
+export type BrandAcceptanceSettings = {
+  threshold: number;
+  aboveThresholdAutoAccept: boolean;
+};
+
+export async function getBrandAcceptanceSettings() {
+  return apiFetch<{ ok: boolean; acceptance: BrandAcceptanceSettings }>(
+    "/api/brand/settings/acceptance",
+  );
+}
+
+export async function updateBrandAcceptanceSettings(payload: BrandAcceptanceSettings) {
+  return apiFetch<{ ok: boolean }>("/api/brand/settings/acceptance", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function getBrandInstagramHandle() {
+  return apiFetch<{ ok: boolean; instagramHandle: string | null }>(
+    "/api/brand/settings/instagram",
+  );
+}
+
+export async function updateBrandInstagramHandle(instagramHandle: string) {
+  return apiFetch<{ ok: boolean }>("/api/brand/settings/instagram", {
+    method: "PATCH",
+    body: JSON.stringify({ instagramHandle }),
+  });
+}
+
+export type BrandProfile = {
+  name: string;
+  website: string | null;
+  description: string | null;
+  industry: string | null;
+  location: string | null;
+  logoUrl: string | null;
+};
+
+export async function getBrandProfile() {
+  return apiFetch<{ ok: boolean; profile: BrandProfile }>("/api/brand/profile");
+}
+
+export async function updateBrandProfile(payload: Partial<BrandProfile>) {
+  return apiFetch<{ ok: boolean; profile: BrandProfile }>("/api/brand/profile", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export type BrandNotifications = {
+  newMatch: boolean;
+  contentReceived: boolean;
+  weeklyDigest: boolean;
+  marketing: boolean;
+};
+
+export async function getBrandNotifications() {
+  return apiFetch<{ ok: boolean; notifications: BrandNotifications }>(
+    "/api/brand/notifications",
+  );
+}
+
+export async function updateBrandNotifications(payload: BrandNotifications) {
+  return apiFetch<{ ok: boolean }>("/api/brand/notifications", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export type ShopifyStatus = {
+  connected: boolean;
+  shopDomain: string | null;
+  scopes: string | null;
+};
+
+export async function getShopifyStatus() {
+  return apiFetch<{ ok: boolean } & ShopifyStatus>("/api/shopify/status");
+}
+
+export type ShopifyProduct = {
+  id: string;
+  title: string;
+  imageUrl: string | null;
+  variants: Array<{ id: string; title: string }>;
+};
+
+export async function getShopifyProducts(query?: string, limit = 10) {
+  const params = new URLSearchParams();
+  params.set("limit", String(limit));
+  if (query) params.set("query", query);
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return apiFetch<{ ok: boolean; products: ShopifyProduct[] }>(
+    `/api/shopify/products${suffix}`,
+  );
 }
 
 export type CreatorFeedOffer = {
@@ -249,6 +394,8 @@ export type CreatorProfile = {
   username: string | null;
   followersCount: number | null;
   country: string | null;
+  categories?: string[] | null;
+  categoriesOther?: string | null;
   fullName: string | null;
   email: string | null;
   phone: string | null;
@@ -266,6 +413,37 @@ export async function getCreatorProfile() {
 export async function updateCreatorProfile(payload: Partial<CreatorProfile>) {
   return apiFetch<{ ok: boolean; creator: CreatorProfile }>("/api/creator/profile", {
     method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function completeCreatorOnboarding(payload: {
+  username?: string;
+  followersCount?: number;
+  country: "US" | "IN";
+  categories?: string[];
+  categoriesOther?: string;
+  fullName: string;
+  email: string;
+  phone?: string;
+  address1: string;
+  address2?: string;
+  city: string;
+  province?: string;
+  zip: string;
+}) {
+  return apiFetch<{ ok: boolean }>("/api/onboarding/creator", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function submitCreatorDeliverable(
+  matchId: string,
+  payload: { url: string; notes?: string; grantUsageRights?: boolean },
+) {
+  return apiFetch<{ ok: boolean }>(`/api/creator/matches/${matchId}/submit`, {
+    method: "POST",
     body: JSON.stringify(payload),
   });
 }
@@ -308,6 +486,13 @@ export async function getInstagramStatus() {
   return apiFetch<InstagramStatus>("/api/meta/instagram/status");
 }
 
+export async function syncInstagramProfile() {
+  return apiFetch<{ ok: boolean }>("/api/meta/instagram/sync", {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export type CreatorDeal = {
   id: string;
   brand: string;
@@ -321,4 +506,74 @@ export type CreatorDeal = {
 
 export async function getCreatorDeals() {
   return apiFetch<{ ok: boolean; deals: CreatorDeal[] }>("/api/creator/deals");
+}
+
+export type PicklistItem = { id: string; label: string };
+
+export type PicklistsResponse = {
+  ok: boolean;
+  creatorCategories: PicklistItem[];
+  campaignCategories: PicklistItem[];
+  campaignNiches: PicklistItem[];
+  contentTypes: PicklistItem[];
+  platformsByCountry: { US: PicklistItem[]; IN: PicklistItem[] };
+  regions: PicklistItem[];
+  countries: string[];
+};
+
+export async function getPicklists() {
+  return apiFetch<PicklistsResponse>("/api/meta/picklists");
+}
+
+export type CreatorAchievement = {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  xp: number;
+  rarity: "common" | "rare" | "epic" | "legendary";
+  unlocked: boolean;
+  progress?: number;
+  maxProgress?: number;
+};
+
+export type CreatorAchievementsResponse = {
+  ok: boolean;
+  achievements: CreatorAchievement[];
+  totalXp: number;
+  unlockedCount: number;
+  level: number;
+  activeStrikes: number;
+};
+
+export async function getCreatorAchievements() {
+  return apiFetch<CreatorAchievementsResponse>("/api/creator/achievements");
+}
+
+export type LeaderboardCreator = {
+  rank: number;
+  name: string;
+  handle: string | null;
+  xp: number;
+  deals: number;
+  avatar: string;
+  trend: string;
+};
+
+export type LeaderboardBrand = {
+  rank: number;
+  name: string;
+  category: string;
+  xp: number;
+  creators: number;
+  avatar: string;
+  trend: string;
+};
+
+export async function getLeaderboard() {
+  return apiFetch<{
+    ok: boolean;
+    creators: LeaderboardCreator[];
+    brands: LeaderboardBrand[];
+  }>("/api/leaderboard");
 }

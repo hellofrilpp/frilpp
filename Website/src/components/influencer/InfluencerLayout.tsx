@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import FrilppLogo from "@/components/FrilppLogo";
+import { logout } from "@/lib/api";
+import { useAchievements } from "@/hooks/useAchievements";
 
 const navItems = [
   { icon: Compass, label: "DISCOVER", href: "/influencer/discover" },
@@ -26,6 +28,7 @@ interface InfluencerLayoutProps {
 const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { level, getTotalXP } = useAchievements();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -66,13 +69,19 @@ const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
         <div className="hidden md:flex items-center gap-4">
           <div className="flex items-center gap-2 px-3 py-2 bg-muted border-2 border-neon-yellow">
             <Trophy className="w-4 h-4 text-neon-yellow" />
-            <span className="text-xs font-pixel text-neon-yellow">LV.12</span>
-            <span className="text-xs font-mono text-foreground">2,450 XP</span>
+            <span className="text-xs font-pixel text-neon-yellow">LV.{level}</span>
+            <span className="text-xs font-mono text-foreground">{getTotalXP().toLocaleString()} XP</span>
           </div>
-          <Button variant="ghost" size="icon" className="border-2 border-transparent hover:border-destructive" asChild>
-            <Link to="/">
-              <LogOut className="w-4 h-4" />
-            </Link>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="border-2 border-transparent hover:border-destructive"
+            onClick={async () => {
+              await logout().catch(() => null);
+              window.location.href = "/";
+            }}
+          >
+            <LogOut className="w-4 h-4" />
           </Button>
         </div>
 
@@ -113,8 +122,8 @@ const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
             <div className="pt-4 border-t-2 border-border">
               <div className="flex items-center gap-2 px-4 py-3">
                 <Trophy className="w-5 h-5 text-neon-yellow" />
-                <span className="font-pixel text-sm text-neon-yellow">LV.12</span>
-                <span className="font-mono text-sm">2,450 XP</span>
+                <span className="font-pixel text-sm text-neon-yellow">LV.{level}</span>
+                <span className="font-mono text-sm">{getTotalXP().toLocaleString()} XP</span>
               </div>
             </div>
           </nav>

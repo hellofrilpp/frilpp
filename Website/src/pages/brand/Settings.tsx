@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { 
   Building2,
   Bell,
@@ -15,15 +15,92 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import BrandLayout from "@/components/brand/BrandLayout";
-import { apiUrl } from "@/lib/api";
+import {
+  ApiError,
+  apiUrl,
+  getBrandAcceptanceSettings,
+  getBrandInstagramHandle,
+  getBrandNotifications,
+  getBrandProfile,
+  getShopifyStatus,
+  updateBrandAcceptanceSettings,
+  updateBrandInstagramHandle,
+  updateBrandNotifications,
+  updateBrandProfile,
+} from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const BrandSettings = () => {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [saving, setSaving] = useState(false);
+  const [profile, setProfile] = useState({
+    name: "",
+    website: "",
+    description: "",
+    industry: "",
+    location: "",
+    logoUrl: "",
+  });
+  const [instagramHandle, setInstagramHandle] = useState("");
+  const [acceptanceThreshold, setAcceptanceThreshold] = useState(2000);
+  const [autoAccept, setAutoAccept] = useState(true);
   const [notifications, setNotifications] = useState({
     newMatch: true,
     contentReceived: true,
     weeklyDigest: false,
-    marketingEmails: false,
+    marketing: false,
   });
+
+  const { data: profileData } = useQuery({
+    queryKey: ["brand-profile"],
+    queryFn: getBrandProfile,
+  });
+  const { data: notificationsData } = useQuery({
+    queryKey: ["brand-notifications"],
+    queryFn: getBrandNotifications,
+  });
+  const { data: acceptanceData } = useQuery({
+    queryKey: ["brand-acceptance"],
+    queryFn: getBrandAcceptanceSettings,
+  });
+  const { data: instagramData } = useQuery({
+    queryKey: ["brand-instagram"],
+    queryFn: getBrandInstagramHandle,
+  });
+  const { data: shopifyStatus } = useQuery({
+    queryKey: ["shopify-status"],
+    queryFn: getShopifyStatus,
+  });
+
+  useEffect(() => {
+    if (!profileData?.profile) return;
+    setProfile({
+      name: profileData.profile.name ?? "",
+      website: profileData.profile.website ?? "",
+      description: profileData.profile.description ?? "",
+      industry: profileData.profile.industry ?? "",
+      location: profileData.profile.location ?? "",
+      logoUrl: profileData.profile.logoUrl ?? "",
+    });
+  }, [profileData]);
+
+  useEffect(() => {
+    if (!notificationsData?.notifications) return;
+    setNotifications(notificationsData.notifications);
+  }, [notificationsData]);
+
+  useEffect(() => {
+    if (!acceptanceData?.acceptance) return;
+    setAcceptanceThreshold(acceptanceData.acceptance.threshold);
+    setAutoAccept(acceptanceData.acceptance.aboveThresholdAutoAccept);
+  }, [acceptanceData]);
+
+  useEffect(() => {
+    if (!instagramData) return;
+    setInstagramHandle(instagramData.instagramHandle ?? "");
+  }, [instagramData]);
 
   return (
     <BrandLayout>
@@ -47,7 +124,15 @@ const BrandSettings = () => {
           <div className="p-6 space-y-6">
             <div className="flex items-start gap-6">
               <div className="w-20 h-20 bg-neon-green text-background flex items-center justify-center text-xl font-pixel">
-                GB
+                {profile.name
+                  ? profile.name
+                      .split(" ")
+                      .filter(Boolean)
+                      .slice(0, 2)
+                      .map((part) => part[0])
+                      .join("")
+                      .toUpperCase()
+                  : "BR"}
               </div>
               <div className="flex-1">
                 <Button variant="outline" size="sm" className="border-2 border-border font-mono text-xs">
@@ -60,18 +145,28 @@ const BrandSettings = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label className="font-mono text-xs">BRAND_NAME</Label>
-                <Input defaultValue="GlowUp Beauty" className="mt-2 border-2 border-border font-mono" />
+                <Input
+                  value={profile.name}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, name: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
               </div>
               <div>
                 <Label className="font-mono text-xs">WEBSITE</Label>
-                <Input defaultValue="https://glowupbeauty.com" className="mt-2 border-2 border-border font-mono" />
+                <Input
+                  type="url"
+                  value={profile.website}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, website: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
               </div>
             </div>
 
             <div>
               <Label className="font-mono text-xs">DESCRIPTION</Label>
               <Textarea 
-                defaultValue="Clean, effective skincare for the modern woman. Cruelty-free and sustainably sourced." 
+                value={profile.description}
+                onChange={(event) => setProfile((prev) => ({ ...prev, description: event.target.value }))}
                 className="mt-2 border-2 border-border font-mono"
                 rows={3}
               />
@@ -80,11 +175,39 @@ const BrandSettings = () => {
             <div className="grid md:grid-cols-2 gap-4">
               <div>
                 <Label className="font-mono text-xs">INDUSTRY</Label>
-                <Input defaultValue="Skincare & Beauty" className="mt-2 border-2 border-border font-mono" />
+                <Input
+                  value={profile.industry}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, industry: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
               </div>
               <div>
                 <Label className="font-mono text-xs">LOCATION</Label>
-                <Input defaultValue="Los Angeles, CA" className="mt-2 border-2 border-border font-mono" />
+                <Input
+                  value={profile.location}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, location: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <Label className="font-mono text-xs">LOGO_URL</Label>
+                <Input
+                  type="url"
+                  value={profile.logoUrl}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, logoUrl: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
+              </div>
+              <div>
+                <Label className="font-mono text-xs">INSTAGRAM_HANDLE</Label>
+                <Input
+                  value={instagramHandle}
+                  onChange={(event) => setInstagramHandle(event.target.value)}
+                  className="mt-2 border-2 border-border font-mono"
+                />
               </div>
             </div>
           </div>
@@ -101,7 +224,7 @@ const BrandSettings = () => {
               { key: "newMatch", label: "NEW_MATCH_ALERTS", description: "Get notified when creators swipe right" },
               { key: "contentReceived", label: "CONTENT_RECEIVED", description: "Notified when content is submitted" },
               { key: "weeklyDigest", label: "WEEKLY_DIGEST", description: "Weekly campaign performance summary" },
-              { key: "marketingEmails", label: "MARKETING", description: "Tips, updates, and offers" },
+              { key: "marketing", label: "MARKETING", description: "Tips, updates, and offers" },
             ].map((item) => (
               <div key={item.key} className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
                 <div>
@@ -116,6 +239,35 @@ const BrandSettings = () => {
                 />
               </div>
             ))}
+          </div>
+        </section>
+
+        {/* Acceptance Rules */}
+        <section className="mb-8 border-4 border-border bg-card">
+          <div className="p-4 border-b-4 border-border flex items-center gap-3">
+            <Settings className="w-5 h-5 text-neon-blue" />
+            <h2 className="font-pixel text-sm text-neon-blue">[AUTO_ACCEPT]</h2>
+          </div>
+          <div className="p-6 space-y-4">
+            <div>
+              <Label className="font-mono text-xs">FOLLOWER_THRESHOLD</Label>
+              <Input
+                type="number"
+                min={0}
+                value={acceptanceThreshold}
+                onChange={(event) => setAcceptanceThreshold(Number(event.target.value))}
+                className="mt-2 border-2 border-border font-mono"
+              />
+            </div>
+            <div className="flex items-center justify-between p-4 border-2 border-border">
+              <div>
+                <p className="font-mono text-sm">AUTO_ACCEPT_ABOVE_THRESHOLD</p>
+                <p className="text-xs font-mono text-muted-foreground">
+                  If enabled, creators above the threshold auto-approve.
+                </p>
+              </div>
+              <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
+            </div>
           </div>
         </section>
 
@@ -142,7 +294,9 @@ const BrandSettings = () => {
                 size="sm"
                 className="border-2 border-primary text-primary font-mono text-xs"
               >
-                <a href={apiUrl("/api/shopify/install")}>CONNECT</a>
+                <a href={apiUrl("/api/shopify/install")}>
+                  {shopifyStatus?.connected ? "RECONNECT" : "CONNECT"}
+                </a>
               </Button>
             </div>
             <div className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
@@ -188,9 +342,34 @@ const BrandSettings = () => {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-pixel text-xs px-8 pixel-btn glow-green">
+          <Button
+            className="bg-primary text-primary-foreground hover:bg-primary/90 font-pixel text-xs px-8 pixel-btn glow-green"
+            disabled={saving}
+            onClick={async () => {
+              try {
+                setSaving(true);
+                await updateBrandProfile(profile);
+                await updateBrandNotifications(notifications);
+                await updateBrandAcceptanceSettings({
+                  threshold: acceptanceThreshold,
+                  aboveThresholdAutoAccept: autoAccept,
+                });
+                await updateBrandInstagramHandle(instagramHandle.trim());
+                await queryClient.invalidateQueries({ queryKey: ["brand-profile"] });
+                await queryClient.invalidateQueries({ queryKey: ["brand-notifications"] });
+                await queryClient.invalidateQueries({ queryKey: ["brand-acceptance"] });
+                await queryClient.invalidateQueries({ queryKey: ["brand-instagram"] });
+                toast({ title: "SAVED", description: "Settings updated." });
+              } catch (err) {
+                const message = err instanceof ApiError ? err.message : "Failed to save settings";
+                toast({ title: "SAVE FAILED", description: message });
+              } finally {
+                setSaving(false);
+              }
+            }}
+          >
             <Save className="w-4 h-4 mr-2" />
-            SAVE_CHANGES
+            {saving ? "SAVING..." : "SAVE_CHANGES"}
           </Button>
         </div>
       </div>

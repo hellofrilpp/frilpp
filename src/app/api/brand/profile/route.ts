@@ -1,0 +1,118 @@
+import { z } from "zod";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { brands } from "@/db/schema";
+import { requireBrandContext } from "@/lib/auth";
+
+export const runtime = "nodejs";
+
+const bodySchema = z.object({
+  name: z.string().min(2).max(80).optional(),
+  website: z.string().trim().max(200).optional(),
+  description: z.string().trim().max(500).optional(),
+  industry: z.string().trim().max(80).optional(),
+  location: z.string().trim().max(80).optional(),
+  logoUrl: z.string().trim().max(500).optional(),
+});
+
+const normalizeOptional = (value: string | undefined) => {
+  if (value === undefined) return undefined;
+  const trimmed = value.trim();
+  return trimmed.length ? trimmed : null;
+};
+
+const validateUrl = (value: string | null, field: string) => {
+  if (!value) return;
+  try {
+    // eslint-disable-next-line no-new
+    new URL(value);
+  } catch {
+    throw new Error(`${field} must be a valid URL`);
+  }
+};
+
+export async function GET(request: Request) {
+  if (!process.env.DATABASE_URL) {
+    return Response.json(
+      { ok: false, error: "DATABASE_URL is not configured" },
+      { status: 500 },
+    );
+  }
+
+  const ctx = await requireBrandContext(request);
+  if (ctx instanceof Response) return ctx;
+
+  const rows = await db
+    .select({
+      name: brands.name,
+      website: brands.website,
+      description: brands.description,
+      industry: brands.industry,
+      location: brands.location,
+      logoUrl: brands.logoUrl,
+    })
+    .from(brands)
+    .where(eq(brands.id, ctx.brandId))
+    .limit(1);
+  const brand = rows[0];
+  if (!brand) return Response.json({ ok: false, error: "Brand not found" }, { status: 404 });
+
+  return Response.json({ ok: true, profile: brand });
+}
+
+export async function PATCH(request: Request) {
+  if (!process.env.DATABASE_URL) {
+    return Response.json(
+      { ok: false, error: "DATABASE_URL is not configured" },
+      { status: 500 },
+    );
+  }
+
+  const ctx = await requireBrandContext(request);
+  if (ctx instanceof Response) return ctx;
+
+  const json = await request.json().catch(() => null);
+  const parsed = bodySchema.safeParse(json);
+  if (!parsed.success) {
+    return Response.json({ ok: false, error: "Invalid request" }, { status: 400 });
+  }
+
+  const update: Record<string, unknown> = {
+    updatedAt: new Date(),
+  };
+  const website = normalizeOptional(parsed.data.website);
+  const logoUrl = normalizeOptional(parsed.data.logoUrl);
+  if (parsed.data.name !== undefined) update.name = parsed.data.name;
+  if (website !== undefined) update.website = website;
+  if (parsed.data.description !== undefined) update.description = normalizeOptional(parsed.data.description);
+  if (parsed.data.industry !== undefined) update.industry = normalizeOptional(parsed.data.industry);
+  if (parsed.data.location !== undefined) update.location = normalizeOptional(parsed.data.location);
+  if (logoUrl !== undefined) update.logoUrl = logoUrl;
+
+  try {
+    validateUrl(website ?? null, "website");
+    validateUrl(logoUrl ?? null, "logoUrl");
+  } catch (err) {
+    return Response.json(
+      { ok: false, error: err instanceof Error ? err.message : "Invalid URL" },
+      { status: 400 },
+    );
+  }
+
+  await db.update(brands).set(update).where(eq(brands.id, ctx.brandId));
+
+  const rows = await db
+    .select({
+      name: brands.name,
+      website: brands.website,
+      description: brands.description,
+      industry: brands.industry,
+      location: brands.location,
+      logoUrl: brands.logoUrl,
+    })
+    .from(brands)
+    .where(eq(brands.id, ctx.brandId))
+    .limit(1);
+
+  return Response.json({ ok: true, profile: rows[0] });
+}

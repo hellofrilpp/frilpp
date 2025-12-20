@@ -10,9 +10,18 @@ import {
   Heart
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import InfluencerLayout from "@/components/influencer/InfluencerLayout";
-import { useQuery } from "@tanstack/react-query";
-import { ApiError, CreatorDeal, apiUrl, getCreatorDeals } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { ApiError, CreatorDeal, CreatorDeliverable, apiUrl, getCreatorDeals, getCreatorDeliverables, submitCreatorDeliverable } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type DealStatus = "pending" | "approved" | "shipped" | "post_required" | "complete";
@@ -42,7 +51,18 @@ const InfluencerDeals = () => {
     queryKey: ["creator-deals"],
     queryFn: getCreatorDeals,
   });
+  const { data: deliverablesData } = useQuery({
+    queryKey: ["creator-deliverables"],
+    queryFn: getCreatorDeliverables,
+  });
+  const queryClient = useQueryClient();
   const [filter, setFilter] = useState<DealStatus | "all">("all");
+  const [submitOpen, setSubmitOpen] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitUrl, setSubmitUrl] = useState("");
+  const [submitNotes, setSubmitNotes] = useState("");
+  const [submitUsageRights, setSubmitUsageRights] = useState(false);
+  const [activeDeliverable, setActiveDeliverable] = useState<CreatorDeliverable | null>(null);
 
   const deals = useMemo<Deal[]>(() => {
     const rows = data?.deals ?? [];
@@ -57,6 +77,11 @@ const InfluencerDeals = () => {
       trackingNumber: deal.trackingNumber ?? undefined,
     }));
   }, [data]);
+
+  const deliverableByMatch = useMemo(() => {
+    const deliverables = deliverablesData?.deliverables ?? [];
+    return new Map(deliverables.map((deliverable) => [deliverable.match.id, deliverable]));
+  }, [deliverablesData]);
 
   const filteredDeals = filter === "all" ? deals : deals.filter(deal => deal.status === filter);
 
@@ -177,6 +202,12 @@ const InfluencerDeals = () => {
                           <span className="text-xs font-mono">DUE: {deal.deadline}</span>
                         </div>
                       )}
+                      {deal.status === "post_required" &&
+                        deliverableByMatch.get(deal.id)?.submittedAt && (
+                          <div className="mt-3 text-xs font-mono text-neon-green">
+                            SUBMITTED · Awaiting review
+                          </div>
+                        )}
                     </div>
 
                     <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
@@ -185,9 +216,20 @@ const InfluencerDeals = () => {
                   {/* Action Buttons */}
                   {deal.status === "post_required" && (
                     <div className="px-4 pb-4">
-                      <Button className="w-full bg-neon-pink text-background font-pixel text-xs pixel-btn glow-pink">
+                      <Button
+                        className="w-full bg-neon-pink text-background font-pixel text-xs pixel-btn glow-pink"
+                        disabled={Boolean(deliverableByMatch.get(deal.id)?.submittedAt)}
+                        onClick={() => {
+                          const deliverable = deliverableByMatch.get(deal.id) ?? null;
+                          setActiveDeliverable(deliverable);
+                          setSubmitUrl(deliverable?.submittedPermalink ?? "");
+                          setSubmitNotes(deliverable?.submittedNotes ?? "");
+                          setSubmitUsageRights(Boolean(deliverable?.usageRightsGrantedAt));
+                          setSubmitOpen(true);
+                        }}
+                      >
                         <Camera className="w-4 h-4 mr-2" />
-                        SUBMIT CONTENT
+                        {deliverableByMatch.get(deal.id)?.submittedAt ? "SUBMITTED" : "SUBMIT CONTENT"}
                       </Button>
                     </div>
                   )}
@@ -205,6 +247,73 @@ const InfluencerDeals = () => {
           </div>
         )}
       </div>
+      <Dialog open={submitOpen} onOpenChange={setSubmitOpen}>
+        <DialogContent className="border-4 border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-sm text-neon-pink">SUBMIT POST</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <label className="font-mono text-xs text-muted-foreground">PERMALINK URL</label>
+              <Input
+                value={submitUrl}
+                onChange={(event) => setSubmitUrl(event.target.value)}
+                placeholder="https://instagram.com/reel/..."
+                className="mt-2 border-2 border-border font-mono"
+              />
+            </div>
+            <div>
+              <label className="font-mono text-xs text-muted-foreground">NOTES (OPTIONAL)</label>
+              <Textarea
+                value={submitNotes}
+                onChange={(event) => setSubmitNotes(event.target.value)}
+                className="mt-2 border-2 border-border font-mono"
+                rows={3}
+              />
+            </div>
+            {activeDeliverable?.offer.usageRightsRequired && (
+              <div className="flex items-start gap-2">
+                <Checkbox
+                  checked={submitUsageRights}
+                  onCheckedChange={(checked) => setSubmitUsageRights(Boolean(checked))}
+                />
+                <div>
+                  <p className="font-mono text-xs text-foreground">Grant usage rights</p>
+                  <p className="text-xs font-mono text-muted-foreground">
+                    This brand requires usage rights for paid ads.
+                  </p>
+                </div>
+              </div>
+            )}
+            <Button
+              className="w-full bg-neon-pink text-background font-pixel text-xs pixel-btn glow-pink"
+              disabled={!submitUrl || submitting || !activeDeliverable}
+              onClick={async () => {
+                if (!activeDeliverable) return;
+                try {
+                  setSubmitting(true);
+                  await submitCreatorDeliverable(activeDeliverable.match.id, {
+                    url: submitUrl,
+                    notes: submitNotes || undefined,
+                    grantUsageRights: submitUsageRights || undefined,
+                  });
+                  toast({ title: "SUBMITTED", description: "Content submitted for review." });
+                  setSubmitOpen(false);
+                  await queryClient.invalidateQueries({ queryKey: ["creator-deals"] });
+                  await queryClient.invalidateQueries({ queryKey: ["creator-deliverables"] });
+                } catch (err) {
+                  const message = err instanceof ApiError ? err.message : "Unable to submit";
+                  toast({ title: "SUBMISSION FAILED", description: message });
+                } finally {
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {submitting ? "SENDING..." : "SUBMIT NOW"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </InfluencerLayout>
   );
 };

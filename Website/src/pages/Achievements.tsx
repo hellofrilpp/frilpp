@@ -123,7 +123,7 @@ const AchievementCard = ({ achievement }: { achievement: Achievement }) => {
 };
 
 const Achievements = () => {
-  const { achievements, getTotalXP, getUnlockedCount } = useAchievements();
+  const { achievements, getTotalXP, getUnlockedCount, isLoading } = useAchievements();
 
   const groupedAchievements = {
     legendary: achievements.filter(a => a.rarity === 'legendary'),
@@ -149,11 +149,15 @@ const Achievements = () => {
         {/* Stats */}
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-card/50 border-2 border-primary/30 p-3 text-center">
-            <p className="text-lg text-accent">{getUnlockedCount()}/{achievements.length}</p>
+            <p className="text-lg text-accent">
+              {isLoading ? "--" : `${getUnlockedCount()}/${achievements.length}`}
+            </p>
             <p className="text-[6px] text-muted-foreground mt-1">Unlocked</p>
           </div>
           <div className="bg-card/50 border-2 border-accent/30 p-3 text-center">
-            <p className="text-lg text-primary">{getTotalXP().toLocaleString()}</p>
+            <p className="text-lg text-primary">
+              {isLoading ? "--" : getTotalXP().toLocaleString()}
+            </p>
             <p className="text-[6px] text-muted-foreground mt-1">Total XP</p>
           </div>
         </div>

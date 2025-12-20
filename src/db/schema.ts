@@ -2,6 +2,7 @@ import { sql } from "drizzle-orm";
 import {
   boolean,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
@@ -46,6 +47,11 @@ export const deliverableStatusEnum = pgEnum("deliverable_status", [
 export const brands = pgTable("brands", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
+  website: text("website"),
+  description: text("description"),
+  industry: text("industry"),
+  location: text("location"),
+  logoUrl: text("logo_url"),
   countriesDefault: text("countries_default").array().notNull(),
   instagramHandle: text("instagram_handle"),
   acceptanceFollowersThreshold: integer("acceptance_followers_threshold")
@@ -56,6 +62,14 @@ export const brands = pgTable("brands", {
   )
     .notNull()
     .default(true),
+  notificationNewMatch: boolean("notification_new_match").notNull().default(true),
+  notificationContentReceived: boolean("notification_content_received")
+    .notNull()
+    .default(true),
+  notificationWeeklyDigest: boolean("notification_weekly_digest")
+    .notNull()
+    .default(false),
+  notificationMarketing: boolean("notification_marketing").notNull().default(false),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -89,6 +103,8 @@ export const offers = pgTable("offers", {
     "acceptance_above_threshold_auto_accept",
   ).notNull(),
 
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().notNull().default({}),
+
   publishedAt: timestamp("published_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
@@ -104,6 +120,8 @@ export const creators = pgTable("creators", {
   username: text("username"),
   followersCount: integer("followers_count"),
   country: text("country"),
+  categories: text("categories").array(),
+  categoriesOther: text("categories_other"),
   fullName: text("full_name"),
   email: text("email"),
   phone: text("phone"),

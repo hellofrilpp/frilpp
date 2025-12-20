@@ -1,30 +1,27 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ArrowRight, Instagram, ChevronRight, Check, Gamepad2, Sparkles } from "lucide-react";
 import FrilppLogo from "@/components/FrilppLogo";
-import { ApiError, apiUrl, updateCreatorProfile } from "@/lib/api";
+import { ApiError, apiUrl, getPicklists, updateCreatorProfile } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
-
-const categories = [
-  "BEAUTY",
-  "FASHION",
-  "FITNESS",
-  "FOOD",
-  "TRAVEL",
-  "LIFESTYLE",
-  "TECH",
-  "HOME",
-  "PARENTING",
-  "PETS",
-];
+import { useQuery } from "@tanstack/react-query";
 
 const InfluencerOnboarding = () => {
   const [step, setStep] = useState(1);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [categoriesOther, setCategoriesOther] = useState("");
   const [country, setCountry] = useState<"US" | "IN">("US");
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { data: picklists } = useQuery({
+    queryKey: ["picklists"],
+    queryFn: getPicklists,
+  });
+
+  const categories = picklists?.creatorCategories ?? [];
+  const needsOther = selectedCategories.includes("OTHER");
 
   const toggleCategory = (category: string) => {
     setSelectedCategories(prev => 
@@ -36,7 +33,15 @@ const InfluencerOnboarding = () => {
 
   const handleComplete = async () => {
     try {
-      await updateCreatorProfile({ country });
+      if (needsOther && !categoriesOther.trim()) {
+        toast({ title: "ADD DETAILS", description: "Tell us your Other category." });
+        return;
+      }
+      await updateCreatorProfile({
+        country,
+        categories: selectedCategories,
+        categoriesOther: needsOther ? categoriesOther.trim() : null,
+      });
       navigate("/influencer/discover");
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Onboarding failed";
@@ -183,11 +188,11 @@ const InfluencerOnboarding = () => {
 
               <div className="grid grid-cols-2 gap-2 mb-8">
                 {categories.map((category) => {
-                  const isSelected = selectedCategories.includes(category);
+                  const isSelected = selectedCategories.includes(category.id);
                   return (
                     <button
-                      key={category}
-                      onClick={() => toggleCategory(category)}
+                      key={category.id}
+                      onClick={() => toggleCategory(category.id)}
                       className={`p-3 text-xs font-mono text-left border-2 transition-all pixel-btn ${
                         isSelected 
                           ? 'bg-neon-purple text-background border-neon-purple' 
@@ -195,7 +200,7 @@ const InfluencerOnboarding = () => {
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span>{category}</span>
+                        <span>{category.label}</span>
                         {isSelected && <Check className="w-4 h-4" />}
                       </div>
                     </button>
@@ -203,13 +208,27 @@ const InfluencerOnboarding = () => {
                 })}
               </div>
 
+              {needsOther && (
+                <div className="mb-6 border-2 border-border p-4">
+                  <p className="text-xs font-mono text-muted-foreground mb-3">
+                    &gt; Describe your other category
+                  </p>
+                  <Input
+                    value={categoriesOther}
+                    onChange={(event) => setCategoriesOther(event.target.value)}
+                    placeholder="e.g. Streetwear, Gaming, DIY crafts"
+                    className="border-2 border-border font-mono focus:border-neon-purple"
+                  />
+                </div>
+              )}
+
               <div className="flex gap-3">
                 <Button variant="outline" onClick={() => setStep(2)} className="flex-1 border-2 border-border font-mono text-xs">
                   BACK
                 </Button>
                 <Button 
                   onClick={handleComplete}
-                  disabled={selectedCategories.length === 0}
+                  disabled={selectedCategories.length === 0 || (needsOther && !categoriesOther.trim())}
                   className="flex-1 bg-neon-green text-background font-pixel text-xs pixel-btn glow-green disabled:opacity-50"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />

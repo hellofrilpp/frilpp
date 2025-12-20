@@ -15,7 +15,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import FrilppLogo from "@/components/FrilppLogo";
-import { ApiError, apiFetch, apiUrl } from "@/lib/api";
+import { ApiError, apiFetch, apiUrl, getAuthMe, logout } from "@/lib/api";
+import { useQuery } from "@tanstack/react-query";
 
 const navItems = [
   { icon: LayoutDashboard, label: "OVERVIEW", href: "/brand/dashboard" },
@@ -33,6 +34,22 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+  const { data: authData } = useQuery({
+    queryKey: ["auth-me"],
+    queryFn: getAuthMe,
+  });
+
+  const activeMembership = authData?.user?.memberships.find(
+    (membership) => membership.brandId === authData.user?.activeBrandId,
+  ) ?? authData?.user?.memberships[0];
+  const brandName = activeMembership?.brandName ?? "BRAND";
+  const brandInitials = brandName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0])
+    .join("")
+    .toUpperCase();
 
   useEffect(() => {
     const ensureSession = async () => {
@@ -137,11 +154,11 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
         <div className="p-3 border-t-4 border-border">
           <div className={cn("flex items-center gap-3 p-2", !sidebarOpen && "justify-center")}>
             <div className="w-10 h-10 bg-neon-green text-background flex items-center justify-center text-xs font-pixel">
-              GB
+              {brandInitials || "BR"}
             </div>
             {sidebarOpen && (
               <div className="flex-1 min-w-0">
-                <p className="text-xs font-pixel text-foreground truncate">GLOWUP</p>
+                <p className="text-xs font-pixel text-foreground truncate">{brandName}</p>
                 <div className="flex items-center gap-1">
                   <Trophy className="w-3 h-3 text-neon-yellow" />
                   <span className="text-xs font-mono text-neon-yellow">LV.8</span>
@@ -152,13 +169,16 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
           {sidebarOpen && (
             <Button 
               variant="ghost" 
-              className="w-full mt-2 justify-start text-muted-foreground border-2 border-transparent hover:border-destructive hover:text-destructive text-xs font-mono" 
-              asChild
+              className="w-full mt-2 justify-start text-muted-foreground border-2 border-transparent hover:border-destructive hover:text-destructive text-xs font-mono"
+              onClick={async () => {
+                await logout().catch(() => null);
+                window.location.href = "/";
+              }}
             >
-              <Link to="/">
+              <span className="inline-flex items-center">
                 <LogOut className="w-4 h-4 mr-2" />
                 LOG_OUT
-              </Link>
+              </span>
             </Button>
           )}
         </div>

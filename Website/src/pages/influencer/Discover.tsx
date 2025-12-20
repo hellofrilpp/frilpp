@@ -50,10 +50,9 @@ const InfluencerDiscover = () => {
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [matchedOffers, setMatchedOffers] = useState<string[]>([]);
-  const [totalSwipes, setTotalSwipes] = useState(0);
   const feedback = useFeedback();
   const { fireMatch, fireLevelUp } = useConfetti();
-  const { unlockAchievement, incrementProgress, recentUnlock } = useAchievements();
+  const { recentUnlock, refreshAchievements } = useAchievements();
 
   const offers = useMemo<OfferCard[]>(() => {
     if (!data?.offers) return [];
@@ -87,18 +86,8 @@ const InfluencerDiscover = () => {
   const currentOffer = offers[currentIndex];
   const hasMoreOffers = currentIndex < offers.length;
 
-  // Track first swipe achievement
-  useEffect(() => {
-    if (totalSwipes === 1) {
-      unlockAchievement('first_swipe');
-    }
-    // Update swipe master progress
-    incrementProgress('swipe_master', totalSwipes);
-  }, [totalSwipes, unlockAchievement, incrementProgress]);
-
   const handleSwipe = async (direction: "left" | "right") => {
     setSwipeDirection(direction);
-    setTotalSwipes(prev => prev + 1);
 
     if (!currentOffer) {
       setSwipeDirection(null);
@@ -110,11 +99,9 @@ const InfluencerDiscover = () => {
         await claimOffer(currentOffer.id);
         setMatchedOffers(prev => {
           const newMatches = [...prev, currentOffer.id];
-          if (newMatches.length === 1) {
-            setTimeout(() => unlockAchievement('first_match'), 500);
-          }
           return newMatches;
         });
+        refreshAchievements();
         feedback.swipeRight();
         fireMatch();
       } catch (err) {

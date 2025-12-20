@@ -3,32 +3,8 @@ import { Link } from "react-router-dom";
 import { Trophy, Crown, Star, TrendingUp, Users, Briefcase, ArrowLeft, Zap, Target, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-const topCreators = [
-  { rank: 1, name: "SarahGlow", handle: "@sarahglow", xp: 12450, deals: 47, avatar: "SG", trend: "+15%" },
-  { rank: 2, name: "FitMike", handle: "@fitmike", xp: 11200, deals: 42, avatar: "FM", trend: "+12%" },
-  { rank: 3, name: "BeautyBoss", handle: "@beautyboss", xp: 10890, deals: 39, avatar: "BB", trend: "+8%" },
-  { rank: 4, name: "TechTara", handle: "@techtara", xp: 9750, deals: 36, avatar: "TT", trend: "+22%" },
-  { rank: 5, name: "StyleKing", handle: "@styleking", xp: 9200, deals: 34, avatar: "SK", trend: "+5%" },
-  { rank: 6, name: "LifeWithLisa", handle: "@lifewithlisa", xp: 8800, deals: 31, avatar: "LL", trend: "+18%" },
-  { rank: 7, name: "GamerzPro", handle: "@gamerzpro", xp: 8500, deals: 29, avatar: "GP", trend: "+3%" },
-  { rank: 8, name: "FoodieFreak", handle: "@foodiefreak", xp: 8100, deals: 28, avatar: "FF", trend: "+11%" },
-  { rank: 9, name: "TravelTom", handle: "@traveltom", xp: 7800, deals: 26, avatar: "TM", trend: "+7%" },
-  { rank: 10, name: "PetPals", handle: "@petpals", xp: 7500, deals: 24, avatar: "PP", trend: "+14%" },
-];
-
-const topBrands = [
-  { rank: 1, name: "GlowUp Beauty", category: "Skincare", xp: 45200, creators: 156, avatar: "GB", trend: "+25%" },
-  { rank: 2, name: "StyleHaus", category: "Fashion", xp: 42100, creators: 142, avatar: "SH", trend: "+18%" },
-  { rank: 3, name: "VitaBlend", category: "Fitness", xp: 38900, creators: 128, avatar: "VB", trend: "+12%" },
-  { rank: 4, name: "TechGear", category: "Electronics", xp: 35600, creators: 98, avatar: "TG", trend: "+30%" },
-  { rank: 5, name: "EcoLife", category: "Lifestyle", xp: 32400, creators: 89, avatar: "EL", trend: "+15%" },
-  { rank: 6, name: "PetWorld", category: "Pets", xp: 28900, creators: 76, avatar: "PW", trend: "+8%" },
-  { rank: 7, name: "GameZone", category: "Gaming", xp: 26500, creators: 72, avatar: "GZ", trend: "+22%" },
-  { rank: 8, name: "FoodFusion", category: "Food", xp: 24200, creators: 65, avatar: "FF", trend: "+11%" },
-  { rank: 9, name: "HomeVibes", category: "Home", xp: 22800, creators: 58, avatar: "HV", trend: "+6%" },
-  { rank: 10, name: "BookNook", category: "Books", xp: 20100, creators: 45, avatar: "BN", trend: "+9%" },
-];
+import { useQuery } from "@tanstack/react-query";
+import { getLeaderboard } from "@/lib/api";
 
 const getRankStyle = (rank: number) => {
   switch (rank) {
@@ -58,6 +34,13 @@ const getRankIcon = (rank: number) => {
 
 const Leaderboard = () => {
   const [activeTab, setActiveTab] = useState("creators");
+  const { data, isLoading } = useQuery({
+    queryKey: ["leaderboard"],
+    queryFn: getLeaderboard,
+  });
+
+  const creators = data?.creators ?? [];
+  const brands = data?.brands ?? [];
 
   return (
     <div className="min-h-screen bg-background bg-grid">
@@ -88,19 +71,27 @@ const Leaderboard = () => {
           <div className="border-4 border-neon-green bg-card p-6 text-center relative overflow-hidden">
             <div className="absolute inset-0 scanlines opacity-30" />
             <Users className="w-8 h-8 mx-auto text-neon-green mb-2" />
-            <p className="font-pixel text-2xl text-neon-green mb-1">2,547</p>
+            <p className="font-pixel text-2xl text-neon-green mb-1">
+              {isLoading ? "--" : creators.reduce((sum, creator) => sum + creator.deals, 0).toLocaleString()}
+            </p>
             <p className="font-mono text-xs text-muted-foreground">ACTIVE CREATORS</p>
           </div>
           <div className="border-4 border-neon-pink bg-card p-6 text-center relative overflow-hidden">
             <div className="absolute inset-0 scanlines opacity-30" />
             <Briefcase className="w-8 h-8 mx-auto text-neon-pink mb-2" />
-            <p className="font-pixel text-2xl text-neon-pink mb-1">423</p>
+            <p className="font-pixel text-2xl text-neon-pink mb-1">
+              {isLoading ? "--" : brands.reduce((sum, brand) => sum + brand.creators, 0).toLocaleString()}
+            </p>
             <p className="font-mono text-xs text-muted-foreground">ACTIVE BRANDS</p>
           </div>
           <div className="border-4 border-neon-yellow bg-card p-6 text-center relative overflow-hidden">
             <div className="absolute inset-0 scanlines opacity-30" />
             <Target className="w-8 h-8 mx-auto text-neon-yellow mb-2" />
-            <p className="font-pixel text-2xl text-neon-yellow mb-1">8,912</p>
+            <p className="font-pixel text-2xl text-neon-yellow mb-1">
+              {isLoading
+                ? "--"
+                : creators.reduce((sum, creator) => sum + creator.deals, 0).toLocaleString()}
+            </p>
             <p className="font-mono text-xs text-muted-foreground">DEALS COMPLETED</p>
           </div>
         </div>
@@ -135,10 +126,12 @@ const Leaderboard = () => {
                     <span className="font-pixel text-background">2</span>
                   </div>
                   <div className="w-12 h-12 mx-auto bg-muted border-2 border-muted-foreground flex items-center justify-center font-pixel text-sm mb-2">
-                    {topCreators[1].avatar}
+                    {creators[1]?.avatar ?? "--"}
                   </div>
-                  <p className="font-pixel text-xs text-foreground truncate">{topCreators[1].name}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{topCreators[1].xp.toLocaleString()} XP</p>
+                  <p className="font-pixel text-xs text-foreground truncate">{creators[1]?.name ?? "—"}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {creators[1] ? `${creators[1].xp.toLocaleString()} XP` : "--"}
+                  </p>
                 </div>
               </div>
 
@@ -149,13 +142,15 @@ const Leaderboard = () => {
                     <Crown className="w-8 h-8 text-neon-yellow animate-pulse-neon" />
                   </div>
                   <div className="w-16 h-16 mx-auto bg-neon-yellow/20 border-2 border-neon-yellow flex items-center justify-center font-pixel text-lg mb-2 mt-2">
-                    {topCreators[0].avatar}
+                    {creators[0]?.avatar ?? "--"}
                   </div>
-                  <p className="font-pixel text-sm text-neon-yellow">{topCreators[0].name}</p>
-                  <p className="font-mono text-xs text-foreground">{topCreators[0].xp.toLocaleString()} XP</p>
+                  <p className="font-pixel text-sm text-neon-yellow">{creators[0]?.name ?? "—"}</p>
+                  <p className="font-mono text-xs text-foreground">
+                    {creators[0] ? `${creators[0].xp.toLocaleString()} XP` : "--"}
+                  </p>
                   <div className="flex items-center justify-center gap-1 mt-1">
                     <TrendingUp className="w-3 h-3 text-neon-green" />
-                    <span className="font-mono text-xs text-neon-green">{topCreators[0].trend}</span>
+                    <span className="font-mono text-xs text-neon-green">{creators[0]?.trend ?? "0%"}</span>
                   </div>
                 </div>
               </div>
@@ -167,10 +162,12 @@ const Leaderboard = () => {
                     <span className="font-pixel text-background">3</span>
                   </div>
                   <div className="w-10 h-10 mx-auto bg-neon-pink/20 border-2 border-neon-pink flex items-center justify-center font-pixel text-xs mb-2">
-                    {topCreators[2].avatar}
+                    {creators[2]?.avatar ?? "--"}
                   </div>
-                  <p className="font-pixel text-xs text-foreground truncate">{topCreators[2].name}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{topCreators[2].xp.toLocaleString()} XP</p>
+                  <p className="font-pixel text-xs text-foreground truncate">{creators[2]?.name ?? "—"}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {creators[2] ? `${creators[2].xp.toLocaleString()} XP` : "--"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -184,7 +181,7 @@ const Leaderboard = () => {
                 <span className="font-pixel text-xs text-muted-foreground w-16 text-right hidden sm:block">DEALS</span>
                 <span className="font-pixel text-xs text-muted-foreground w-16 text-right hidden sm:block">TREND</span>
               </div>
-              {topCreators.map((creator, index) => (
+              {creators.map((creator, index) => (
                 <div 
                   key={creator.rank}
                   className={`p-4 flex items-center gap-4 border-b-2 border-border last:border-b-0 hover:bg-muted/50 transition-colors ${
@@ -201,7 +198,7 @@ const Leaderboard = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="font-pixel text-sm text-foreground truncate">{creator.name}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{creator.handle}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{creator.handle ?? "@creator"}</p>
                     </div>
                   </div>
                   <div className="w-20 text-right">
@@ -230,10 +227,12 @@ const Leaderboard = () => {
                     <span className="font-pixel text-background">2</span>
                   </div>
                   <div className="w-12 h-12 mx-auto bg-muted border-2 border-muted-foreground flex items-center justify-center font-pixel text-sm mb-2">
-                    {topBrands[1].avatar}
+                    {brands[1]?.avatar ?? "--"}
                   </div>
-                  <p className="font-pixel text-xs text-foreground truncate">{topBrands[1].name}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{topBrands[1].xp.toLocaleString()} XP</p>
+                  <p className="font-pixel text-xs text-foreground truncate">{brands[1]?.name ?? "—"}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {brands[1] ? `${brands[1].xp.toLocaleString()} XP` : "--"}
+                  </p>
                 </div>
               </div>
 
@@ -244,13 +243,15 @@ const Leaderboard = () => {
                     <Crown className="w-8 h-8 text-neon-yellow animate-pulse-neon" />
                   </div>
                   <div className="w-16 h-16 mx-auto bg-neon-yellow/20 border-2 border-neon-yellow flex items-center justify-center font-pixel text-lg mb-2 mt-2">
-                    {topBrands[0].avatar}
+                    {brands[0]?.avatar ?? "--"}
                   </div>
-                  <p className="font-pixel text-sm text-neon-yellow truncate">{topBrands[0].name}</p>
-                  <p className="font-mono text-xs text-foreground">{topBrands[0].xp.toLocaleString()} XP</p>
+                  <p className="font-pixel text-sm text-neon-yellow truncate">{brands[0]?.name ?? "—"}</p>
+                  <p className="font-mono text-xs text-foreground">
+                    {brands[0] ? `${brands[0].xp.toLocaleString()} XP` : "--"}
+                  </p>
                   <div className="flex items-center justify-center gap-1 mt-1">
                     <TrendingUp className="w-3 h-3 text-neon-green" />
-                    <span className="font-mono text-xs text-neon-green">{topBrands[0].trend}</span>
+                    <span className="font-mono text-xs text-neon-green">{brands[0]?.trend ?? "0%"}</span>
                   </div>
                 </div>
               </div>
@@ -262,10 +263,12 @@ const Leaderboard = () => {
                     <span className="font-pixel text-background">3</span>
                   </div>
                   <div className="w-10 h-10 mx-auto bg-neon-pink/20 border-2 border-neon-pink flex items-center justify-center font-pixel text-xs mb-2">
-                    {topBrands[2].avatar}
+                    {brands[2]?.avatar ?? "--"}
                   </div>
-                  <p className="font-pixel text-xs text-foreground truncate">{topBrands[2].name}</p>
-                  <p className="font-mono text-xs text-muted-foreground">{topBrands[2].xp.toLocaleString()} XP</p>
+                  <p className="font-pixel text-xs text-foreground truncate">{brands[2]?.name ?? "—"}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {brands[2] ? `${brands[2].xp.toLocaleString()} XP` : "--"}
+                  </p>
                 </div>
               </div>
             </div>
@@ -279,7 +282,7 @@ const Leaderboard = () => {
                 <span className="font-pixel text-xs text-muted-foreground w-20 text-right hidden sm:block">CREATORS</span>
                 <span className="font-pixel text-xs text-muted-foreground w-16 text-right hidden sm:block">TREND</span>
               </div>
-              {topBrands.map((brand, index) => (
+              {brands.map((brand, index) => (
                 <div 
                   key={brand.rank}
                   className={`p-4 flex items-center gap-4 border-b-2 border-border last:border-b-0 hover:bg-muted/50 transition-colors ${
@@ -296,7 +299,7 @@ const Leaderboard = () => {
                     </div>
                     <div className="min-w-0">
                       <p className="font-pixel text-sm text-foreground truncate">{brand.name}</p>
-                      <p className="font-mono text-xs text-muted-foreground">{brand.category}</p>
+                  <p className="font-mono text-xs text-muted-foreground">{brand.category || "D2C"}</p>
                     </div>
                   </div>
                   <div className="w-20 text-right">
