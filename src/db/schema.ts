@@ -1,0 +1,432 @@
+import { sql } from "drizzle-orm";
+import {
+  boolean,
+  integer,
+  pgEnum,
+  pgTable,
+  primaryKey,
+  text,
+  timestamp,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+
+export const deliverableTypeEnum = pgEnum("deliverable_type", [
+  "REELS",
+  "FEED",
+  "UGC_ONLY",
+]);
+
+export const offerTemplateEnum = pgEnum("offer_template", [
+  "REEL",
+  "FEED",
+  "REEL_PLUS_STORY",
+  "UGC_ONLY",
+]);
+
+export const offerStatusEnum = pgEnum("offer_status", [
+  "DRAFT",
+  "PUBLISHED",
+  "ARCHIVED",
+]);
+
+export const matchStatusEnum = pgEnum("match_status", [
+  "CLAIMED",
+  "PENDING_APPROVAL",
+  "ACCEPTED",
+  "REVOKED",
+  "CANCELED",
+]);
+
+export const deliverableStatusEnum = pgEnum("deliverable_status", [
+  "DUE",
+  "VERIFIED",
+  "FAILED",
+]);
+
+export const brands = pgTable("brands", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  countriesDefault: text("countries_default").array().notNull(),
+  instagramHandle: text("instagram_handle"),
+  acceptanceFollowersThreshold: integer("acceptance_followers_threshold")
+    .notNull()
+    .default(5000),
+  acceptanceAboveThresholdAutoAccept: boolean(
+    "acceptance_above_threshold_auto_accept",
+  )
+    .notNull()
+    .default(true),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const offers = pgTable("offers", {
+  id: text("id").primaryKey(),
+  brandId: text("brand_id")
+    .notNull()
+    .references(() => brands.id, { onDelete: "cascade" }),
+
+  title: text("title").notNull(),
+  template: offerTemplateEnum("template").notNull(),
+  status: offerStatusEnum("status").notNull().default("DRAFT"),
+
+  countriesAllowed: text("countries_allowed").array().notNull(),
+  maxClaims: integer("max_claims").notNull(),
+  deadlineDaysAfterDelivery: integer("deadline_days_after_delivery").notNull(),
+
+  deliverableType: deliverableTypeEnum("deliverable_type").notNull(),
+  requiresCaptionCode: boolean("requires_caption_code").notNull().default(true),
+
+  usageRightsRequired: boolean("usage_rights_required").notNull().default(false),
+  usageRightsScope: text("usage_rights_scope"),
+
+  acceptanceFollowersThreshold: integer("acceptance_followers_threshold").notNull(),
+  acceptanceAboveThresholdAutoAccept: boolean(
+    "acceptance_above_threshold_auto_accept",
+  ).notNull(),
+
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const creators = pgTable("creators", {
+  id: text("id").primaryKey(),
+  igUserId: text("ig_user_id"),
+  username: text("username"),
+  followersCount: integer("followers_count"),
+  country: text("country"),
+  fullName: text("full_name"),
+  email: text("email"),
+  phone: text("phone"),
+  address1: text("address1"),
+  address2: text("address2"),
+  city: text("city"),
+  province: text("province"),
+  zip: text("zip"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const matches = pgTable(
+  "matches",
+  {
+    id: text("id").primaryKey(),
+    offerId: text("offer_id")
+      .notNull()
+      .references(() => offers.id, { onDelete: "cascade" }),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+
+    status: matchStatusEnum("status").notNull(),
+    campaignCode: text("campaign_code").notNull(),
+
+    acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    campaignCodeUnique: uniqueIndex("matches_campaign_code_unique").on(t.campaignCode),
+  }),
+);
+
+export const deliverables = pgTable("deliverables", {
+  id: text("id").primaryKey(),
+  matchId: text("match_id")
+    .notNull()
+    .references(() => matches.id, { onDelete: "cascade" }),
+  status: deliverableStatusEnum("status").notNull(),
+  expectedType: deliverableTypeEnum("expected_type").notNull(),
+  dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+
+  submittedPermalink: text("submitted_permalink"),
+  submittedNotes: text("submitted_notes"),
+  submittedAt: timestamp("submitted_at", { withTimezone: true }),
+  usageRightsGrantedAt: timestamp("usage_rights_granted_at", { withTimezone: true }),
+  usageRightsScope: text("usage_rights_scope"),
+  reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
+  reviewedByUserId: text("reviewed_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
+
+  verifiedMediaId: text("verified_media_id"),
+  verifiedPermalink: text("verified_permalink"),
+  verifiedAt: timestamp("verified_at", { withTimezone: true }),
+  failureReason: text("failure_reason"),
+
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const strikes = pgTable("strikes", {
+  id: text("id").primaryKey(),
+  creatorId: text("creator_id")
+    .notNull()
+    .references(() => creators.id, { onDelete: "cascade" }),
+  matchId: text("match_id").references(() => matches.id, { onDelete: "set null" }),
+  reason: text("reason").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  forgivenAt: timestamp("forgiven_at", { withTimezone: true }),
+  forgivenReason: text("forgiven_reason"),
+});
+
+export const auditLogs = pgTable("audit_logs", {
+  id: text("id").primaryKey(),
+  brandId: text("brand_id").references(() => brands.id, { onDelete: "set null" }),
+  actorType: text("actor_type").notNull(), // BRAND | CREATOR | ADMIN | SYSTEM
+  actorId: text("actor_id"),
+  action: text("action").notNull(),
+  data: text("data"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const membershipRoleEnum = pgEnum("membership_role", ["OWNER", "ADMIN", "MEMBER"]);
+
+export const users = pgTable("users", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  name: text("name"),
+  activeBrandId: text("active_brand_id"),
+  tosAcceptedAt: timestamp("tos_accepted_at", { withTimezone: true }),
+  privacyAcceptedAt: timestamp("privacy_accepted_at", { withTimezone: true }),
+  igDataAccessAcceptedAt: timestamp("ig_data_access_accepted_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const rateLimitBuckets = pgTable(
+  "rate_limit_buckets",
+  {
+    key: text("key").notNull(),
+    windowStart: timestamp("window_start", { withTimezone: true }).notNull(),
+    count: integer("count").notNull().default(0),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    pk: primaryKey({ columns: [t.key, t.windowStart] }),
+  }),
+);
+
+export const sessions = pgTable("sessions", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const loginTokens = pgTable("login_tokens", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  tokenHash: text("token_hash").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const brandMemberships = pgTable("brand_memberships", {
+  id: text("id").primaryKey(),
+  brandId: text("brand_id")
+    .notNull()
+    .references(() => brands.id, { onDelete: "cascade" }),
+  userId: text("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  role: membershipRoleEnum("role").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const creatorMeta = pgTable("creator_meta", {
+  id: text("id").primaryKey(),
+  creatorId: text("creator_id")
+    .notNull()
+    .references(() => creators.id, { onDelete: "cascade" }),
+  igUserId: text("ig_user_id"),
+  accountType: text("account_type"),
+  accessTokenEncrypted: text("access_token_encrypted").notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }),
+  profileSyncedAt: timestamp("profile_synced_at", { withTimezone: true }),
+  profileError: text("profile_error"),
+  scopes: text("scopes"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const notificationChannelEnum = pgEnum("notification_channel", [
+  "EMAIL",
+  "SMS",
+  "WHATSAPP",
+]);
+export const notificationStatusEnum = pgEnum("notification_status", [
+  "PENDING",
+  "SENT",
+  "ERROR",
+]);
+
+export const notifications = pgTable("notifications", {
+  id: text("id").primaryKey(),
+  channel: notificationChannelEnum("channel").notNull(),
+  status: notificationStatusEnum("status").notNull().default("PENDING"),
+  to: text("to").notNull(),
+  type: text("type").notNull(),
+  payload: text("payload"),
+  error: text("error"),
+  sentAt: timestamp("sent_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const updatedAtTriggerSql = sql`
+CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+`;
+
+export const shopifyStores = pgTable("shopify_stores", {
+  id: text("id").primaryKey(),
+  brandId: text("brand_id")
+    .notNull()
+    .references(() => brands.id, { onDelete: "cascade" }),
+  shopDomain: text("shop_domain").notNull(),
+  accessTokenEncrypted: text("access_token_encrypted").notNull(),
+  scopes: text("scopes").notNull(),
+  installedAt: timestamp("installed_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  uninstalledAt: timestamp("uninstalled_at", { withTimezone: true }),
+});
+
+export const offerProducts = pgTable("offer_products", {
+  id: text("id").primaryKey(),
+  offerId: text("offer_id")
+    .notNull()
+    .references(() => offers.id, { onDelete: "cascade" }),
+  shopifyProductId: text("shopify_product_id").notNull(),
+  shopifyVariantId: text("shopify_variant_id").notNull(),
+  quantity: integer("quantity").notNull().default(1),
+});
+
+export const linkClicks = pgTable("link_clicks", {
+  id: text("id").primaryKey(),
+  matchId: text("match_id")
+    .notNull()
+    .references(() => matches.id, { onDelete: "cascade" }),
+  occurredAt: timestamp("occurred_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+  ipHash: text("ip_hash"),
+  userAgent: text("user_agent"),
+  referer: text("referer"),
+});
+
+export const attributedOrders = pgTable("attributed_orders", {
+  id: text("id").primaryKey(),
+  matchId: text("match_id")
+    .notNull()
+    .references(() => matches.id, { onDelete: "cascade" }),
+  shopDomain: text("shop_domain").notNull(),
+  shopifyOrderId: text("shopify_order_id").notNull(),
+  currency: text("currency").notNull(),
+  totalPrice: integer("total_price_cents").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const matchDiscounts = pgTable(
+  "match_discounts",
+  {
+    id: text("id").primaryKey(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    shopDomain: text("shop_domain").notNull(),
+    shopifyPriceRuleId: text("shopify_price_rule_id").notNull(),
+    shopifyDiscountCodeId: text("shopify_discount_code_id").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    matchIdUnique: uniqueIndex("match_discounts_match_id_unique").on(t.matchId),
+  }),
+);
+
+export const shopifyOrderStatusEnum = pgEnum("shopify_order_status", [
+  "PENDING",
+  "DRAFT_CREATED",
+  "COMPLETED",
+  "FULFILLED",
+  "CANCELED",
+  "ERROR",
+]);
+
+export const shopifyOrders = pgTable(
+  "shopify_orders",
+  {
+    id: text("id").primaryKey(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    shopDomain: text("shop_domain").notNull(),
+
+    status: shopifyOrderStatusEnum("status").notNull().default("PENDING"),
+    shopifyDraftOrderId: text("shopify_draft_order_id"),
+    shopifyOrderId: text("shopify_order_id"),
+    shopifyOrderName: text("shopify_order_name"),
+
+    trackingNumber: text("tracking_number"),
+    trackingUrl: text("tracking_url"),
+
+    error: text("error"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    matchIdUnique: uniqueIndex("shopify_orders_match_id_unique").on(t.matchId),
+  }),
+);

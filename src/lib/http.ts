@@ -1,0 +1,19 @@
+export async function fetchJsonWithTimeout<T>(
+  input: RequestInfo | URL,
+  init: RequestInit & { timeoutMs?: number } = {},
+): Promise<T> {
+  const { timeoutMs = 8000, ...rest } = init;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const res = await fetch(input, { ...rest, signal: controller.signal });
+    const json = (await res.json().catch(() => null)) as T | null;
+    if (!res.ok || json === null) {
+      throw new Error(`Request failed: ${res.status}`);
+    }
+    return json;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+

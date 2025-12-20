@@ -1,0 +1,410 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+
+type Me = {
+  id: string;
+  email: string;
+  name: string | null;
+  activeBrandId: string | null;
+  tosAcceptedAt: string | null;
+  privacyAcceptedAt: string | null;
+  igDataAccessAcceptedAt: string | null;
+  hasCreatorProfile: boolean;
+  memberships: Array<{ brandId: string; brandName: string; role: string }>;
+};
+
+export default function OnboardingPage() {
+  const [me, setMe] = useState<Me | null>(null);
+  const [status, setStatus] = useState<"loading" | "idle" | "error">("loading");
+  const [message, setMessage] = useState<string | null>(null);
+
+  const [brandName, setBrandName] = useState("My brand");
+  const [brandCountries, setBrandCountries] = useState<Array<"US" | "IN">>(["US"]);
+
+  const [creatorForm, setCreatorForm] = useState({
+    username: "",
+    followersCount: 1500,
+    country: "US" as "US" | "IN",
+    fullName: "",
+    email: "",
+    phone: "",
+    address1: "",
+    address2: "",
+    city: "",
+    province: "",
+    zip: "",
+  });
+
+  const isAuthed = Boolean(me);
+  const hasBrand = Boolean(me?.memberships?.length);
+  const hasCreator = Boolean(me?.hasCreatorProfile);
+  const legalOk = Boolean(me?.tosAcceptedAt && me?.privacyAcceptedAt);
+
+  const primaryNextLink = useMemo(() => {
+    if (hasBrand) return "/brand/offers";
+    if (hasCreator) return "/influencer/feed";
+    return "/";
+  }, [hasBrand, hasCreator]);
+
+  async function loadMe() {
+    setStatus("loading");
+    setMessage(null);
+    try {
+      const res = await fetch("/api/auth/me");
+      const data = (await res.json().catch(() => null)) as
+        | { ok: true; user: Me | null }
+        | { ok: false; error?: string };
+      if (!res.ok || !data || !("ok" in data) || data.ok !== true) throw new Error("Failed");
+      setMe(data.user);
+      setStatus("idle");
+    } catch (err) {
+      setStatus("error");
+      setMessage(err instanceof Error ? err.message : "Failed to load");
+    }
+  }
+
+  useEffect(() => {
+    void loadMe();
+  }, []);
+
+  async function logout() {
+    await fetch("/api/auth/logout", { method: "POST" });
+    await loadMe();
+  }
+
+  async function createBrand() {
+    setMessage(null);
+    try {
+      const res = await fetch("/api/onboarding/brand", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name: brandName, countriesDefault: brandCountries }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
+      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
+        throw new Error(
+          data && "error" in data && typeof data.error === "string" ? data.error : "Failed",
+        );
+      }
+      setMessage("Brand created.");
+      await loadMe();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Brand create failed");
+    }
+  }
+
+  async function createCreator() {
+    setMessage(null);
+    try {
+      const res = await fetch("/api/onboarding/creator", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          username: creatorForm.username || undefined,
+          followersCount: creatorForm.followersCount,
+          country: creatorForm.country,
+          fullName: creatorForm.fullName,
+          email: creatorForm.email,
+          phone: creatorForm.phone || undefined,
+          address1: creatorForm.address1,
+          address2: creatorForm.address2 || undefined,
+          city: creatorForm.city,
+          province: creatorForm.province || undefined,
+          zip: creatorForm.zip,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
+      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
+        throw new Error(
+          data && "error" in data && typeof data.error === "string" ? data.error : "Failed",
+        );
+      }
+      setMessage("Creator profile created.");
+      await loadMe();
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Creator create failed");
+    }
+  }
+
+  async function setActiveBrand(brandId: string) {
+    setMessage(null);
+    try {
+      const res = await fetch("/api/brand/active", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ brandId }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
+      if (!res.ok || !data || !("ok" in data) || data.ok !== true) throw new Error("Failed");
+      await loadMe();
+    } catch {
+      setMessage("Failed to switch brand.");
+    }
+  }
+
+  return (
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto max-w-3xl px-4 py-10 md:px-8">
+        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="secondary">Frilpp</Badge>
+              <Badge variant="secondary">Onboarding</Badge>
+            </div>
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Get set up</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              Create a brand workspace, a creator profile, or both.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/">
+              <Button variant="outline">Home</Button>
+            </Link>
+            {isAuthed ? (
+              <Button variant="outline" onClick={logout}>
+                Logout
+              </Button>
+            ) : (
+              <Link href="/login">
+                <Button variant="secondary">Login</Button>
+              </Link>
+            )}
+          </div>
+        </div>
+
+        {message ? (
+          <div className="mt-6 rounded-lg border bg-muted p-4 text-sm text-muted-foreground">
+            {message}
+          </div>
+        ) : null}
+
+        {me && !legalOk ? (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Legal required</CardTitle>
+              <CardDescription>
+                Accept Terms and Privacy to use Frilpp.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/legal/accept?next=%2Fonboarding">
+                <Button variant="secondary">Review & accept</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {status === "loading" ? (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Loading…</CardTitle>
+              <CardDescription>Fetching your session.</CardDescription>
+            </CardHeader>
+          </Card>
+        ) : null}
+
+        {status === "idle" && !me ? (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Sign in required</CardTitle>
+              <CardDescription>Login to create a brand or creator profile.</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Link href="/login">
+                <Button>Go to login</Button>
+              </Link>
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {me ? (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle>Account</CardTitle>
+              <CardDescription>
+                Signed in as <span className="font-mono">{me.email}</span>
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-4">
+              <div className="flex flex-wrap gap-2">
+                {me.memberships.map((m) => (
+                  <Button
+                    key={m.brandId}
+                    size="sm"
+                    variant={m.brandId === me.activeBrandId ? "default" : "outline"}
+                    onClick={() => setActiveBrand(m.brandId)}
+                  >
+                    {m.brandName} ({m.role})
+                  </Button>
+                ))}
+                {!me.memberships.length ? <Badge variant="warning">No brand yet</Badge> : null}
+                {me.hasCreatorProfile ? <Badge variant="success">Creator profile ready</Badge> : <Badge variant="warning">No creator profile yet</Badge>}
+              </div>
+
+              {(hasBrand || hasCreator) ? (
+                <Link href={primaryNextLink}>
+                  <Button variant="secondary">Continue</Button>
+                </Link>
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
+
+        {me && legalOk ? (
+          <div className="mt-8 grid gap-6 lg:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <CardTitle>Create a brand workspace</CardTitle>
+                <CardDescription>For D2C teams publishing offers.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <div className="grid gap-2">
+                  <Label htmlFor="brandName">Brand name</Label>
+                  <Input
+                    id="brandName"
+                    value={brandName}
+                    onChange={(e) => setBrandName(e.target.value)}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label>Default countries</Label>
+                  <div className="flex flex-wrap gap-2">
+                    {(["US", "IN"] as const).map((cc) => {
+                      const active = brandCountries.includes(cc);
+                      return (
+                        <Button
+                          key={cc}
+                          size="sm"
+                          variant={active ? "default" : "outline"}
+                          onClick={() =>
+                            setBrandCountries((prev) =>
+                              active ? prev.filter((c) => c !== cc) : [...prev, cc],
+                            )
+                          }
+                        >
+                          {cc === "US" ? "United States" : "India"}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <Button onClick={createBrand} disabled={!brandName.trim() || !brandCountries.length}>
+                  Create brand
+                </Button>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Create a creator profile</CardTitle>
+                <CardDescription>Required to claim offers and receive shipments.</CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-4">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="creatorName">Full name</Label>
+                    <Input
+                      id="creatorName"
+                      value={creatorForm.fullName}
+                      onChange={(e) => setCreatorForm((p) => ({ ...p, fullName: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="creatorEmail">Email</Label>
+                    <Input
+                      id="creatorEmail"
+                      value={creatorForm.email}
+                      onChange={(e) => setCreatorForm((p) => ({ ...p, email: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="creatorUsername">Username</Label>
+                    <Input
+                      id="creatorUsername"
+                      value={creatorForm.username}
+                      onChange={(e) => setCreatorForm((p) => ({ ...p, username: e.target.value }))}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="creatorFollowers">Followers</Label>
+                    <Input
+                      id="creatorFollowers"
+                      type="number"
+                      min={0}
+                      value={creatorForm.followersCount}
+                      onChange={(e) =>
+                        setCreatorForm((p) => ({ ...p, followersCount: Number(e.target.value) }))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label>Country</Label>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant={creatorForm.country === "US" ? "default" : "outline"}
+                      onClick={() => setCreatorForm((p) => ({ ...p, country: "US" }))}
+                    >
+                      United States
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={creatorForm.country === "IN" ? "default" : "outline"}
+                      onClick={() => setCreatorForm((p) => ({ ...p, country: "IN" }))}
+                    >
+                      India
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="grid gap-2">
+                  <Label htmlFor="address1">Address line 1</Label>
+                  <Input
+                    id="address1"
+                    value={creatorForm.address1}
+                    onChange={(e) => setCreatorForm((p) => ({ ...p, address1: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    id="city"
+                    value={creatorForm.city}
+                    onChange={(e) => setCreatorForm((p) => ({ ...p, city: e.target.value }))}
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="zip">ZIP / PIN</Label>
+                  <Input
+                    id="zip"
+                    value={creatorForm.zip}
+                    onChange={(e) => setCreatorForm((p) => ({ ...p, zip: e.target.value }))}
+                  />
+                </div>
+
+                <Button
+                  onClick={createCreator}
+                  disabled={!creatorForm.fullName.trim() || !creatorForm.email.trim() || !creatorForm.address1.trim() || !creatorForm.city.trim() || !creatorForm.zip.trim()}
+                >
+                  Create creator profile
+                </Button>
+              </CardContent>
+            </Card>
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
