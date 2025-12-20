@@ -81,9 +81,13 @@ export const toItems = (values: readonly string[]) =>
 export const platformsForCountries = (countries: Array<keyof typeof PLATFORMS_BY_COUNTRY>) => {
   const unique = Array.from(new Set(countries));
   if (!unique.length) return [] as PlatformId[];
-  let allowed = new Set<PlatformId>(PLATFORMS_BY_COUNTRY[unique[0]] as PlatformId[]);
+  let allowed = new Set<PlatformId>(
+    (PLATFORMS_BY_COUNTRY[unique[0]] as unknown as PlatformId[]).slice(),
+  );
   for (const country of unique.slice(1)) {
-    const next = new Set<PlatformId>(PLATFORMS_BY_COUNTRY[country] as PlatformId[]);
+    const next = new Set<PlatformId>(
+      (PLATFORMS_BY_COUNTRY[country] as unknown as PlatformId[]).slice(),
+    );
     allowed = new Set([...allowed].filter((value) => next.has(value)));
   }
   return Array.from(allowed) as PlatformId[];
