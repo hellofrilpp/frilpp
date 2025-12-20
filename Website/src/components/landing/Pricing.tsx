@@ -146,14 +146,6 @@ const Pricing = () => {
           ))}
         </div>
 
-        {/* Influencer Note */}
-        <div className="mt-12 text-center">
-          <div className="inline-flex items-center gap-3 px-6 py-3 border-2 border-dashed border-neon-purple">
-            <span className="font-mono text-sm text-muted-foreground">
-              <span className="text-neon-purple font-pixel">CREATORS:</span> Frilpp is 100% free. Always.
-            </span>
-          </div>
-        </div>
       </div>
     </section>
   );
