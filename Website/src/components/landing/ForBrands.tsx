@@ -1,0 +1,125 @@
+import { Link } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { 
+  Zap, 
+  Users, 
+  BarChart3, 
+  ShieldCheck, 
+  ArrowRight,
+  Check,
+  Terminal
+} from "lucide-react";
+
+const benefits = [
+  {
+    icon: Zap,
+    title: "10X FASTER",
+    description: "Stop DMing hundreds of influencers. Our system finds matches in minutes.",
+    color: "neon-green",
+  },
+  {
+    icon: Users,
+    title: "VERIFIED CREATORS",
+    description: "50K+ vetted creators with real engagement. No bots allowed.",
+    color: "neon-pink",
+  },
+  {
+    icon: BarChart3,
+    title: "TRACK ALL",
+    description: "Real-time analytics from match to content delivery.",
+    color: "neon-purple",
+  },
+  {
+    icon: ShieldCheck,
+    title: "NO-SHOW GUARD",
+    description: "Strike system ensures accountability. 3 strikes = banned.",
+    color: "neon-yellow",
+  },
+];
+
+const features = [
+  "Unlimited product listings",
+  "Automated shipping labels",
+  "Content approval workflow",
+  "Shopify integration",
+  "ROI tracking dashboard",
+  "Dedicated support",
+];
+
+const ForBrands = () => {
+  return (
+    <section id="for-brands" className="py-24 bg-card border-t-4 border-border relative overflow-hidden">
+      {/* Grid background */}
+      <div className="absolute inset-0 bg-grid opacity-30" />
+      
+      <div className="container mx-auto px-4 relative z-10">
+        <div className="grid lg:grid-cols-2 gap-16 items-start">
+          {/* Left Content */}
+          <div>
+            <div className="inline-flex items-center gap-2 mb-6">
+              <Terminal className="w-4 h-4 text-neon-green" />
+              <span className="text-xs font-pixel text-neon-green">[FOR_BRANDS]</span>
+            </div>
+            
+            <h2 className="text-xl md:text-2xl lg:text-3xl font-pixel mb-8 leading-relaxed">
+              <span className="text-neon-green">SEED</span>
+              <span className="text-foreground"> AT SCALE</span>
+              <br />
+              <span className="text-neon-pink">WITHOUT CHAOS</span>
+            </h2>
+            
+            <p className="font-mono text-sm text-muted-foreground mb-10 leading-relaxed max-w-lg">
+              &gt; Stop wasting hours on DMs that never get replies<br />
+              &gt; Connect with creators actively looking for YOUR niche<br />
+              <span className="text-neon-green">&gt; EFFICIENCY_LEVEL: MAXIMUM</span>
+            </p>
+
+            {/* Feature List */}
+            <div className="grid sm:grid-cols-2 gap-3 mb-10">
+              {features.map((feature, index) => (
+                <div 
+                  key={index} 
+                  className="flex items-center gap-3 p-3 border-2 border-border hover:border-neon-green transition-colors group"
+                >
+                  <div className="w-5 h-5 border-2 border-neon-green bg-neon-green/10 flex items-center justify-center">
+                    <Check className="w-3 h-3 text-neon-green" />
+                  </div>
+                  <span className="text-xs font-mono group-hover:text-neon-green transition-colors">{feature}</span>
+                </div>
+              ))}
+            </div>
+
+            <Button 
+              size="lg" 
+              className="bg-neon-green text-background hover:bg-neon-green/90 text-xs font-pixel px-8 py-6 pixel-btn glow-green"
+              asChild
+            >
+              <Link to="/brand/signup">
+                START SEEDING
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Link>
+            </Button>
+          </div>
+
+          {/* Right - Benefits Grid */}
+          <div className="grid sm:grid-cols-2 gap-4">
+            {benefits.map((benefit, index) => (
+              <div 
+                key={index} 
+                className={`p-6 border-4 border-border bg-background hover:border-${benefit.color} transition-all group pixel-btn`}
+              >
+                <div className={`w-14 h-14 border-4 border-${benefit.color} bg-${benefit.color}/10 flex items-center justify-center mb-4`}>
+                  <benefit.icon className={`w-6 h-6 text-${benefit.color}`} />
+                </div>
+                <h3 className={`font-pixel text-sm mb-2 text-${benefit.color}`}>{benefit.title}</h3>
+                <p className="text-xs font-mono text-muted-foreground leading-relaxed">{benefit.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+};
+
+export default ForBrands;
