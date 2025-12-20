@@ -29,11 +29,15 @@
 ## Cron jobs (daily schedule)
 Vercel Cron only supports recurring schedules, so we run these once per day (UTC).
 
-Endpoints (daily):
-- `/api/cron/verify` – verification + strikes + due reminders
-- `/api/cron/fulfillment` – Shopify order retry
-- `/api/cron/notify` – send queued notifications
-- `/api/cron/meta-sync` – refresh creator IG profile snapshots
+Endpoint (daily):
+- `/api/cron/daily` – runs verify + fulfillment + notify + meta-sync in sequence at 8am America/New_York
+  - Scheduled twice (12:00 and 13:00 UTC) to handle daylight saving time automatically.
+
+Manual endpoints (ad hoc runs):
+- `/api/cron/verify`
+- `/api/cron/fulfillment`
+- `/api/cron/notify`
+- `/api/cron/meta-sync`
 
 Cron auth:
 - Vercel Cron automatically sends the `x-vercel-cron` header; handlers accept it by default.

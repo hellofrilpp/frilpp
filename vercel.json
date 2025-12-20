@@ -1,20 +1,12 @@
 {
   "crons": [
     {
-      "path": "/api/cron/verify",
-      "schedule": "0 2 * * *"
+      "path": "/api/cron/daily",
+      "schedule": "0 12 * * *"
     },
     {
-      "path": "/api/cron/fulfillment",
-      "schedule": "10 2 * * *"
-    },
-    {
-      "path": "/api/cron/notify",
-      "schedule": "20 2 * * *"
-    },
-    {
-      "path": "/api/cron/meta-sync",
-      "schedule": "30 2 * * *"
+      "path": "/api/cron/daily",
+      "schedule": "0 13 * * *"
     }
   ]
 }
