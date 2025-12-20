@@ -29,28 +29,28 @@ const mosaicBlocks = [
 ];
 
 const heroStats = [
-  { label: "Publish time", value: "Under 2 minutes" },
-  { label: "Auto-ship", value: "Shopify draft orders" },
-  { label: "Verification", value: "Caption code checks" },
+  { label: "On-time posts", value: "92%" },
+  { label: "Seeding ROI", value: "4.6x" },
+  { label: "Hours saved weekly", value: "6" },
 ];
 
-const queue = [
-  { name: "Aisha", followers: "3.4k", status: "Active now" },
-  { name: "Riya", followers: "2.2k", status: "Auto-accept" },
-  { name: "Mina", followers: "4.8k", status: "Awaiting post" },
-  { name: "Sana", followers: "1.9k", status: "Needs approval" },
+const leaderboard = [
+  { name: "Aisha", badge: "Top creator", detail: "3.4k followers" },
+  { name: "Riya", badge: "Fastest post", detail: "2.2k followers" },
+  { name: "Mina", badge: "Best CTR", detail: "4.8k followers" },
+  { name: "Sana", badge: "Rising star", detail: "1.9k followers" },
 ];
 
-const swipeOffers = [
+const offerCards = [
   {
     title: "Free $50 skincare set",
-    detail: "1 Reel + caption code",
+    detail: "1 Reel + tag",
     region: "US + India",
     followers: "2k+",
   },
   {
     title: "Coffee sampler pack",
-    detail: "2 Stories + tag",
+    detail: "2 Stories",
     region: "US",
     followers: "1k+",
   },
@@ -62,25 +62,69 @@ const swipeOffers = [
   },
 ];
 
-const workflow = [
+const creatorHighlights = [
   {
-    title: "Publish",
-    body: "Post barter offers with templates, thresholds, and auto-accept rules.",
-    tags: ["Offer wizard", "Follower rule", "Usage rights"],
+    title: "Get featured",
+    body: "Leaderboards and streaks keep your name in front of brands.",
   },
   {
-    title: "Ship",
-    body: "Shopify draft order creation, tracking updates, and delivery reminders.",
-    tags: ["Draft orders", "Tracking", "Reminders"],
+    title: "Claim drops fast",
+    body: "Swipe to accept the deals you want. No awkward DMs.",
   },
   {
-    title: "Verify",
-    body: "Reels and Feed verification with caption codes and strike enforcement.",
-    tags: ["Meta API", "Caption code", "Strike policy"],
+    title: "Build status",
+    body: "Consistent posts unlock priority offers and faster approvals.",
+  },
+  {
+    title: "Shipments handled",
+    body: "Brands auto-ship so you can focus on content.",
   },
 ];
 
-const attributionStats = [
+const brandHighlights = [
+  {
+    title: "Launch in minutes",
+    body: "Post a deal once. Creators start claiming right away.",
+  },
+  {
+    title: "Spend stays low",
+    body: "No agency fees. Pay in product and track ROI.",
+  },
+  {
+    title: "Verified posts",
+    body: "Know who delivered and who did not without chasing.",
+  },
+  {
+    title: "See what sells",
+    body: "Track orders per creator and repeat the winners.",
+  },
+];
+
+const workflow = [
+  {
+    title: "Post offers fast",
+    body: "Drop a deal, set your auto-accept rule, and go live.",
+    tags: ["One minute setup", "Auto-accept", "Usage rights"],
+  },
+  {
+    title: "Ship without chasing",
+    body: "Orders go out on autopilot with delivery nudges built in.",
+    tags: ["Auto-ship", "Tracking", "Reminders"],
+  },
+  {
+    title: "Get proof, not excuses",
+    body: "Verified posts and strike rules keep the pipeline clean.",
+    tags: ["Verified posts", "Strike rules", "Disputes"],
+  },
+];
+
+const founderMetrics = [
+  { label: "Cost per verified post", value: "$18" },
+  { label: "Time saved per week", value: "6 hours" },
+  { label: "Repeat creator rate", value: "61%" },
+];
+
+const offerPerformance = [
   { label: "Clicks", value: "142" },
   { label: "Orders", value: "19" },
   { label: "Revenue", value: "$1,420" },
@@ -138,36 +182,36 @@ export default function Home() {
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
                 <Badge variant="outline" className="border-border bg-card text-foreground">
-                  Product seeding
+                  For creators
                 </Badge>
                 <Badge variant="outline" className="border-border bg-card text-foreground">
-                  Shopify automation
+                  For small brands
                 </Badge>
                 <Badge variant="outline" className="border-border bg-card text-foreground">
-                  Meta verification
+                  Free product drops
                 </Badge>
               </div>
 
               <h1 className="font-display text-5xl font-bold tracking-tight text-balance md:text-6xl">
-                A swipe-first CRM for product seeding.
+                Make creators feel famous. Make founders feel in control.
               </h1>
               <p className="max-w-2xl text-lg text-muted-foreground md:text-xl">
-                Launch barter offers, auto-ship with Shopify, and verify creator posts with unique
-                campaign codes. Stop the spreadsheets and start scaling.
+                Frilpp is the swipe-first seeding marketplace. Creators claim drops and build
+                status. Brands ship fast and see what sells.
               </p>
 
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-                <Link href="/onboarding">
-                  <Button size="lg">Get started</Button>
+                <Link href="/influencer/feed">
+                  <Button size="lg">Join as creator</Button>
                 </Link>
                 <Link href="/brand/offers/new">
                   <Button size="lg" variant="outline">
-                    Create an offer
+                    Start as brand
                   </Button>
                 </Link>
-                <Link href="/brand/analytics">
+                <Link href="/brand/offers">
                   <Button size="lg" variant="outline">
-                    View attribution
+                    Browse offers
                   </Button>
                 </Link>
               </div>
@@ -185,126 +229,74 @@ export default function Home() {
                   </div>
                 ))}
               </div>
-
-              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-                <span className="rounded-full border border-border bg-card px-3 py-1">
-                  Live: 24 creators browsing
-                </span>
-                <span className="rounded-full border border-border bg-card px-3 py-1">
-                  8 active offers
-                </span>
-                <span className="rounded-full border border-border bg-card px-3 py-1">
-                  5 shipments due today
-                </span>
-                <span className="rounded-full border border-border bg-card px-3 py-1">
-                  12 posts due this week
-                </span>
-              </div>
             </div>
 
             <div className="relative">
               <div className="absolute -left-6 top-6 hidden h-12 w-12 rounded-xl border border-border bg-card shadow-sm lg:block" />
               <div className="absolute -right-6 bottom-10 hidden h-12 w-12 rounded-xl border border-border bg-card shadow-sm lg:block" />
-              <div className="absolute -left-12 top-32 hidden text-5xl font-mono text-muted-foreground/30 lg:block">
-                LIKE
+              <div className="absolute -left-10 top-16 hidden text-5xl font-mono text-muted-foreground/30 lg:block">
+                CLAIM
               </div>
-              <div className="absolute -right-10 bottom-12 hidden text-5xl font-mono text-muted-foreground/30 lg:block">
-                SHIP
+              <div className="absolute -right-10 bottom-20 hidden text-5xl font-mono text-muted-foreground/30 lg:block">
+                SELL
               </div>
 
-              <div className="animate-fade-rise rounded-3xl border border-border bg-card/95 p-6 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.6)]">
-                <div className="flex items-center justify-between">
-                  <Badge variant="secondary">Live seeding room</Badge>
-                  <div className="text-xs font-mono uppercase text-muted-foreground">
-                    Auto-accept on
-                  </div>
+              <div className="rounded-[32px] border border-border bg-card shadow-[0_30px_70px_-45px_rgba(15,23,42,0.65)]">
+                <div className="flex items-center gap-2 border-b border-border px-4 py-3 text-xs text-muted-foreground">
+                  <span className="h-2.5 w-2.5 rounded-full bg-danger/40" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-warning/40" />
+                  <span className="h-2.5 w-2.5 rounded-full bg-success/40" />
+                  <span className="ml-auto font-mono uppercase tracking-widest">frilpp</span>
                 </div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  Rule: auto-approve creators with 2k+ followers, else brand review.
-                </div>
+                <div className="relative hero-browser p-6">
+                  <span className="absolute left-6 top-6 hero-ghost font-mono">FAME</span>
+                  <span className="absolute right-6 top-10 hero-ring animate-float-slow" />
+                  <div className="hero-word">CLAIM</div>
+                  <p className="mt-2 text-sm text-muted-foreground">
+                    Claim drops, build streaks, and keep your name in the room.
+                  </p>
 
-                <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
-                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
-                    8 active offers
-                  </div>
-                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
-                    5 shipments due
-                  </div>
-                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
-                    12 posts due
-                  </div>
-                </div>
-
-                <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
-                  <div className="rounded-2xl border border-border bg-background/80 p-4">
-                    <div className="text-xs font-mono uppercase text-muted-foreground">
-                      Creator card
-                    </div>
-                    <div className="mt-3 flex items-center gap-3">
-                      <div className="h-12 w-12 rounded-full bg-accent/20" />
-                      <div>
-                        <div className="text-base font-semibold">Aisha, 3.4k followers</div>
-                        <div className="text-xs text-muted-foreground">Beauty + wellness</div>
+                  <div className="mt-6 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm">
+                      <div className="text-xs font-mono uppercase text-muted-foreground">
+                        Creator streak
+                      </div>
+                      <div className="mt-2 text-lg font-semibold">5 weeks</div>
+                      <div className="text-xs text-muted-foreground">
+                        Priority offers unlocked
                       </div>
                     </div>
-                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                      <span className="rounded-full border border-border bg-card px-2 py-1">
-                        US + India
-                      </span>
-                      <span className="rounded-full border border-border bg-card px-2 py-1">
-                        Reels preferred
-                      </span>
-                      <span className="rounded-full border border-border bg-card px-2 py-1">
-                        Usage rights granted
-                      </span>
-                    </div>
-                    <div className="mt-4 flex items-center gap-2">
-                      <Button size="sm">Claim</Button>
-                      <Button size="sm" variant="outline">
-                        Skip
-                      </Button>
+                    <div className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm">
+                      <div className="text-xs font-mono uppercase text-muted-foreground">
+                        Brand lift
+                      </div>
+                      <div className="mt-2 text-lg font-semibold">+32% orders</div>
+                      <div className="text-xs text-muted-foreground">
+                        Top creator week
+                      </div>
                     </div>
                   </div>
-                  <div className="rounded-2xl border border-border bg-background/80 p-4">
-                    <div className="text-xs font-mono uppercase text-muted-foreground">Queue</div>
-                    <div className="mt-4 space-y-3">
-                      {queue.map((item) => (
+
+                  <div className="mt-4 rounded-2xl border border-border bg-background/90 p-4">
+                    <div className="flex items-center justify-between text-xs uppercase text-muted-foreground">
+                      <span>Creator leaderboard</span>
+                      <span>Weekly highlights</span>
+                    </div>
+                    <div className="mt-3 grid gap-2">
+                      {leaderboard.map((creator) => (
                         <div
-                          key={item.name}
+                          key={creator.name}
                           className="flex items-center justify-between rounded-xl border border-border bg-card px-3 py-2 text-sm"
                         >
                           <div>
-                            <div className="font-semibold">{item.name}</div>
-                            <div className="text-xs text-muted-foreground">
-                              {item.followers} followers
-                            </div>
+                            <div className="font-semibold">{creator.name}</div>
+                            <div className="text-xs text-muted-foreground">{creator.detail}</div>
                           </div>
-                          <span className="text-xs text-muted-foreground">{item.status}</span>
+                          <span className="text-xs text-muted-foreground">{creator.badge}</span>
                         </div>
                       ))}
                     </div>
                   </div>
-                </div>
-
-                <div className="mt-5 grid gap-2 text-xs sm:grid-cols-3">
-                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
-                    142 clicks
-                  </div>
-                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
-                    19 orders
-                  </div>
-                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
-                    $1.4k revenue
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                <div className="rounded-2xl border border-border bg-card p-4 text-sm shadow-sm">
-                  Attribution: clicks + Shopify discount codes tied to every claim.
-                </div>
-                <div className="rounded-2xl border border-border bg-card p-4 text-sm shadow-sm">
-                  Comms automation: email, SMS, and WhatsApp reminders for shipping and posting.
                 </div>
               </div>
             </div>
@@ -318,87 +310,63 @@ export default function Home() {
             <span className="font-mono uppercase tracking-widest text-foreground/70">
               Live feed
             </span>
-            <span>GlowBar sent 3 orders to creators · 2 minutes ago</span>
-            <span>Riya claimed “Coffee sampler pack” · 5 minutes ago</span>
-            <span>3 deliverables verified today</span>
-            <span>US + India seeding open</span>
+            <span>Aisha claimed GlowBar · 2 minutes ago</span>
+            <span>3 creators shipped today</span>
+            <span>12 posts verified this week</span>
+            <span>US + India offers open</span>
           </div>
         </section>
 
         <section className="container mx-auto px-4 py-10 md:px-8">
-          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-            <div className="relative h-[320px]">
-              <div className="absolute left-4 top-6 h-72 w-60 -rotate-6 rounded-3xl border border-border bg-card p-4 shadow-lg transition-transform duration-300 hover:-translate-y-1">
-                <div className="text-xs font-mono uppercase text-muted-foreground">Offer 01</div>
-                <div className="mt-3 text-lg font-semibold">{swipeOffers[0].title}</div>
-                <div className="mt-2 text-sm text-muted-foreground">{swipeOffers[0].detail}</div>
-                <div className="mt-4 space-y-2 text-xs text-muted-foreground">
-                  <div>Region: {swipeOffers[0].region}</div>
-                  <div>Min followers: {swipeOffers[0].followers}</div>
-                </div>
-                <div className="mt-4 flex gap-2">
-                  <Button size="sm">Claim</Button>
-                  <Button size="sm" variant="outline">
-                    Skip
-                  </Button>
-                </div>
+          <div className="grid gap-6 lg:grid-cols-[1fr_1fr] lg:items-center">
+            <div className="rounded-3xl border border-border bg-card p-6 shadow-sm">
+              <div className="flex items-center justify-between">
+                <Badge variant="outline" className="border-border bg-card text-foreground">
+                  Creator lane
+                </Badge>
+                <span className="text-xs font-mono uppercase text-muted-foreground">
+                  Swipe to claim
+                </span>
               </div>
-              <div className="absolute left-12 top-10 h-72 w-60 rounded-3xl border border-border bg-card p-4 shadow-md transition-transform duration-300 hover:-translate-y-1">
-                <div className="text-xs font-mono uppercase text-muted-foreground">Offer 02</div>
-                <div className="mt-3 text-lg font-semibold">{swipeOffers[1].title}</div>
-                <div className="mt-2 text-sm text-muted-foreground">{swipeOffers[1].detail}</div>
-                <div className="mt-4 space-y-2 text-xs text-muted-foreground">
-                  <div>Region: {swipeOffers[1].region}</div>
-                  <div>Min followers: {swipeOffers[1].followers}</div>
-                </div>
-              </div>
-              <div className="absolute left-20 top-14 h-72 w-60 rotate-6 rounded-3xl border border-border bg-card p-4 shadow-xl transition-transform duration-300 hover:-translate-y-1 animate-float-slow">
-                <div className="text-xs font-mono uppercase text-muted-foreground">Offer 03</div>
-                <div className="mt-3 text-lg font-semibold">{swipeOffers[2].title}</div>
-                <div className="mt-2 text-sm text-muted-foreground">{swipeOffers[2].detail}</div>
-                <div className="mt-4 space-y-2 text-xs text-muted-foreground">
-                  <div>Region: {swipeOffers[2].region}</div>
-                  <div>Min followers: {swipeOffers[2].followers}</div>
-                </div>
-                <div className="mt-4 text-xs text-muted-foreground">Auto-accept enabled</div>
+              <div className="mt-5 grid gap-4">
+                {offerCards.map((offer, index) => (
+                  <div
+                    key={offer.title}
+                    className={`rounded-2xl border border-border bg-background p-4 shadow-sm ${
+                      index === 0 ? "animate-fade-rise" : ""
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="font-semibold">{offer.title}</span>
+                      <span className="text-xs text-muted-foreground">{offer.region}</span>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">{offer.detail}</div>
+                    <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Min followers: {offer.followers}</span>
+                      <span>Auto-accept</span>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
 
             <div className="space-y-5">
               <Badge variant="outline" className="border-border bg-card text-foreground">
-                Swipe CRM
+                Creators get the spotlight
               </Badge>
               <h2 className="text-3xl font-bold tracking-tight">
-                Tinder-like claiming built for nano-creators.
+                Designed to boost your status.
               </h2>
               <p className="text-sm text-muted-foreground">
-                Creators swipe to accept, brands stay in control with auto-accept thresholds and
-                approval gates. Your team never touches a spreadsheet again.
+                Build streaks, climb leaderboards, and get your name in front of brands who ship.
               </p>
-              <div className="grid gap-2 text-xs sm:grid-cols-3">
-                <div className="rounded-xl border border-border bg-card px-3 py-2 text-center">
-                  Avg claim time: 18 min
-                </div>
-                <div className="rounded-xl border border-border bg-card px-3 py-2 text-center">
-                  92% verified on time
-                </div>
-                <div className="rounded-xl border border-border bg-card px-3 py-2 text-center">
-                  4.6x seeding ROI
-                </div>
-              </div>
               <div className="grid gap-3 sm:grid-cols-2">
-                <div className="rounded-2xl border border-border bg-card p-4 text-sm">
-                  Auto-accept on follower count or engagement rate.
-                </div>
-                <div className="rounded-2xl border border-border bg-card p-4 text-sm">
-                  Claims lock inventory and trigger Shopify orders instantly.
-                </div>
-                <div className="rounded-2xl border border-border bg-card p-4 text-sm">
-                  Creator strike system keeps your seeding pipeline clean.
-                </div>
-                <div className="rounded-2xl border border-border bg-card p-4 text-sm">
-                  Stories are best-effort, Reels and Feed are verified.
-                </div>
+                {creatorHighlights.map((item) => (
+                  <div key={item.title} className="rounded-2xl border border-border bg-card p-4 text-sm">
+                    <div className="font-semibold">{item.title}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">{item.body}</div>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -409,10 +377,10 @@ export default function Home() {
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <Badge variant="outline" className="border-border bg-card text-foreground">
-                  Workflow
+                  Brand lane
                 </Badge>
                 <h2 className="mt-3 text-3xl font-bold tracking-tight">
-                  Publish, ship, verify. All in one board.
+                  Small brands, big seeding energy.
                 </h2>
               </div>
               <Link href="/brand/offers">
@@ -422,7 +390,7 @@ export default function Home() {
 
             <div className="relative mt-6 grid gap-5 lg:grid-cols-3">
               <div className="pointer-events-none absolute -left-8 top-6 hidden text-5xl font-mono text-muted-foreground/30 lg:block">
-                PUBLISH
+                POST
               </div>
               <div className="pointer-events-none absolute right-8 top-24 hidden text-5xl font-mono text-muted-foreground/30 lg:block">
                 VERIFY
@@ -447,12 +415,12 @@ export default function Home() {
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              <div className="rounded-2xl border border-border bg-card p-4 text-sm shadow-sm">
-                Automation guardrails: approval queues, usage rights, and strike thresholds.
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-4 text-sm shadow-sm">
-                Creator SLA: reminders + auto-expiry keep your pipeline clean.
-              </div>
+              {brandHighlights.map((item) => (
+                <div key={item.title} className="rounded-2xl border border-border bg-card p-4 text-sm shadow-sm">
+                  <div className="font-semibold">{item.title}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">{item.body}</div>
+                </div>
+              ))}
             </div>
           </div>
         </section>
@@ -461,25 +429,36 @@ export default function Home() {
           <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-center">
             <div>
               <Badge variant="outline" className="border-border bg-card text-foreground">
-                Attribution
+                Business outcomes
               </Badge>
               <h2 className="mt-3 text-3xl font-bold tracking-tight">
-                Track what actually converts.
+                Know which creators move product.
               </h2>
               <p className="mt-3 text-sm text-muted-foreground">
-                Every claim gets a unique campaign code. We track clicks through the share link and
-                attribute Shopify orders using discount codes or campaign IDs.
+                Track revenue per creator and see which offers actually sell. Simple, clear, and
+                built for busy founders.
               </p>
               <div className="mt-6 flex flex-wrap gap-2">
                 <Badge variant="outline" className="border-border bg-card text-foreground">
-                  Click tracking
+                  Creator ROI
                 </Badge>
                 <Badge variant="outline" className="border-border bg-card text-foreground">
-                  Discount attribution
+                  Revenue per post
                 </Badge>
                 <Badge variant="outline" className="border-border bg-card text-foreground">
-                  Revenue and EPC
+                  Repeat creator rate
                 </Badge>
+              </div>
+              <div className="mt-6 grid gap-3 sm:grid-cols-3">
+                {founderMetrics.map((metric) => (
+                  <div
+                    key={metric.label}
+                    className="rounded-2xl border border-border bg-card p-4 text-sm shadow-sm"
+                  >
+                    <div className="text-xs uppercase text-muted-foreground">{metric.label}</div>
+                    <div className="mt-2 text-base font-semibold">{metric.value}</div>
+                  </div>
+                ))}
               </div>
             </div>
             <div className="grid gap-4">
@@ -491,7 +470,7 @@ export default function Home() {
                     <span className="font-mono text-muted-foreground">FRILP-A1B2C3</span>
                   </div>
                   <div className="grid gap-2 sm:grid-cols-3">
-                    {attributionStats.map((stat) => (
+                    {offerPerformance.map((stat) => (
                       <div
                         key={stat.label}
                         className="rounded-lg border border-border bg-background p-3"
@@ -504,22 +483,19 @@ export default function Home() {
                 </div>
               </div>
               <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                <div className="text-xs uppercase text-muted-foreground">Compliance ready</div>
-                <div className="mt-2 text-sm text-muted-foreground">
-                  Terms and privacy acceptance are enforced. Instagram access is explicit and
-                  logged for every creator.
-                </div>
-              </div>
-              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
-                <div className="text-xs uppercase text-muted-foreground">Attribution lens</div>
+                <div className="text-xs uppercase text-muted-foreground">Founder shortcuts</div>
                 <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
                   <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
-                    <span>Top creator lift</span>
-                    <span className="font-semibold text-foreground">+32%</span>
+                    <span>Creators auto-approved over 2k</span>
+                    <span className="font-semibold text-foreground">On</span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
-                    <span>Cost per verified post</span>
-                    <span className="font-semibold text-foreground">$18</span>
+                    <span>Auto-ship via Shopify</span>
+                    <span className="font-semibold text-foreground">Live</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
+                    <span>Reminders and strike rules</span>
+                    <span className="font-semibold text-foreground">Active</span>
                   </div>
                 </div>
               </div>
@@ -535,20 +511,20 @@ export default function Home() {
                   Ready to ship
                 </Badge>
                 <h2 className="mt-3 text-3xl font-bold tracking-tight">
-                  World-class seeding without agency fees.
+                  Seeding made simple for both sides.
                 </h2>
                 <p className="mt-3 text-sm text-muted-foreground">
-                  Build your creator flywheel with automation, verified deliverables, and revenue
-                  attribution baked in.
+                  Creators build clout. Brands get customers. Frilpp keeps the process fast,
+                  clean, and repeatable.
                 </p>
               </div>
               <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                <Link href="/onboarding">
-                  <Button size="lg">Start onboarding</Button>
+                <Link href="/influencer/feed">
+                  <Button size="lg">Join as creator</Button>
                 </Link>
-                <Link href="/login">
+                <Link href="/brand/offers/new">
                   <Button size="lg" variant="outline">
-                    Sign in
+                    Start as brand
                   </Button>
                 </Link>
               </div>
