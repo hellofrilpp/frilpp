@@ -23,6 +23,7 @@ import {
   getBrandNotifications,
   getBrandProfile,
   getShopifyStatus,
+  getSocialAccounts,
   updateBrandAcceptanceSettings,
   updateBrandInstagramHandle,
   updateBrandNotifications,
@@ -72,6 +73,10 @@ const BrandSettings = () => {
   const { data: shopifyStatus } = useQuery({
     queryKey: ["shopify-status"],
     queryFn: getShopifyStatus,
+  });
+  const { data: socialData } = useQuery({
+    queryKey: ["social-accounts"],
+    queryFn: getSocialAccounts,
   });
 
   useEffect(() => {
@@ -210,6 +215,50 @@ const BrandSettings = () => {
                 />
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* Social Accounts */}
+        <section className="mb-8 border-4 border-border bg-card">
+          <div className="p-4 border-b-4 border-border flex items-center gap-3">
+            <LinkIcon className="w-5 h-5 text-neon-purple" />
+            <h2 className="font-pixel text-sm text-neon-purple">[SOCIAL_LINKS]</h2>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="flex flex-col gap-3">
+              {(["INSTAGRAM", "TIKTOK"] as const).map((provider) => {
+                const connected = socialData?.accounts?.some(
+                  (account) => account.provider === provider,
+                );
+                const label = provider === "INSTAGRAM" ? "Instagram" : "TikTok (US only)";
+                return (
+                  <div key={provider} className="flex items-center justify-between border-2 border-border p-4">
+                    <div>
+                      <p className="font-mono text-xs text-muted-foreground">{label}</p>
+                      <p className="font-pixel text-xs text-foreground">
+                        {connected ? "CONNECTED" : "NOT_CONNECTED"}
+                      </p>
+                    </div>
+                    <Button
+                      asChild
+                      size="sm"
+                      className="bg-neon-purple text-background font-pixel text-xs pixel-btn"
+                    >
+                      <a
+                        href={apiUrl(
+                          `/api/auth/social/${provider.toLowerCase()}/connect?role=brand&next=/brand/settings`,
+                        )}
+                      >
+                        {connected ? "RECONNECT" : "CONNECT"}
+                      </a>
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <p className="text-xs font-mono text-muted-foreground">
+              Link both to let brands and creators verify your official channels.
+            </p>
           </div>
         </section>
 

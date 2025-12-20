@@ -5,6 +5,7 @@ import {
   Camera,
   AlertTriangle,
   Settings,
+  Users,
   Instagram,
   ExternalLink
 } from "lucide-react";
@@ -13,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import InfluencerLayout from "@/components/influencer/InfluencerLayout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, CreatorDeal, apiUrl, completeCreatorOnboarding, getCreatorDeals, getCreatorProfile, getInstagramStatus, syncInstagramProfile } from "@/lib/api";
+import { ApiError, CreatorDeal, apiUrl, completeCreatorOnboarding, getCreatorDeals, getCreatorProfile, getInstagramStatus, getSocialAccounts, syncInstagramProfile } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useToast } from "@/hooks/use-toast";
@@ -41,6 +42,10 @@ const InfluencerProfile = () => {
   const { data: dealsData } = useQuery({
     queryKey: ["creator-deals"],
     queryFn: getCreatorDeals,
+  });
+  const { data: socialData } = useQuery({
+    queryKey: ["social-accounts"],
+    queryFn: getSocialAccounts,
   });
   const { data: igStatus } = useQuery({
     queryKey: ["instagram-status"],
@@ -177,6 +182,45 @@ const InfluencerProfile = () => {
               <p className="text-xs font-mono text-muted-foreground">{stat.label}</p>
             </div>
           ))}
+        </div>
+
+        {/* Linked Socials */}
+        <div className="border-4 border-border bg-card p-5 mb-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Users className="w-4 h-4 text-neon-purple" />
+            <span className="font-pixel text-xs text-neon-purple">[LINKED_SOCIALS]</span>
+          </div>
+          <div className="space-y-3">
+            {(["INSTAGRAM", "TIKTOK"] as const).map((provider) => {
+              const connected = socialData?.accounts?.some(
+                (account) => account.provider === provider,
+              );
+              const label = provider === "INSTAGRAM" ? "Instagram" : "TikTok (US only)";
+              return (
+                <div key={provider} className="flex items-center justify-between border-2 border-border p-3">
+                  <div>
+                    <p className="font-mono text-xs text-muted-foreground">{label}</p>
+                    <p className="font-pixel text-xs text-foreground">
+                      {connected ? "CONNECTED" : "NOT_CONNECTED"}
+                    </p>
+                  </div>
+                  <Button
+                    asChild
+                    size="sm"
+                    className="bg-neon-purple text-background font-pixel text-xs pixel-btn"
+                  >
+                    <a
+                      href={apiUrl(
+                        `/api/auth/social/${provider.toLowerCase()}/connect?role=creator&next=/influencer/profile`,
+                      )}
+                    >
+                      {connected ? "RECONNECT" : "CONNECT"}
+                    </a>
+                  </Button>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Strikes Warning */}

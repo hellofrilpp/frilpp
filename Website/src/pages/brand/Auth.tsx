@@ -14,6 +14,7 @@ const BrandAuth = () => {
   const [searchParams] = useSearchParams();
   const defaultTab = searchParams.get("mode") === "signup" ? "signup" : "login";
   const [isLoading, setIsLoading] = useState(false);
+  const [signupCompany, setSignupCompany] = useState("");
   const { toast } = useToast();
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -33,7 +34,13 @@ const BrandAuth = () => {
       });
       if (res.debug) window.location.href = res.debug;
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Login failed";
+      let message = err instanceof ApiError ? err.message : "Login failed";
+      if (err instanceof ApiError && err.code === "SOCIAL_REQUIRED") {
+        message = "Connect Instagram or TikTok first, then verify email.";
+      }
+      if (err instanceof ApiError && err.code === "SOCIAL_EXPIRED") {
+        message = "Social connection expired. Please reconnect and try again.";
+      }
       toast({ title: "LOGIN FAILED", description: message });
     } finally {
       setIsLoading(false);
@@ -61,7 +68,13 @@ const BrandAuth = () => {
       });
       if (res.debug) window.location.href = res.debug;
     } catch (err) {
-      const message = err instanceof ApiError ? err.message : "Signup failed";
+      let message = err instanceof ApiError ? err.message : "Signup failed";
+      if (err instanceof ApiError && err.code === "SOCIAL_REQUIRED") {
+        message = "Connect Instagram or TikTok first, then verify email.";
+      }
+      if (err instanceof ApiError && err.code === "SOCIAL_EXPIRED") {
+        message = "Social connection expired. Please reconnect and try again.";
+      }
       toast({ title: "SIGNUP FAILED", description: message });
     } finally {
       setIsLoading(false);
@@ -96,7 +109,7 @@ const BrandAuth = () => {
             </div>
             <CardTitle className="text-xl font-pixel text-neon-pink">BRAND PORTAL</CardTitle>
             <CardDescription className="font-mono text-xs">
-              Connect with top creators worldwide
+              Connect your social account, then verify your email
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -123,17 +136,6 @@ const BrandAuth = () => {
                       className="border-2 border-border bg-background font-mono"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password" className="font-mono text-xs">PASSWORD</Label>
-                    <Input
-                      id="login-password"
-                      name="login-password"
-                      type="password"
-                      placeholder="••••••••"
-                      required
-                      className="border-2 border-border bg-background font-mono"
-                    />
-                  </div>
                   <Button
                     type="submit"
                     className="w-full bg-neon-pink text-primary-foreground font-pixel pixel-btn"
@@ -141,7 +143,11 @@ const BrandAuth = () => {
                   >
                     {isLoading ? "LOADING..." : "LOGIN →"}
                   </Button>
-                  <SocialLoginButtons accentColor="pink" />
+                  <SocialLoginButtons
+                    accentColor="pink"
+                    role="brand"
+                    nextPath="/brand/dashboard"
+                  />
                 </form>
               </TabsContent>
 
@@ -155,6 +161,8 @@ const BrandAuth = () => {
                       type="text"
                       placeholder="Awesome Brand Inc."
                       required
+                      value={signupCompany}
+                      onChange={(event) => setSignupCompany(event.target.value)}
                       className="border-2 border-border bg-background font-mono"
                     />
                   </div>
@@ -169,17 +177,6 @@ const BrandAuth = () => {
                       className="border-2 border-border bg-background font-mono"
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password" className="font-mono text-xs">PASSWORD</Label>
-                    <Input
-                      id="signup-password"
-                      name="signup-password"
-                      type="password"
-                      placeholder="••••••••"
-                      required
-                      className="border-2 border-border bg-background font-mono"
-                    />
-                  </div>
                   <Button
                     type="submit"
                     className="w-full bg-neon-pink text-primary-foreground font-pixel pixel-btn"
@@ -187,7 +184,15 @@ const BrandAuth = () => {
                   >
                     {isLoading ? "CREATING..." : "CREATE ACCOUNT →"}
                   </Button>
-                  <SocialLoginButtons accentColor="pink" />
+                  <SocialLoginButtons
+                    accentColor="pink"
+                    role="brand"
+                    nextPath="/brand/dashboard"
+                    beforeAuth={() => {
+                      const name = signupCompany.trim();
+                      if (name) localStorage.setItem("pendingBrandName", name);
+                    }}
+                  />
                 </form>
               </TabsContent>
             </Tabs>

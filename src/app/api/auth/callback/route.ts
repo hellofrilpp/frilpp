@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { and, eq, gt, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { loginTokens, sessions, users } from "@/db/schema";
+import { loginTokens, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
 import { hashLoginToken, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sanitizeNextPath } from "@/lib/redirects";
 
@@ -98,6 +98,75 @@ export async function GET(request: Request) {
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
     });
+  }
+
+  const pendingSocialId = jar.get("pending_social_id")?.value ?? null;
+  if (pendingSocialId) {
+    const pendingRows = await db
+      .select()
+      .from(pendingSocialAccounts)
+      .where(eq(pendingSocialAccounts.id, pendingSocialId))
+      .limit(1);
+    const pending = pendingRows[0] ?? null;
+    if (pending) {
+      const conflictRows = await db
+        .select()
+        .from(userSocialAccounts)
+        .where(
+          and(
+            eq(userSocialAccounts.provider, pending.provider),
+            eq(userSocialAccounts.providerUserId, pending.providerUserId),
+          ),
+        )
+        .limit(1);
+      const conflict = conflictRows[0] ?? null;
+      if (conflict && conflict.userId !== userId) {
+        await db.delete(pendingSocialAccounts).where(eq(pendingSocialAccounts.id, pendingSocialId));
+        jar.delete("pending_social_id");
+      } else {
+        const existingSocialRows = await db
+          .select()
+          .from(userSocialAccounts)
+          .where(
+            and(
+              eq(userSocialAccounts.userId, userId),
+              eq(userSocialAccounts.provider, pending.provider),
+            ),
+          )
+          .limit(1);
+        const existingSocial = existingSocialRows[0] ?? null;
+        if (existingSocial) {
+          await db
+            .update(userSocialAccounts)
+            .set({
+              providerUserId: pending.providerUserId,
+              username: pending.username,
+              accessTokenEncrypted: pending.accessTokenEncrypted,
+              refreshTokenEncrypted: pending.refreshTokenEncrypted,
+              expiresAt: pending.expiresAt,
+              scopes: pending.scopes,
+              updatedAt: now,
+            })
+            .where(eq(userSocialAccounts.id, existingSocial.id));
+        } else {
+          await db.insert(userSocialAccounts).values({
+            id: crypto.randomUUID(),
+            userId,
+            provider: pending.provider,
+            providerUserId: pending.providerUserId,
+            username: pending.username,
+            accessTokenEncrypted: pending.accessTokenEncrypted,
+            refreshTokenEncrypted: pending.refreshTokenEncrypted,
+            expiresAt: pending.expiresAt,
+            scopes: pending.scopes,
+            createdAt: now,
+            updatedAt: now,
+          });
+        }
+        await db.delete(pendingSocialAccounts).where(eq(pendingSocialAccounts.id, pendingSocialId));
+      }
+    }
+    jar.delete("pending_social_id");
   }
 
   let nextPath = sanitizeNextPath(jar.get("auth_next")?.value ?? null, "/onboarding");

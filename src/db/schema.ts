@@ -317,6 +317,8 @@ export const notificationStatusEnum = pgEnum("notification_status", [
   "ERROR",
 ]);
 
+export const socialProviderEnum = pgEnum("social_provider", ["INSTAGRAM", "TIKTOK"]);
+
 export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),
   channel: notificationChannelEnum("channel").notNull(),
@@ -330,6 +332,62 @@ export const notifications = pgTable("notifications", {
     .notNull()
     .defaultNow(),
 });
+
+export const userSocialAccounts = pgTable(
+  "user_social_accounts",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    provider: socialProviderEnum("provider").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    username: text("username"),
+    accessTokenEncrypted: text("access_token_encrypted"),
+    refreshTokenEncrypted: text("refresh_token_encrypted"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    scopes: text("scopes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    providerUserUnique: uniqueIndex("user_social_accounts_provider_user_unique").on(
+      t.provider,
+      t.providerUserId,
+    ),
+    userProviderUnique: uniqueIndex("user_social_accounts_user_provider_unique").on(
+      t.userId,
+      t.provider,
+    ),
+  }),
+);
+
+export const pendingSocialAccounts = pgTable(
+  "pending_social_accounts",
+  {
+    id: text("id").primaryKey(),
+    provider: socialProviderEnum("provider").notNull(),
+    providerUserId: text("provider_user_id").notNull(),
+    username: text("username"),
+    accessTokenEncrypted: text("access_token_encrypted"),
+    refreshTokenEncrypted: text("refresh_token_encrypted"),
+    expiresAt: timestamp("expires_at", { withTimezone: true }),
+    scopes: text("scopes"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    providerUserUnique: uniqueIndex("pending_social_accounts_provider_user_unique").on(
+      t.provider,
+      t.providerUserId,
+    ),
+  }),
+);
 
 export const updatedAtTriggerSql = sql`
 CREATE OR REPLACE FUNCTION set_updated_at() RETURNS TRIGGER AS $$

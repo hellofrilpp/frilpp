@@ -508,6 +508,16 @@ export async function getCreatorDeals() {
   return apiFetch<{ ok: boolean; deals: CreatorDeal[] }>("/api/creator/deals");
 }
 
+export type SocialAccount = {
+  provider: "INSTAGRAM" | "TIKTOK";
+  username: string | null;
+  providerUserId: string;
+};
+
+export async function getSocialAccounts() {
+  return apiFetch<{ ok: boolean; accounts: SocialAccount[] }>("/api/auth/social/accounts");
+}
+
 export type PicklistItem = { id: string; label: string };
 
 export type PicklistsResponse = {

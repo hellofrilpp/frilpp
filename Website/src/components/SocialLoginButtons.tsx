@@ -1,19 +1,28 @@
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
+import { apiUrl } from "@/lib/api";
 
 interface SocialLoginButtonsProps {
   accentColor?: "pink" | "purple" | "green";
   showGoogle?: boolean;
+  role?: "brand" | "creator";
+  nextPath?: string;
+  beforeAuth?: (provider: "instagram" | "tiktok") => void;
 }
 
-const SocialLoginButtons = ({ accentColor = "green", showGoogle = true }: SocialLoginButtonsProps) => {
-  const { toast } = useToast();
-
-  const handleSocialLogin = (provider: string) => {
-    toast({
-      title: `${provider.toUpperCase()} LOGIN`,
-      description: `${provider} authentication coming soon!`,
-    });
+const SocialLoginButtons = ({
+  accentColor = "green",
+  showGoogle = false,
+  role,
+  nextPath,
+  beforeAuth,
+}: SocialLoginButtonsProps) => {
+  const handleSocialLogin = (provider: "instagram" | "tiktok") => {
+    beforeAuth?.(provider);
+    const params = new URLSearchParams();
+    if (role) params.set("role", role);
+    if (nextPath) params.set("next", nextPath);
+    const suffix = params.toString() ? `?${params.toString()}` : "";
+    window.location.href = apiUrl(`/api/auth/social/${provider}/connect${suffix}`);
   };
 
   const accentClasses = {
@@ -72,7 +81,7 @@ const SocialLoginButtons = ({ accentColor = "green", showGoogle = true }: Social
         <Button
           type="button"
           variant="outline"
-          onClick={() => handleSocialLogin("Instagram")}
+          onClick={() => handleSocialLogin("instagram")}
           className={`border-2 border-border bg-background font-mono text-xs transition-all ${accentClasses[accentColor]}`}
         >
           <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">
@@ -85,7 +94,7 @@ const SocialLoginButtons = ({ accentColor = "green", showGoogle = true }: Social
         <Button
           type="button"
           variant="outline"
-          onClick={() => handleSocialLogin("TikTok")}
+          onClick={() => handleSocialLogin("tiktok")}
           className={`border-2 border-border bg-background font-mono text-xs transition-all ${accentClasses[accentColor]}`}
         >
           <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="currentColor">

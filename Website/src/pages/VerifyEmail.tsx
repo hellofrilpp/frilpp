@@ -1,28 +1,28 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, Sparkles } from "lucide-react";
-import SocialLoginButtons from "@/components/SocialLoginButtons";
-import FrilppLogo from "@/components/FrilppLogo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Mail } from "lucide-react";
+import FrilppLogo from "@/components/FrilppLogo";
 import { ApiError, requestMagicLink } from "@/lib/api";
+import { useToast } from "@/hooks/use-toast";
 
-const InfluencerAuth = () => {
+const VerifyEmail = () => {
+  const [searchParams] = useSearchParams();
+  const [email, setEmail] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const nextPath = searchParams.get("next") || "/onboarding";
+  const provider = searchParams.get("provider");
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
     setIsLoading(true);
-
-    const form = new FormData(e.currentTarget);
-    const email = String(form.get("creator-email") || "").trim();
-
     try {
-      const res = await requestMagicLink(email, "/influencer/onboarding");
+      const res = await requestMagicLink(email.trim(), nextPath);
       toast({
         title: "CHECK YOUR EMAIL",
         description: res.debug
@@ -31,14 +31,14 @@ const InfluencerAuth = () => {
       });
       if (res.debug) window.location.href = res.debug;
     } catch (err) {
-      let message = err instanceof ApiError ? err.message : "Login failed";
+      let message = err instanceof ApiError ? err.message : "Verification failed";
       if (err instanceof ApiError && err.code === "SOCIAL_REQUIRED") {
         message = "Connect Instagram or TikTok first, then verify email.";
       }
       if (err instanceof ApiError && err.code === "SOCIAL_EXPIRED") {
         message = "Social connection expired. Please reconnect and try again.";
       }
-      toast({ title: "LOGIN FAILED", description: message });
+      toast({ title: "FAILED", description: message });
     } finally {
       setIsLoading(false);
     }
@@ -46,7 +46,6 @@ const InfluencerAuth = () => {
 
   return (
     <div className="min-h-screen bg-background bg-grid flex flex-col">
-      {/* Header */}
       <header className="p-4 border-b-4 border-primary">
         <div className="container mx-auto flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2 group">
@@ -63,60 +62,40 @@ const InfluencerAuth = () => {
         </div>
       </header>
 
-      {/* Main Content */}
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md pixel-border-primary bg-card">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-16 h-16 bg-neon-purple/20 border-4 border-neon-purple flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-neon-purple" />
+            <div className="mx-auto mb-4 w-16 h-16 bg-neon-green/20 border-4 border-neon-green flex items-center justify-center">
+              <Mail className="w-8 h-8 text-neon-green" />
             </div>
-            <CardTitle className="text-xl font-pixel text-neon-purple">CREATOR PORTAL</CardTitle>
+            <CardTitle className="text-xl font-pixel text-neon-green">VERIFY EMAIL</CardTitle>
             <CardDescription className="font-mono text-xs">
-              Connect your social account, then verify your email
+              {provider ? `Connected ${provider.toUpperCase()}.` : "Social connected."} Verify your email to continue.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="text-center">
-              <p className="font-mono text-xs text-muted-foreground mb-4">
-                Verify your email after social connect
-              </p>
-            </div>
-
-            <form onSubmit={handleLogin} className="space-y-4">
+            <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="creator-email" className="font-mono text-xs">EMAIL</Label>
+                <Label htmlFor="verify-email" className="font-mono text-xs">EMAIL</Label>
                 <Input
-                  id="creator-email"
-                  name="creator-email"
+                  id="verify-email"
+                  name="verify-email"
                   type="email"
-                  placeholder="creator@email.com"
+                  placeholder="you@brand.com"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
                   required
                   className="border-2 border-border bg-background font-mono"
                 />
               </div>
               <Button
                 type="submit"
-                className="w-full bg-neon-purple text-background font-pixel pixel-btn"
+                className="w-full bg-neon-green text-background font-pixel pixel-btn"
                 disabled={isLoading}
               >
-                {isLoading ? "SENDING..." : "SEND LINK →"}
+                {isLoading ? "SENDING..." : "SEND MAGIC LINK →"}
               </Button>
             </form>
-            
-            <SocialLoginButtons
-              accentColor="purple"
-              role="creator"
-              nextPath="/influencer/onboarding"
-            />
-
-            <div className="mt-6 text-center">
-              <p className="text-xs font-mono text-muted-foreground">
-                Are you a brand?{" "}
-                <Link to="/brand/auth" className="text-neon-pink hover:underline">
-                  Join as Brand →
-                </Link>
-              </p>
-            </div>
           </CardContent>
         </Card>
       </main>
@@ -124,4 +103,4 @@ const InfluencerAuth = () => {
   );
 };
 
-export default InfluencerAuth;
+export default VerifyEmail;

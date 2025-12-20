@@ -1,9 +1,11 @@
 import { z } from "zod";
 import { db } from "@/db";
-import { creators } from "@/db/schema";
+import { creatorMeta, creators, userSocialAccounts } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { CREATOR_CATEGORIES } from "@/lib/picklists";
+import { decryptSecret } from "@/lib/crypto";
+import { fetchInstagramProfile } from "@/lib/meta";
 
 export const runtime = "nodejs";
 
@@ -58,10 +60,11 @@ export async function POST(request: Request) {
 
   const userId = sessionOrResponse.user.id;
   const existing = await db.select({ id: creators.id }).from(creators).where(eq(creators.id, userId)).limit(1);
+  const now = new Date();
   if (existing[0]) {
     await db
       .update(creators)
-      .set({ ...parsed.data, updatedAt: new Date() })
+      .set({ ...parsed.data, updatedAt: now })
       .where(eq(creators.id, userId));
   } else {
     await db.insert(creators).values({
@@ -80,9 +83,61 @@ export async function POST(request: Request) {
       city: parsed.data.city,
       province: parsed.data.province ?? null,
       zip: parsed.data.zip,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     });
+  }
+
+  const metaRows = await db
+    .select()
+    .from(creatorMeta)
+    .where(eq(creatorMeta.creatorId, userId))
+    .limit(1);
+  if (!metaRows[0]) {
+    const socialRows = await db
+      .select()
+      .from(userSocialAccounts)
+      .where(
+        and(eq(userSocialAccounts.userId, userId), eq(userSocialAccounts.provider, "INSTAGRAM")),
+      )
+      .limit(1);
+    const social = socialRows[0] ?? null;
+    if (social?.accessTokenEncrypted && social.providerUserId) {
+      let profile: Awaited<ReturnType<typeof fetchInstagramProfile>> | null = null;
+      try {
+        const accessToken = decryptSecret(social.accessTokenEncrypted);
+        profile = await fetchInstagramProfile({
+          accessToken,
+          igUserId: social.providerUserId,
+        });
+      } catch {
+        profile = null;
+      }
+
+      await db.insert(creatorMeta).values({
+        id: crypto.randomUUID(),
+        creatorId: userId,
+        igUserId: social.providerUserId,
+        accountType: profile?.accountType ?? null,
+        accessTokenEncrypted: social.accessTokenEncrypted,
+        expiresAt: social.expiresAt ?? null,
+        profileSyncedAt: profile ? now : null,
+        profileError: profile ? null : "Profile sync failed",
+        scopes: social.scopes ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await db
+        .update(creators)
+        .set({
+          igUserId: social.providerUserId,
+          username: profile?.username ?? parsed.data.username ?? null,
+          followersCount: profile?.followersCount ?? parsed.data.followersCount ?? null,
+          updatedAt: now,
+        })
+        .where(eq(creators.id, userId));
+    }
   }
 
   return Response.json({ ok: true });

@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { db } from "@/db";
-import { brandMemberships, brands, users } from "@/db/schema";
+import { brandMemberships, brands, userSocialAccounts, users } from "@/db/schema";
 import { requireUser, requireBrandMembership } from "@/lib/auth";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
@@ -30,11 +30,23 @@ export async function POST(request: Request) {
 
   const brandId = crypto.randomUUID();
   const now = new Date();
+  const socialRows = await db
+    .select({ username: userSocialAccounts.username })
+    .from(userSocialAccounts)
+    .where(
+      and(
+        eq(userSocialAccounts.userId, sessionOrResponse.user.id),
+        eq(userSocialAccounts.provider, "INSTAGRAM"),
+      ),
+    )
+    .limit(1);
+  const instagramHandle = socialRows[0]?.username ?? null;
 
   await db.insert(brands).values({
     id: brandId,
     name: parsed.data.name,
     countriesDefault: parsed.data.countriesDefault,
+    instagramHandle,
     acceptanceFollowersThreshold: 5000,
     acceptanceAboveThresholdAutoAccept: true,
     createdAt: now,
@@ -59,4 +71,3 @@ export async function POST(request: Request) {
     membership,
   });
 }
-
