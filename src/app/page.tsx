@@ -103,7 +103,7 @@ export default function Home() {
           />
         ))}
 
-        <div className="container relative mx-auto px-4 py-10 md:px-8 lg:py-16">
+        <div className="container relative mx-auto px-4 py-8 md:px-8 lg:py-14">
           <nav className="flex items-center justify-between text-xs font-mono uppercase tracking-[0.32em] text-foreground/70">
             <div className="flex items-center gap-3">
               <div className="grid grid-cols-7 gap-0.5 rounded-md border border-border bg-card p-2 shadow-sm">
@@ -134,7 +134,7 @@ export default function Home() {
             </div>
           </nav>
 
-          <div className="mt-10 grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
+          <div className="mt-8 grid gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
             <div className="space-y-6">
               <div className="flex flex-wrap items-center gap-2 text-xs font-mono uppercase tracking-wider text-muted-foreground">
                 <Badge variant="outline" className="border-border bg-card text-foreground">
@@ -185,6 +185,21 @@ export default function Home() {
                   </div>
                 ))}
               </div>
+
+              <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+                <span className="rounded-full border border-border bg-card px-3 py-1">
+                  Live: 24 creators browsing
+                </span>
+                <span className="rounded-full border border-border bg-card px-3 py-1">
+                  8 active offers
+                </span>
+                <span className="rounded-full border border-border bg-card px-3 py-1">
+                  5 shipments due today
+                </span>
+                <span className="rounded-full border border-border bg-card px-3 py-1">
+                  12 posts due this week
+                </span>
+              </div>
             </div>
 
             <div className="relative">
@@ -206,6 +221,18 @@ export default function Home() {
                 </div>
                 <div className="mt-2 text-sm text-muted-foreground">
                   Rule: auto-approve creators with 2k+ followers, else brand review.
+                </div>
+
+                <div className="mt-4 grid gap-2 text-xs sm:grid-cols-3">
+                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
+                    8 active offers
+                  </div>
+                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
+                    5 shipments due
+                  </div>
+                  <div className="rounded-lg border border-border bg-background px-3 py-2 text-center">
+                    12 posts due
+                  </div>
                 </div>
 
                 <div className="mt-5 grid gap-4 lg:grid-cols-[1fr_0.9fr]">
@@ -285,10 +312,22 @@ export default function Home() {
         </div>
       </header>
 
-      <main className="space-y-16">
-        <section className="container mx-auto px-4 py-12 md:px-8">
-          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
-            <div className="relative h-[360px]">
+      <main className="space-y-12">
+        <section className="border-y border-border bg-card/80">
+          <div className="container mx-auto flex flex-wrap items-center gap-4 px-4 py-4 text-xs text-muted-foreground md:px-8">
+            <span className="font-mono uppercase tracking-widest text-foreground/70">
+              Live feed
+            </span>
+            <span>GlowBar sent 3 orders to creators · 2 minutes ago</span>
+            <span>Riya claimed “Coffee sampler pack” · 5 minutes ago</span>
+            <span>3 deliverables verified today</span>
+            <span>US + India seeding open</span>
+          </div>
+        </section>
+
+        <section className="container mx-auto px-4 py-10 md:px-8">
+          <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <div className="relative h-[320px]">
               <div className="absolute left-4 top-6 h-72 w-60 -rotate-6 rounded-3xl border border-border bg-card p-4 shadow-lg transition-transform duration-300 hover:-translate-y-1">
                 <div className="text-xs font-mono uppercase text-muted-foreground">Offer 01</div>
                 <div className="mt-3 text-lg font-semibold">{swipeOffers[0].title}</div>
@@ -336,6 +375,17 @@ export default function Home() {
                 Creators swipe to accept, brands stay in control with auto-accept thresholds and
                 approval gates. Your team never touches a spreadsheet again.
               </p>
+              <div className="grid gap-2 text-xs sm:grid-cols-3">
+                <div className="rounded-xl border border-border bg-card px-3 py-2 text-center">
+                  Avg claim time: 18 min
+                </div>
+                <div className="rounded-xl border border-border bg-card px-3 py-2 text-center">
+                  92% verified on time
+                </div>
+                <div className="rounded-xl border border-border bg-card px-3 py-2 text-center">
+                  4.6x seeding ROI
+                </div>
+              </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl border border-border bg-card p-4 text-sm">
                   Auto-accept on follower count or engagement rate.
@@ -355,7 +405,7 @@ export default function Home() {
         </section>
 
         <section className="bg-secondary/70">
-          <div className="container mx-auto px-4 py-12 md:px-8">
+          <div className="container mx-auto px-4 py-10 md:px-8">
             <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
               <div>
                 <Badge variant="outline" className="border-border bg-card text-foreground">
@@ -370,7 +420,7 @@ export default function Home() {
               </Link>
             </div>
 
-            <div className="relative mt-8 grid gap-6 lg:grid-cols-3">
+            <div className="relative mt-6 grid gap-5 lg:grid-cols-3">
               <div className="pointer-events-none absolute -left-8 top-6 hidden text-5xl font-mono text-muted-foreground/30 lg:block">
                 PUBLISH
               </div>
@@ -395,10 +445,19 @@ export default function Home() {
                 </Card>
               ))}
             </div>
+
+            <div className="mt-6 grid gap-4 md:grid-cols-2">
+              <div className="rounded-2xl border border-border bg-card p-4 text-sm shadow-sm">
+                Automation guardrails: approval queues, usage rights, and strike thresholds.
+              </div>
+              <div className="rounded-2xl border border-border bg-card p-4 text-sm shadow-sm">
+                Creator SLA: reminders + auto-expiry keep your pipeline clean.
+              </div>
+            </div>
           </div>
         </section>
 
-        <section className="container mx-auto px-4 py-12 md:px-8">
+        <section className="container mx-auto px-4 py-10 md:px-8">
           <div className="grid gap-8 lg:grid-cols-[1fr_1.1fr] lg:items-center">
             <div>
               <Badge variant="outline" className="border-border bg-card text-foreground">
@@ -451,11 +510,24 @@ export default function Home() {
                   logged for every creator.
                 </div>
               </div>
+              <div className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+                <div className="text-xs uppercase text-muted-foreground">Attribution lens</div>
+                <div className="mt-3 grid gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
+                    <span>Top creator lift</span>
+                    <span className="font-semibold text-foreground">+32%</span>
+                  </div>
+                  <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
+                    <span>Cost per verified post</span>
+                    <span className="font-semibold text-foreground">$18</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="container mx-auto px-4 pb-16 md:px-8">
+        <section className="container mx-auto px-4 pb-12 md:px-8">
           <div className="rounded-3xl border border-border bg-card p-8 shadow-sm md:p-12">
             <div className="grid gap-6 md:grid-cols-[1.2fr_0.8fr] md:items-center">
               <div>
