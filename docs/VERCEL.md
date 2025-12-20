@@ -26,7 +26,10 @@
 - Set `ALERT_EMAIL_TO` + Resend env vars to receive alert emails when crons/webhooks fail.
 - Set `LOG_LEVEL=debug` during early beta debugging.
 
-## Cron jobs
+## Cron jobs (daily schedule)
+Vercel Cron only supports recurring schedules, so we run these once per day (UTC).
+
+Endpoints (daily):
 - `/api/cron/verify` – verification + strikes + due reminders
 - `/api/cron/fulfillment` – Shopify order retry
 - `/api/cron/notify` – send queued notifications
