@@ -116,7 +116,7 @@ const createOfferSchema = z.object({
     )
     .optional()
     .default([]),
-  metadata: z.record(z.unknown()).optional().default({}),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
 export async function GET(request: Request) {
