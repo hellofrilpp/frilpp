@@ -129,9 +129,25 @@ h6 {
 
 /* Pixel-style helper for marketing surfaces */
 .pixel-grid {
-  background-image: linear-gradient(rgba(17, 17, 17, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(17, 17, 17, 0.08) 1px, transparent 1px);
+  background-image: linear-gradient(
+      hsl(var(--foreground) / 0.08) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, hsl(var(--foreground) / 0.08) 1px, transparent 1px);
   background-size: 32px 32px;
+}
+
+.hero-wash {
+  background: radial-gradient(
+      circle at top left,
+      hsl(var(--accent) / 0.18),
+      transparent 55%
+    ),
+    radial-gradient(
+      circle at bottom right,
+      hsl(var(--primary) / 0.16),
+      transparent 50%
+    );
 }
 
 @keyframes float-slow {
@@ -157,10 +173,24 @@ h6 {
   }
 }
 
+@keyframes pixel-flicker {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
 .animate-float-slow {
   animation: float-slow 8s ease-in-out infinite;
 }
 
 .animate-fade-rise {
   animation: fade-rise 0.6s ease both;
+}
+
+.animate-pixel-flicker {
+  animation: pixel-flicker 4.2s ease-in-out infinite;
 }
