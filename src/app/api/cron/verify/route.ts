@@ -12,11 +12,12 @@ export async function GET(request: Request) {
     if (auth) return auth;
 
     const { db } = await import("@/db");
-    const { brands, creatorMeta, creators, deliverables, matches, notifications, offers, strikes } = await import(
+    const { brands, creatorMeta, creators, deliverables, matches, notifications, offers, strikes, userSocialAccounts } = await import(
       "@/db/schema"
     );
     const { and, eq, gt, inArray, isNotNull, isNull, lt } = await import("drizzle-orm");
     const { fetchRecentMedia } = await import("@/lib/meta");
+    const { fetchRecentTikTokVideos } = await import("@/lib/tiktok");
 
     if (!process.env.DATABASE_URL) {
       return Response.json(
@@ -103,6 +104,7 @@ export async function GET(request: Request) {
       campaignCode: matches.campaignCode,
       acceptedAt: matches.acceptedAt,
       brandHandle: brands.instagramHandle,
+      metadata: offers.metadata,
       metaIgUserId: creatorMeta.igUserId,
       metaAccessTokenEncrypted: creatorMeta.accessTokenEncrypted,
     })
@@ -141,6 +143,20 @@ export async function GET(request: Request) {
       const expected = row.expectedType;
       const brandHandle = row.brandHandle ? row.brandHandle.replace(/^@/, "") : null;
       const acceptedAt = row.acceptedAt ? new Date(row.acceptedAt) : null;
+      const platforms = Array.isArray((row.metadata as { platforms?: string[] } | null)?.platforms)
+        ? ((row.metadata as { platforms?: string[] }).platforms ?? []).map((p) => String(p).toUpperCase())
+        : [];
+      if (platforms.length && !platforms.includes("INSTAGRAM")) {
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: true,
+          verified: false,
+          strikeIssued: false,
+          note: "Instagram not required for this offer",
+        });
+        continue;
+      }
 
       const found = media.find((m) => {
         const caption = (m.caption ?? "").toLowerCase();
@@ -192,6 +208,136 @@ export async function GET(request: Request) {
         verified: false,
         strikeIssued: false,
         note: err instanceof Error ? err.message : "Verification error",
+      });
+    }
+  }
+
+  // 1b) Attempt automated verification for TikTok posts when creators connected TikTok.
+  const tiktokCandidates = await db
+    .select({
+      deliverableId: deliverables.id,
+      matchId: deliverables.matchId,
+      expectedType: deliverables.expectedType,
+      campaignCode: matches.campaignCode,
+      acceptedAt: matches.acceptedAt,
+      metadata: offers.metadata,
+      accessTokenEncrypted: userSocialAccounts.accessTokenEncrypted,
+      expiresAt: userSocialAccounts.expiresAt,
+    })
+    .from(deliverables)
+    .innerJoin(matches, eq(matches.id, deliverables.matchId))
+    .innerJoin(offers, eq(offers.id, matches.offerId))
+    .innerJoin(creators, eq(creators.id, matches.creatorId))
+    .innerJoin(
+      userSocialAccounts,
+      and(
+        eq(userSocialAccounts.userId, creators.id),
+        eq(userSocialAccounts.provider, "TIKTOK"),
+        isNotNull(userSocialAccounts.accessTokenEncrypted),
+      ),
+    )
+    .where(
+      and(
+        eq(deliverables.status, "DUE"),
+        inArray(deliverables.expectedType, ["REELS", "FEED"]),
+      ),
+    )
+    .limit(20);
+
+  for (const row of tiktokCandidates) {
+    try {
+      const platforms = Array.isArray((row.metadata as { platforms?: string[] } | null)?.platforms)
+        ? ((row.metadata as { platforms?: string[] }).platforms ?? []).map((p) => String(p).toUpperCase())
+        : [];
+      if (platforms.length && !platforms.includes("TIKTOK")) {
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: true,
+          verified: false,
+          strikeIssued: false,
+          note: "TikTok not required for this offer",
+        });
+        continue;
+      }
+
+      if (row.expiresAt && row.expiresAt.getTime() < Date.now()) {
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: false,
+          verified: false,
+          strikeIssued: false,
+          note: "TikTok token expired",
+        });
+        continue;
+      }
+
+      if (!row.accessTokenEncrypted) {
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: false,
+          verified: false,
+          strikeIssued: false,
+          note: "TikTok token missing",
+        });
+        continue;
+      }
+
+      const videos = await fetchRecentTikTokVideos({
+        accessTokenEncrypted: row.accessTokenEncrypted,
+        limit: 25,
+      });
+
+      const acceptedAt = row.acceptedAt ? new Date(row.acceptedAt) : null;
+      const found = videos.find((video) => {
+        const caption = (video.title ?? "").toLowerCase();
+        if (!caption.includes(row.campaignCode.toLowerCase())) return false;
+        if (acceptedAt && video.createTime) {
+          const ts = new Date(video.createTime * 1000);
+          if (Number.isFinite(ts.getTime()) && ts.getTime() < acceptedAt.getTime()) return false;
+        }
+        return true;
+      });
+
+      if (found) {
+        await db
+          .update(deliverables)
+          .set({
+            status: "VERIFIED",
+            verifiedMediaId: found.id ?? null,
+            verifiedPermalink: found.shareUrl ?? null,
+            verifiedAt: now,
+            failureReason: null,
+          })
+          .where(and(eq(deliverables.id, row.deliverableId), eq(deliverables.status, "DUE")));
+
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: true,
+          verified: true,
+          strikeIssued: false,
+        });
+      } else {
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: true,
+          verified: false,
+          strikeIssued: false,
+          note: "No matching TikTok video found",
+        });
+      }
+    } catch (err) {
+      results.push({
+        deliverableId: row.deliverableId,
+        matchId: row.matchId,
+        ok: false,
+        verified: false,
+        strikeIssued: false,
+        note: err instanceof Error ? err.message : "TikTok verification error",
       });
     }
   }

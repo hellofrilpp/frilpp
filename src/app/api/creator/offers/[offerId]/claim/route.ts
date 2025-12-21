@@ -2,7 +2,7 @@ import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { getShopifyStoreForBrand } from "@/db/shopify";
-import { brands, creatorMeta, deliverables, matches, offers, offerProducts, matchDiscounts } from "@/db/schema";
+import { brands, creatorMeta, deliverables, matches, offers, offerProducts, matchDiscounts, userSocialAccounts } from "@/db/schema";
 import { requireCreatorContext } from "@/lib/auth";
 import { generateCampaignCode } from "@/lib/campaign-code";
 import { decryptSecret } from "@/lib/crypto";
@@ -130,41 +130,101 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     const shouldAutoAccept = autoAccept && creatorFollowers >= threshold;
 
     if (offer.deliverableType !== "UGC_ONLY") {
-      const metaRows = await db
-        .select({
-          igUserId: creatorMeta.igUserId,
-          expiresAt: creatorMeta.expiresAt,
-          profileSyncedAt: creatorMeta.profileSyncedAt,
-          profileError: creatorMeta.profileError,
-        })
-        .from(creatorMeta)
-        .where(eq(creatorMeta.creatorId, creator.id))
-        .limit(1);
-      const meta = metaRows[0] ?? null;
-      const igConnected = Boolean(meta?.igUserId);
-      if (!igConnected) {
-        return Response.json(
-          { ok: false, error: "Instagram connect required", code: "NEEDS_INSTAGRAM_CONNECT" },
-          { status: 409 },
-        );
+      const metadata = offer.metadata as { platforms?: string[] } | null;
+      const platforms = Array.isArray(metadata?.platforms)
+        ? metadata!.platforms!.map((p) => String(p).toUpperCase())
+        : [];
+      const allowInstagram = platforms.length === 0 || platforms.includes("INSTAGRAM");
+      const allowTikTok = platforms.includes("TIKTOK");
+
+      let igReady = false;
+      let igError: { code: string; message: string; data?: Record<string, unknown> } | null = null;
+      if (allowInstagram) {
+        const metaRows = await db
+          .select({
+            igUserId: creatorMeta.igUserId,
+            expiresAt: creatorMeta.expiresAt,
+            profileSyncedAt: creatorMeta.profileSyncedAt,
+            profileError: creatorMeta.profileError,
+          })
+          .from(creatorMeta)
+          .where(eq(creatorMeta.creatorId, creator.id))
+          .limit(1);
+        const meta = metaRows[0] ?? null;
+        const igConnected = Boolean(meta?.igUserId);
+        if (!igConnected) {
+          igError = { code: "NEEDS_INSTAGRAM_CONNECT", message: "Instagram connect required" };
+        } else if (meta?.expiresAt && meta.expiresAt.getTime() < Date.now()) {
+          igError = {
+            code: "NEEDS_INSTAGRAM_RECONNECT",
+            message: "Instagram token expired. Reconnect required.",
+          };
+        } else {
+          const staleDays = getMetaProfileStaleDays();
+          const staleBefore = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
+          if (!meta?.profileSyncedAt || meta.profileSyncedAt.getTime() < staleBefore.getTime() || meta.profileError) {
+            igError = {
+              code: "NEEDS_INSTAGRAM_SYNC",
+              message: "Instagram profile needs sync before claiming posting offers",
+              data: {
+                profileSyncedAt: meta?.profileSyncedAt?.toISOString() ?? null,
+                profileError: meta?.profileError ?? null,
+                staleDays,
+              },
+            };
+          } else {
+            igReady = true;
+          }
+        }
       }
-      if (meta?.expiresAt && meta.expiresAt.getTime() < Date.now()) {
-        return Response.json(
-          { ok: false, error: "Instagram token expired. Reconnect required.", code: "NEEDS_INSTAGRAM_RECONNECT" },
-          { status: 409 },
-        );
+
+      let tiktokReady = false;
+      let tiktokError: { code: string; message: string } | null = null;
+      if (allowTikTok) {
+        const tiktokRows = await db
+          .select({
+            accessTokenEncrypted: userSocialAccounts.accessTokenEncrypted,
+            expiresAt: userSocialAccounts.expiresAt,
+          })
+          .from(userSocialAccounts)
+          .where(
+            and(
+              eq(userSocialAccounts.userId, creator.id),
+              eq(userSocialAccounts.provider, "TIKTOK"),
+            ),
+          )
+          .limit(1);
+        const tiktok = tiktokRows[0] ?? null;
+        if (!tiktok?.accessTokenEncrypted) {
+          tiktokError = { code: "NEEDS_TIKTOK_CONNECT", message: "TikTok connect required" };
+        } else if (tiktok.expiresAt && tiktok.expiresAt.getTime() < Date.now()) {
+          tiktokError = {
+            code: "NEEDS_TIKTOK_RECONNECT",
+            message: "TikTok token expired. Reconnect required.",
+          };
+        } else {
+          tiktokReady = true;
+        }
       }
-      const staleDays = getMetaProfileStaleDays();
-      const staleBefore = new Date(Date.now() - staleDays * 24 * 60 * 60 * 1000);
-      if (!meta?.profileSyncedAt || meta.profileSyncedAt.getTime() < staleBefore.getTime() || meta.profileError) {
+
+      if (!(igReady || tiktokReady)) {
+        if (allowInstagram && !allowTikTok && igError) {
+          return Response.json(
+            { ok: false, error: igError.message, code: igError.code, ...(igError.data ?? {}) },
+            { status: 409 },
+          );
+        }
+        if (allowTikTok && !allowInstagram && tiktokError) {
+          return Response.json(
+            { ok: false, error: tiktokError.message, code: tiktokError.code },
+            { status: 409 },
+          );
+        }
         return Response.json(
           {
             ok: false,
-            error: "Instagram profile needs sync before claiming posting offers",
-            code: "NEEDS_INSTAGRAM_SYNC",
-            profileSyncedAt: meta?.profileSyncedAt?.toISOString() ?? null,
-            profileError: meta?.profileError ?? null,
-            staleDays,
+            error: "Social connect required",
+            code: "NEEDS_SOCIAL_CONNECT",
           },
           { status: 409 },
         );

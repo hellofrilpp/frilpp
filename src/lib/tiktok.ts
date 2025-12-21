@@ -1,4 +1,4 @@
-import { encryptSecret } from "@/lib/crypto";
+import { decryptSecret, encryptSecret } from "@/lib/crypto";
 
 export function getTikTokAppConfig() {
   const clientId = process.env.TIKTOK_CLIENT_ID;
@@ -95,4 +95,48 @@ export async function fetchTikTokProfile(params: { accessToken: string }) {
     openId: json.data.user.open_id,
     displayName: json.data.user.display_name ?? null,
   };
+}
+
+type TikTokVideoListResponse = {
+  data?: {
+    videos?: Array<{
+      id?: string;
+      title?: string;
+      share_url?: string;
+      create_time?: number;
+    }>;
+  };
+  error?: { code?: number; message?: string };
+};
+
+export async function fetchRecentTikTokVideos(params: {
+  accessTokenEncrypted: string;
+  limit: number;
+}) {
+  const accessToken = decryptSecret(params.accessTokenEncrypted);
+  const url = new URL("https://open.tiktokapis.com/v2/video/list/");
+  url.searchParams.set("fields", "id,title,share_url,create_time");
+
+  const body = JSON.stringify({ max_count: Math.min(Math.max(params.limit, 1), 50) });
+
+  const res = await fetch(url.toString(), {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${accessToken}`,
+      "content-type": "application/json",
+    },
+    body,
+  });
+  const json = (await res.json().catch(() => null)) as TikTokVideoListResponse | null;
+  if (!res.ok || !json?.data?.videos) {
+    const msg = json?.error?.message || "Failed to fetch TikTok videos";
+    throw new Error(msg);
+  }
+
+  return json.data.videos.map((video) => ({
+    id: video.id ?? null,
+    title: video.title ?? "",
+    shareUrl: video.share_url ?? null,
+    createTime: video.create_time ?? null,
+  }));
 }

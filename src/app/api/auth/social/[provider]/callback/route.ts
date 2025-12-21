@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
+import { brands, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
 import { getSessionUser, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sanitizeNextPath } from "@/lib/redirects";
 import { discoverInstagramAccount, exchangeMetaCode, fetchInstagramProfile } from "@/lib/meta";
@@ -79,6 +79,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const stateCookie = jar.get("social_oauth_state")?.value;
   const providerCookie = jar.get("social_oauth_provider")?.value;
   const nextCookie = jar.get("social_oauth_next")?.value;
+  const roleCookie = jar.get("social_oauth_role")?.value ?? null;
   const nextPath = sanitizeNextPath(nextCookie, "/onboarding");
 
   if (!stateCookie || stateCookie !== parsed.data.state || providerCookie !== provider) {
@@ -172,6 +173,16 @@ export async function GET(request: Request, context: { params: Promise<{ provide
         createdAt: new Date(),
         updatedAt: new Date(),
       });
+    }
+
+    if (roleCookie === "brand" && providerId === "INSTAGRAM" && username) {
+      const brandId = session.user.activeBrandId;
+      if (brandId) {
+        await db
+          .update(brands)
+          .set({ instagramHandle: username, updatedAt: new Date() })
+          .where(eq(brands.id, brandId));
+      }
     }
 
     jar.delete("social_oauth_state");
