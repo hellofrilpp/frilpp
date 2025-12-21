@@ -12,6 +12,14 @@ const bodySchema = z.object({
   description: z.string().trim().max(500).optional(),
   industry: z.string().trim().max(80).optional(),
   location: z.string().trim().max(80).optional(),
+  address1: z.string().trim().max(128).optional(),
+  address2: z.string().trim().max(128).optional(),
+  city: z.string().trim().max(64).optional(),
+  province: z.string().trim().max(64).optional(),
+  zip: z.string().trim().max(16).optional(),
+  country: z.enum(["US", "IN"]).optional(),
+  lat: z.number().min(-90).max(90).nullable().optional(),
+  lng: z.number().min(-180).max(180).nullable().optional(),
   logoUrl: z.string().trim().max(500).optional(),
 });
 
@@ -49,6 +57,14 @@ export async function GET(request: Request) {
       description: brands.description,
       industry: brands.industry,
       location: brands.location,
+      address1: brands.address1,
+      address2: brands.address2,
+      city: brands.city,
+      province: brands.province,
+      zip: brands.zip,
+      country: brands.country,
+      lat: brands.lat,
+      lng: brands.lng,
       logoUrl: brands.logoUrl,
     })
     .from(brands)
@@ -87,6 +103,14 @@ export async function PATCH(request: Request) {
   if (parsed.data.description !== undefined) update.description = normalizeOptional(parsed.data.description);
   if (parsed.data.industry !== undefined) update.industry = normalizeOptional(parsed.data.industry);
   if (parsed.data.location !== undefined) update.location = normalizeOptional(parsed.data.location);
+  if (parsed.data.address1 !== undefined) update.address1 = normalizeOptional(parsed.data.address1);
+  if (parsed.data.address2 !== undefined) update.address2 = normalizeOptional(parsed.data.address2);
+  if (parsed.data.city !== undefined) update.city = normalizeOptional(parsed.data.city);
+  if (parsed.data.province !== undefined) update.province = normalizeOptional(parsed.data.province);
+  if (parsed.data.zip !== undefined) update.zip = normalizeOptional(parsed.data.zip);
+  if (parsed.data.country !== undefined) update.country = parsed.data.country ?? null;
+  if (parsed.data.lat !== undefined) update.lat = parsed.data.lat;
+  if (parsed.data.lng !== undefined) update.lng = parsed.data.lng;
   if (logoUrl !== undefined) update.logoUrl = logoUrl;
 
   try {
@@ -108,6 +132,14 @@ export async function PATCH(request: Request) {
       description: brands.description,
       industry: brands.industry,
       location: brands.location,
+      address1: brands.address1,
+      address2: brands.address2,
+      city: brands.city,
+      province: brands.province,
+      zip: brands.zip,
+      country: brands.country,
+      lat: brands.lat,
+      lng: brands.lng,
       logoUrl: brands.logoUrl,
     })
     .from(brands)

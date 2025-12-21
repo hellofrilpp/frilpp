@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import InfluencerLayout from "@/components/influencer/InfluencerLayout";
+import LocationPicker from "@/components/LocationPicker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, CreatorDeal, apiUrl, completeCreatorOnboarding, getCreatorDeals, getCreatorProfile, getInstagramStatus, getSocialAccounts, syncInstagramProfile } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
@@ -34,6 +35,8 @@ const InfluencerProfile = () => {
     province: "",
     zip: "",
     country: "US" as "US" | "IN",
+    lat: null as number | null,
+    lng: null as number | null,
   });
   const { data: profileData, error: profileError } = useQuery({
     queryKey: ["creator-profile"],
@@ -74,6 +77,8 @@ const InfluencerProfile = () => {
       province: profileData.creator.province ?? "",
       zip: profileData.creator.zip ?? "",
       country: (profileData.creator.country as "US" | "IN") ?? "US",
+      lat: profileData.creator.lat ?? null,
+      lng: profileData.creator.lng ?? null,
     });
   }, [profileData]);
 
@@ -323,9 +328,9 @@ const InfluencerProfile = () => {
                   className="mt-2 border-2 border-border font-mono"
                 />
               </div>
-              <div>
-                <Label className="font-mono text-xs">COUNTRY</Label>
-                <div className="mt-2 flex gap-2">
+            <div>
+              <Label className="font-mono text-xs">COUNTRY</Label>
+              <div className="mt-2 flex gap-2">
                   {(["US", "IN"] as const).map((option) => (
                     <button
                       key={option}
@@ -342,6 +347,21 @@ const InfluencerProfile = () => {
                 </div>
               </div>
             </div>
+            <LocationPicker
+              label="AUTO_FILL_ADDRESS"
+              onSelect={(location) =>
+                setProfileForm((prev) => ({
+                  ...prev,
+                  address1: location.address1,
+                  city: location.city,
+                  province: location.province,
+                  zip: location.zip,
+                  country: (location.country as "US" | "IN") ?? prev.country,
+                  lat: location.lat,
+                  lng: location.lng,
+                }))
+              }
+            />
             <div>
               <Label className="font-mono text-xs">ADDRESS_LINE_1</Label>
               <Input
@@ -410,17 +430,19 @@ const InfluencerProfile = () => {
                 }
                 try {
                   setSavingProfile(true);
-                  await completeCreatorOnboarding({
-                    country: profileForm.country,
-                    fullName: profileForm.fullName,
-                    email: profileForm.email,
-                    phone: profileForm.phone || undefined,
-                    address1: profileForm.address1,
-                    address2: profileForm.address2 || undefined,
-                    city: profileForm.city,
-                    province: profileForm.province || undefined,
-                    zip: profileForm.zip,
-                  });
+                    await completeCreatorOnboarding({
+                      country: profileForm.country,
+                      fullName: profileForm.fullName,
+                      email: profileForm.email,
+                      phone: profileForm.phone || undefined,
+                      address1: profileForm.address1,
+                      address2: profileForm.address2 || undefined,
+                      city: profileForm.city,
+                      province: profileForm.province || undefined,
+                      zip: profileForm.zip,
+                      lat: profileForm.lat ?? undefined,
+                      lng: profileForm.lng ?? undefined,
+                    });
                   await queryClient.invalidateQueries({ queryKey: ["creator-profile"] });
                   toast({ title: "SAVED", description: "Shipping profile updated." });
                 } catch (err) {

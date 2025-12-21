@@ -7,6 +7,7 @@ import { requireBrandContext } from "@/lib/auth";
 import { decryptSecret } from "@/lib/crypto";
 import { enqueueNotification } from "@/lib/notifications";
 import { createDiscountForMatch } from "@/lib/shopify-discounts";
+import { ensureManualShipmentForMatch } from "@/lib/manual-shipments";
 import { ensureShopifyOrderForMatch } from "@/lib/shopify-orders";
 
 export const runtime = "nodejs";
@@ -68,6 +69,21 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
   const errors: string[] = [];
 
   const store = await getShopifyStoreForBrand(offer.brandId);
+  const offerProductRows = store
+    ? await db
+        .select({ shopifyProductId: offerProducts.shopifyProductId })
+        .from(offerProducts)
+        .where(eq(offerProducts.offerId, offer.id))
+        .limit(20)
+    : [];
+  const fulfillmentType =
+    typeof offer.metadata === "object" && offer.metadata
+      ? String((offer.metadata as Record<string, unknown>).fulfillmentType ?? "")
+      : "";
+  const wantsManual = fulfillmentType === "MANUAL";
+  const needsManualShipment =
+    offer.deliverableType !== "UGC_ONLY" &&
+    (wantsManual || !store || offerProductRows.length === 0);
 
   try {
     if (store && offer.deliverableType !== "UGC_ONLY") {
@@ -77,12 +93,9 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
         .where(eq(matchDiscounts.matchId, matchId))
         .limit(1);
       if (!existingDiscount[0]) {
-        const offerProductRows = await db
-          .select({ shopifyProductId: offerProducts.shopifyProductId })
-          .from(offerProducts)
-          .where(eq(offerProducts.offerId, offer.id))
-          .limit(20);
-
+        if (!offerProductRows.length) {
+          throw new Error("Offer has no Shopify products selected");
+        }
         const percent = Number(process.env.DEFAULT_CREATOR_DISCOUNT_PERCENT ?? "10");
         const token = decryptSecret(store.accessTokenEncrypted);
 
@@ -118,6 +131,14 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
       orderCreated = true;
     } catch (err) {
       errors.push(err instanceof Error ? err.message : "Order creation failed");
+    }
+  }
+
+  if (needsManualShipment) {
+    try {
+      await ensureManualShipmentForMatch(matchId);
+    } catch (err) {
+      errors.push(err instanceof Error ? err.message : "Manual shipment creation failed");
     }
   }
 

@@ -2,6 +2,7 @@ import {
   CAMPAIGN_CATEGORIES,
   CONTENT_TYPES,
   CREATOR_CATEGORIES,
+  OFFER_PRESETS,
   PLATFORMS_BY_COUNTRY,
   REGION_OPTIONS,
   toItems,
@@ -21,6 +22,7 @@ export async function GET() {
       IN: toItems(PLATFORMS_BY_COUNTRY.IN),
     },
     regions: toItems(REGION_OPTIONS),
+    offerPresets: OFFER_PRESETS,
     countries: ["US", "IN"],
   });
 }

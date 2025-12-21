@@ -18,7 +18,17 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import BrandLayout from "@/components/brand/BrandLayout";
-import { ApiError, ShopifyProduct, apiUrl, createBrandOffer, getPicklists, getShopifyProducts, getShopifyStatus } from "@/lib/api";
+import {
+  ApiError,
+  ShopifyProduct,
+  apiUrl,
+  createBrandOffer,
+  getCreatorRecommendations,
+  getBrandOffers,
+  getPicklists,
+  getShopifyProducts,
+  getShopifyStatus,
+} from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
 const steps = [
@@ -54,6 +64,8 @@ const CampaignCreator = () => {
     categoryOther: "",
     description: "",
     productImage: "",
+    presetId: "",
+    fulfillmentType: "",
     
     // Step 2 - Content
     platforms: [] as string[],
@@ -69,6 +81,7 @@ const CampaignCreator = () => {
     niches: [] as string[],
     nicheOther: "",
     region: "US_IN",
+    locationRadiusMiles: "",
     
     // Step 4 - Review
     campaignName: "",
@@ -78,6 +91,7 @@ const CampaignCreator = () => {
   const [selectedProduct, setSelectedProduct] = useState<ShopifyProduct | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [productQuantity, setProductQuantity] = useState(1);
+  const [copying, setCopying] = useState(false);
 
   const { data: shopifyStatus } = useQuery({
     queryKey: ["shopify-status"],
@@ -100,6 +114,42 @@ const CampaignCreator = () => {
   const contentTypeOptions = picklists?.contentTypes ?? [];
   const regionOptions = picklists?.regions ?? [];
   const platformsByCountry = picklists?.platformsByCountry ?? { US: [], IN: [] };
+  const offerPresets = picklists?.offerPresets ?? [];
+  const countriesAllowed = useMemo(() => {
+    if (formData.region === "US") return ["US"] as Array<"US" | "IN">;
+    if (formData.region === "IN") return ["IN"] as Array<"US" | "IN">;
+    return ["US", "IN"] as Array<"US" | "IN">;
+  }, [formData.region]);
+
+  const offerDraftPayload = useMemo(() => {
+    const minFollowers = Number(formData.minFollowers || 0);
+    const maxFollowers = Number(formData.maxFollowers || 0);
+    const radiusMiles = Number(formData.locationRadiusMiles || 0);
+    return {
+      title: formData.campaignName || formData.productName || undefined,
+      countriesAllowed,
+      platforms: formData.platforms,
+      contentTypes: formData.contentTypes,
+      niches: formData.niches,
+      locationRadiusMiles: Number.isFinite(radiusMiles) && radiusMiles > 0 ? radiusMiles : undefined,
+      minFollowers: Number.isFinite(minFollowers) ? minFollowers : undefined,
+      maxFollowers: Number.isFinite(maxFollowers) && maxFollowers > 0 ? maxFollowers : undefined,
+      category: formData.category || undefined,
+      description: formData.description || undefined,
+    };
+  }, [formData, countriesAllowed]);
+
+  const offerDraftKey = useMemo(() => JSON.stringify(offerDraftPayload), [offerDraftPayload]);
+
+  const {
+    data: draftRecommendationsData,
+    isFetching: draftRecommendationsLoading,
+    refetch: refetchDraftRecommendations,
+  } = useQuery({
+    queryKey: ["creator-recommendations", offerDraftKey],
+    queryFn: () => getCreatorRecommendations({ offerDraft: offerDraftPayload, limit: 6 }),
+    enabled: false,
+  });
 
   const availablePlatforms = useMemo(() => {
     const region = formData.region || "US_IN";
@@ -124,8 +174,30 @@ const CampaignCreator = () => {
     });
   }, [availablePlatforms]);
 
+  useEffect(() => {
+    if (!shopifyStatus) return;
+    setFormData((prev) => {
+      if (prev.fulfillmentType) return prev;
+      return {
+        ...prev,
+        fulfillmentType: shopifyStatus.connected ? "SHOPIFY" : "MANUAL",
+      };
+    });
+  }, [shopifyStatus]);
+
   const updateField = (field: string, value: any) => {
     setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const applyPreset = (preset: { id: string; platforms: string[]; contentTypes: string[] }) => {
+    setFormData(prev => ({
+      ...prev,
+      presetId: preset.id,
+      platforms: preset.platforms,
+      platformOther: "",
+      contentTypes: preset.contentTypes,
+      contentTypeOther: "",
+    }));
   };
 
   const toggleArrayField = (field: string, value: string) => {
@@ -179,17 +251,27 @@ const CampaignCreator = () => {
 
     const minFollowers = Number(formData.minFollowers || 0);
     const maxClaims = Number(formData.quantity || 1);
-    const countriesAllowed = (() => {
-      if (formData.region === "US") return ["US"] as Array<"US" | "IN">;
-      if (formData.region === "IN") return ["IN"] as Array<"US" | "IN">;
-      return ["US", "IN"] as Array<"US" | "IN">;
-    })();
-    if (selectedProduct && !selectedVariantId) {
-      toast.error("Select a variant for the Shopify product");
-      return;
+    const allowedCountries = countriesAllowed;
+    const fulfillmentType =
+      formData.fulfillmentType || (shopifyStatus?.connected ? "SHOPIFY" : "MANUAL");
+
+    if (fulfillmentType === "SHOPIFY") {
+      if (!shopifyStatus?.connected) {
+        toast.error("Connect Shopify or switch to manual fulfillment");
+        return;
+      }
+      if (!selectedProduct) {
+        toast.error("Select a Shopify product or choose manual fulfillment");
+        return;
+      }
+      if (!selectedVariantId) {
+        toast.error("Select a variant for the Shopify product");
+        return;
+      }
     }
+
     const products =
-      selectedProduct && selectedVariantId
+      fulfillmentType === "SHOPIFY" && selectedProduct && selectedVariantId
         ? [
             {
               shopifyProductId: selectedProduct.id,
@@ -198,6 +280,7 @@ const CampaignCreator = () => {
             },
           ]
         : [];
+    const radiusMiles = Number(formData.locationRadiusMiles || 0);
     const metadata = {
       productValue: formData.productValue ? Number(formData.productValue) : null,
       category: formData.category || null,
@@ -218,12 +301,15 @@ const CampaignCreator = () => {
       nicheOther: formData.niches.includes("OTHER") ? formData.nicheOther.trim() || null : null,
       region: formData.region || null,
       campaignName: formData.campaignName || null,
+      fulfillmentType,
+      locationRadiusMiles: Number.isFinite(radiusMiles) && radiusMiles > 0 ? radiusMiles : null,
+      presetId: formData.presetId || null,
     };
 
     createBrandOffer({
       title,
       template,
-      countriesAllowed,
+      countriesAllowed: allowedCountries,
       maxClaims: Number.isFinite(maxClaims) ? maxClaims : 1,
       deadlineDaysAfterDelivery: 14,
       followersThreshold: Number.isFinite(minFollowers) ? minFollowers : 0,
@@ -252,6 +338,65 @@ const CampaignCreator = () => {
       xp += contentTypeXp[type] ?? 0;
     });
     return xp * parseInt(formData.quantity || "1");
+  };
+
+  const formatDistance = (distance?: number | null) => {
+    if (distance === null || distance === undefined) return null;
+    if (distance < 1) return "<1mi";
+    return `${distance.toFixed(distance < 10 ? 1 : 0)}mi`;
+  };
+
+  const handleCopyLastOffer = async () => {
+    try {
+      setCopying(true);
+      const res = await getBrandOffers();
+      const last = res.offers?.[0];
+      if (!last) {
+        toast.error("No previous offers found");
+        return;
+      }
+      const meta = (last.metadata ?? {}) as Record<string, any>;
+      const region =
+        last.countriesAllowed?.length === 2
+          ? "US_IN"
+          : last.countriesAllowed?.[0] === "IN"
+            ? "IN"
+            : "US";
+      setFormData((prev) => ({
+        ...prev,
+        productName: meta.campaignName || last.title || prev.productName,
+        productValue:
+          meta.productValue !== null && meta.productValue !== undefined
+            ? String(meta.productValue)
+            : prev.productValue,
+        category: meta.category || prev.category,
+        categoryOther: meta.categoryOther || "",
+        description: meta.description || "",
+        platforms: Array.isArray(meta.platforms) ? meta.platforms : [],
+        platformOther: meta.platformOther || "",
+        contentTypes: Array.isArray(meta.contentTypes) ? meta.contentTypes : [],
+        contentTypeOther: meta.contentTypeOther || "",
+        hashtags: meta.hashtags || "",
+        guidelines: meta.guidelines || "",
+        niches: Array.isArray(meta.niches) ? meta.niches : [],
+        nicheOther: meta.nicheOther || "",
+        region: meta.region || region,
+        campaignName: meta.campaignName || last.title || "",
+        quantity: String(last.maxClaims ?? prev.quantity),
+        minFollowers: String(last.acceptanceFollowersThreshold ?? prev.minFollowers),
+        presetId: meta.presetId || "",
+        fulfillmentType: meta.fulfillmentType || prev.fulfillmentType,
+        locationRadiusMiles: meta.locationRadiusMiles ? String(meta.locationRadiusMiles) : "",
+      }));
+      setSelectedProduct(null);
+      setSelectedVariantId(null);
+      toast.success("Last offer copied");
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Copy failed";
+      toast.error(message);
+    } finally {
+      setCopying(false);
+    }
   };
 
   return (
@@ -327,6 +472,21 @@ const CampaignCreator = () => {
                   </div>
                   <h2 className="text-xl font-pixel">PRODUCT DETAILS</h2>
                   <p className="font-mono text-sm text-muted-foreground mt-2">&gt; What are you offering?</p>
+                </div>
+                <div className="flex items-center justify-between border-2 border-border bg-card/80 p-4">
+                  <div>
+                    <p className="font-pixel text-xs text-neon-green">FAST START</p>
+                    <p className="font-mono text-xs text-muted-foreground">Copy your last offer in one click.</p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={copying}
+                    onClick={handleCopyLastOffer}
+                    className="border-2 border-border font-pixel text-xs"
+                  >
+                    {copying ? "COPYING..." : "COPY_LAST_OFFER"}
+                  </Button>
                 </div>
 
                 <div className="space-y-6">
@@ -423,6 +583,40 @@ const CampaignCreator = () => {
                       </div>
                     )}
                   </div>
+                  <div className="space-y-2">
+                    <Label className="font-mono text-sm">FULFILLMENT</Label>
+                    <div className="grid md:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => updateField("fulfillmentType", "SHOPIFY")}
+                        disabled={!shopifyStatus?.connected}
+                        className={`p-4 border-2 text-left transition-all pixel-btn ${
+                          formData.fulfillmentType === "SHOPIFY"
+                            ? "border-neon-green bg-neon-green/20"
+                            : "border-border hover:border-neon-green"
+                        } ${!shopifyStatus?.connected ? "opacity-50 cursor-not-allowed" : ""}`}
+                      >
+                        <p className="font-pixel text-xs text-neon-green">SHOPIFY_AUTO_SHIP</p>
+                        <p className="font-mono text-xs text-muted-foreground mt-1">
+                          Create draft orders + tracking automatically.
+                        </p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateField("fulfillmentType", "MANUAL")}
+                        className={`p-4 border-2 text-left transition-all pixel-btn ${
+                          formData.fulfillmentType === "MANUAL"
+                            ? "border-neon-purple bg-neon-purple/20"
+                            : "border-border hover:border-neon-purple"
+                        }`}
+                      >
+                        <p className="font-pixel text-xs text-neon-purple">MANUAL_SHIP</p>
+                        <p className="font-mono text-xs text-muted-foreground mt-1">
+                          Ship yourself. We'll track and remind.
+                        </p>
+                      </button>
+                    </div>
+                  </div>
 
                   <div className="space-y-2">
                     <Label className="font-mono text-sm">PRODUCT_VALUE ($)</Label>
@@ -492,8 +686,32 @@ const CampaignCreator = () => {
                 </div>
 
                 <div className="space-y-6">
+                  {offerPresets.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="font-mono text-sm">PRESET_TEMPLATES</Label>
+                      <div className="grid md:grid-cols-2 gap-3">
+                        {offerPresets.map((preset) => (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => applyPreset(preset)}
+                            className={`p-4 border-2 text-left transition-all pixel-btn ${
+                              formData.presetId === preset.id
+                                ? "border-neon-yellow bg-neon-yellow/20"
+                                : "border-border hover:border-neon-yellow"
+                            }`}
+                          >
+                            <p className="font-pixel text-xs text-neon-yellow">{preset.label}</p>
+                            <p className="font-mono text-xs text-muted-foreground mt-1">
+                              {preset.description}
+                            </p>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <div className="space-y-2">
-                    <Label className="font-mono text-sm">PLATFORMS</Label>
+                    <Label className="font-mono text-sm">WHERE_CREATORS_POST</Label>
                     <div className="grid grid-cols-3 gap-3">
                       {availablePlatforms.map((platform) => (
                         <button
@@ -662,6 +880,21 @@ const CampaignCreator = () => {
                       ))}
                     </div>
                   </div>
+
+                  <div className="space-y-2">
+                    <Label className="font-mono text-sm">NEARBY_RADIUS (miles)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={formData.locationRadiusMiles}
+                      onChange={(e) => updateField("locationRadiusMiles", e.target.value)}
+                      placeholder="e.g. 25"
+                      className="border-2 border-border font-mono focus:border-primary"
+                    />
+                    <p className="text-xs font-mono text-muted-foreground">
+                      Optional: show this offer only to creators within this distance. Requires brand location.
+                    </p>
+                  </div>
                 </div>
               </div>
             )}
@@ -736,6 +969,48 @@ const CampaignCreator = () => {
                     <div className="pt-4 border-t-2 border-border flex items-center justify-between">
                       <span className="font-mono text-sm text-muted-foreground">TOTAL XP POTENTIAL:</span>
                       <span className="font-pixel text-xl text-neon-yellow">{calculateXP()} XP</span>
+                    </div>
+                  </div>
+
+                  <div className="border-4 border-border bg-card">
+                    <div className="p-4 border-b-4 border-border flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Sparkles className="w-4 h-4 text-neon-yellow" />
+                        <span className="font-pixel text-sm text-neon-yellow">[AI_MATCHES]</span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-2 border-border font-mono text-xs"
+                        onClick={() => refetchDraftRecommendations()}
+                      >
+                        {draftRecommendationsLoading ? "THINKING..." : "GENERATE"}
+                      </Button>
+                    </div>
+                    <div className="divide-y-2 divide-border">
+                      {(draftRecommendationsData?.creators ?? []).length ? (
+                        draftRecommendationsData?.creators.map((creator) => (
+                          <div key={creator.creatorId} className="p-4 flex items-center justify-between">
+                            <div>
+                              <p className="font-mono text-sm">{creator.username}</p>
+                              <p className="text-xs font-mono text-muted-foreground">{creator.reason}</p>
+                              {formatDistance(creator.distanceMiles) && (
+                                <p className="text-xs font-mono text-neon-blue">
+                                  {formatDistance(creator.distanceMiles)} away
+                                </p>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-pixel text-sm text-neon-green">{creator.score}</p>
+                              <p className="text-xs font-mono text-muted-foreground">AI score</p>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="p-4 text-xs font-mono text-muted-foreground">
+                          Generate AI matches to preview high-potential creators.
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

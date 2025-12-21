@@ -22,6 +22,8 @@ const patchSchema = z
     city: z.string().min(1).max(64).nullable().optional(),
     province: z.string().max(64).nullable().optional(),
     zip: z.string().min(1).max(16).nullable().optional(),
+    lat: z.number().min(-90).max(90).nullable().optional(),
+    lng: z.number().min(-180).max(180).nullable().optional(),
   })
   .strict()
   .superRefine((data, ctx) => {
@@ -82,6 +84,8 @@ export async function GET(request: Request) {
       city: creator.city,
       province: creator.province,
       zip: creator.zip,
+      lat: creator.lat,
+      lng: creator.lng,
     },
   });
 }
@@ -157,6 +161,8 @@ export async function PATCH(request: Request) {
       city: updated.city,
       province: updated.province,
       zip: updated.zip,
+      lat: updated.lat,
+      lng: updated.lng,
     },
   });
 }

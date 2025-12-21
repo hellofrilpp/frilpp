@@ -23,6 +23,8 @@ const bodySchema = z.object({
   city: z.string().min(1).max(64),
   province: z.string().max(64).optional(),
   zip: z.string().min(1).max(16),
+  lat: z.number().min(-90).max(90).optional(),
+  lng: z.number().min(-180).max(180).optional(),
 }).superRefine((data, ctx) => {
   const categories = data.categories ?? [];
   if (categories.includes("OTHER") && !data.categoriesOther) {
@@ -83,6 +85,8 @@ export async function POST(request: Request) {
       city: parsed.data.city,
       province: parsed.data.province ?? null,
       zip: parsed.data.zip,
+      lat: parsed.data.lat ?? null,
+      lng: parsed.data.lng ?? null,
       createdAt: now,
       updatedAt: now,
     });

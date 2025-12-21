@@ -1,7 +1,7 @@
 import crypto from "node:crypto";
 import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { matches } from "@/db/schema";
+import { attributedOrders } from "@/db/schema";
 import { log } from "@/lib/logger";
 import { sendAlert } from "@/lib/alerts";
 import { captureException } from "@/lib/telemetry";
@@ -24,16 +24,15 @@ function verifyWebhookHmac(rawBody: Buffer, hmacHeader: string | null) {
   }
 }
 
-type ShopifyOrderWebhook = {
+type ShopifyRefundWebhook = {
   id: number;
-  currency: string;
-  total_price: string;
-  discount_codes?: Array<{ code: string }>;
-  customer?: { id?: number | string | null } | null;
+  order_id: number;
+  currency?: string;
+  transactions?: Array<{ amount?: string; kind?: string }>;
 };
 
-function parseCents(totalPrice: string) {
-  const normalized = Number(totalPrice);
+function parseCents(amount: string) {
+  const normalized = Number(amount);
   if (!Number.isFinite(normalized)) return 0;
   return Math.round(normalized * 100);
 }
@@ -53,55 +52,53 @@ export async function POST(request: Request) {
   }
 
   const shopDomain = request.headers.get("x-shopify-shop-domain") ?? "unknown";
-  const payload = JSON.parse(raw.toString("utf8")) as ShopifyOrderWebhook;
+  const payload = JSON.parse(raw.toString("utf8")) as ShopifyRefundWebhook;
 
-  const codes = (payload.discount_codes ?? [])
-    .map((d) => d.code)
-    .filter((c): c is string => Boolean(c && typeof c === "string"));
+  const orderId = String(payload.order_id ?? "");
+  if (!orderId) return Response.json({ ok: true, attributed: false });
 
-  if (!codes.length) return Response.json({ ok: true, attributed: false });
+  const refundTotal = (payload.transactions ?? [])
+    .filter((t) => !t.kind || t.kind === "refund")
+    .reduce((sum, t) => sum + parseCents(t.amount ?? "0"), 0);
 
-  const matchedCode = codes.find((c) => c.startsWith("FRILP-")) ?? codes[0]!;
-  const matchRows = await db
-    .select({ id: matches.id })
-    .from(matches)
-    .where(eq(matches.campaignCode, matchedCode))
+  if (!refundTotal) {
+    return Response.json({ ok: true, attributed: false });
+  }
+
+  const orderRows = await db
+    .select({ matchId: attributedOrders.matchId })
+    .from(attributedOrders)
+    .where(
+      sql`${attributedOrders.shopDomain} = ${shopDomain} AND ${attributedOrders.shopifyOrderId} = ${orderId}`,
+    )
     .limit(1);
-  const match = matchRows[0];
+  const match = orderRows[0];
   if (!match) return Response.json({ ok: true, attributed: false });
 
-  const orderId = String(payload.id);
-  const customerId =
-    payload.customer?.id !== undefined && payload.customer?.id !== null
-      ? String(payload.customer.id)
-      : null;
+  const refundId = String(payload.id ?? "");
+  if (!refundId) return Response.json({ ok: true, attributed: false });
+
   const inserted = await db
     .execute(sql`
-      INSERT INTO attributed_orders (
-        id,
-        match_id,
-        shop_domain,
-        shopify_order_id,
-        shopify_customer_id,
-        currency,
-        total_price_cents
-      )
+      INSERT INTO attributed_refunds (id, match_id, shop_domain, shopify_order_id, shopify_refund_id, currency, total_refund_cents)
       VALUES (
         ${crypto.randomUUID()},
-        ${match.id},
+        ${match.matchId},
         ${shopDomain},
         ${orderId},
-        ${customerId},
+        ${refundId},
         ${payload.currency ?? "USD"},
-        ${parseCents(payload.total_price ?? "0")}
+        ${refundTotal}
       )
-      ON CONFLICT (shop_domain, shopify_order_id) DO NOTHING
+      ON CONFLICT (shop_domain, shopify_refund_id) DO NOTHING
     `)
     .catch((err) => {
-      log("error", "shopify orders/create insert failed", { error: err instanceof Error ? err.message : "unknown" });
-      captureException(err, { webhook: "shopify/orders-create", shopDomain });
+      log("error", "shopify refunds/create insert failed", {
+        error: err instanceof Error ? err.message : "unknown",
+      });
+      captureException(err, { webhook: "shopify/refunds-create", shopDomain });
       void sendAlert({
-        subject: "Shopify orders/create webhook error",
+        subject: "Shopify refunds/create webhook error",
         text: err instanceof Error ? err.stack ?? err.message : "Unknown error",
         data: { shopDomain },
       });

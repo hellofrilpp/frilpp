@@ -9,12 +9,13 @@ import {
   Clock,
   CheckCircle,
   AlertCircle,
-  Zap
+  Zap,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery } from "@tanstack/react-query";
-import { ApiError, getBrandDeliverables, getBrandMatches, getBrandOffers } from "@/lib/api";
+import { ApiError, getBrandDeliverables, getBrandMatches, getBrandOffers, getCreatorRecommendations } from "@/lib/api";
 
 const BrandDashboard = () => {
   const { data: offersData, error: offersError } = useQuery({
@@ -32,6 +33,15 @@ const BrandDashboard = () => {
   const { data: verifiedDeliverablesData } = useQuery({
     queryKey: ["brand-deliverables", "verified"],
     queryFn: () => getBrandDeliverables("VERIFIED"),
+  });
+  const {
+    data: recommendationsData,
+    refetch: refetchRecommendations,
+    isFetching: recommendationsLoading,
+  } = useQuery({
+    queryKey: ["creator-recommendations"],
+    queryFn: () => getCreatorRecommendations({ limit: 5 }),
+    enabled: false,
   });
 
   if (offersError instanceof ApiError && offersError.status === 401) {
@@ -225,6 +235,44 @@ const BrandDashboard = () => {
                 <Link to="/brand/campaigns">VIEW_ALL →</Link>
               </Button>
             </div>
+          </div>
+        </div>
+
+        {/* AI Match Suggestions */}
+        <div className="mt-6 border-4 border-border bg-card">
+          <div className="p-4 border-b-4 border-border flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-neon-yellow" />
+              <h2 className="font-pixel text-sm text-neon-yellow">[AI_MATCHES]</h2>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              className="border-2 border-border font-mono text-xs"
+              onClick={() => refetchRecommendations()}
+            >
+              {recommendationsLoading ? "THINKING..." : "GENERATE"}
+            </Button>
+          </div>
+          <div className="divide-y-2 divide-border">
+            {(recommendationsData?.creators ?? []).length ? (
+              recommendationsData?.creators.map((creator) => (
+                <div key={creator.creatorId} className="p-4 flex items-center justify-between">
+                  <div>
+                    <p className="font-mono text-sm">{creator.username}</p>
+                    <p className="text-xs font-mono text-muted-foreground">{creator.reason}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-pixel text-sm text-neon-green">{creator.score}</p>
+                    <p className="text-xs font-mono text-muted-foreground">AI score</p>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-xs font-mono text-muted-foreground">
+                Generate AI matches to see high-potential creators.
+              </div>
+            )}
           </div>
         </div>
       </div>

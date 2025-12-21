@@ -42,6 +42,41 @@ export const ALL_PLATFORMS = Array.from(
   new Set([...PLATFORMS_BY_COUNTRY.US, ...PLATFORMS_BY_COUNTRY.IN]),
 ) as (typeof PLATFORMS_BY_COUNTRY)["US"][number][];
 
+export const OFFER_PRESETS = [
+  {
+    id: "IG_REEL_STORY",
+    label: "IG Reel + Story",
+    description: "Fast hype: one Reel + one Story tag.",
+    platforms: ["INSTAGRAM"],
+    contentTypes: ["REEL", "STORY"],
+    template: "REEL_PLUS_STORY",
+  },
+  {
+    id: "TIKTOK_REVIEW",
+    label: "TikTok Review",
+    description: "Short review video on TikTok.",
+    platforms: ["TIKTOK"],
+    contentTypes: ["REVIEW_VIDEO"],
+    template: "REEL",
+  },
+  {
+    id: "FEED_POST",
+    label: "IG Feed Post",
+    description: "Single feed post with caption code.",
+    platforms: ["INSTAGRAM"],
+    contentTypes: ["FEED_POST"],
+    template: "FEED",
+  },
+  {
+    id: "UGC_ONLY",
+    label: "UGC Only",
+    description: "Content delivered to brand, no public post.",
+    platforms: [],
+    contentTypes: [],
+    template: "UGC_ONLY",
+  },
+] as const;
+
 export type CreatorCategoryId = (typeof CREATOR_CATEGORIES)[number];
 export type CampaignCategoryId = (typeof CAMPAIGN_CATEGORIES)[number];
 export type ContentTypeId = (typeof CONTENT_TYPES)[number];

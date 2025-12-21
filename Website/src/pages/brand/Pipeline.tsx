@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, BrandDeliverable, BrandMatch, BrandShipment, getBrandDeliverables, getBrandMatches, getBrandShipments, approveBrandMatch, rejectBrandMatch, verifyBrandDeliverable, failBrandDeliverable } from "@/lib/api";
+import { ApiError, BrandDeliverable, BrandMatch, BrandShipment, getBrandDeliverables, getBrandMatches, getBrandShipments, approveBrandMatch, rejectBrandMatch, verifyBrandDeliverable, failBrandDeliverable, updateManualShipment } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type Stage = "applied" | "approved" | "shipped" | "posted" | "complete";
@@ -36,6 +36,7 @@ interface Influencer {
   stage: Stage;
   avatar: string;
   engagement: string;
+  distanceMiles?: number | null;
 }
 
 const stages: { key: Stage; label: string; icon: React.ElementType; color: string }[] = [
@@ -50,6 +51,7 @@ const BrandPipeline = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [draggedInfluencer, setDraggedInfluencer] = useState<Influencer | null>(null);
   const [influencersList, setInfluencersList] = useState<Influencer[]>([]);
+  const [manualForms, setManualForms] = useState<Record<string, { carrier: string; trackingNumber: string; trackingUrl: string }>>({});
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -73,6 +75,9 @@ const BrandPipeline = () => {
     queryKey: ["brand-deliverables", "verified"],
     queryFn: () => getBrandDeliverables("VERIFIED"),
   });
+  const manualShipments = (shipmentsData?.shipments ?? []).filter(
+    (shipment) => shipment.fulfillmentType === "MANUAL" && shipment.status !== "SHIPPED",
+  );
 
   if (matchesError instanceof ApiError && matchesError.status === 401) {
     window.location.href = "/brand/auth";
@@ -85,6 +90,12 @@ const BrandPipeline = () => {
     return `${count}`;
   };
 
+  const formatDistance = (distance?: number | null) => {
+    if (distance === null || distance === undefined) return null;
+    if (distance < 1) return "<1mi";
+    return `${distance.toFixed(distance < 10 ? 1 : 0)}mi`;
+  };
+
   const buildInfluencer = (
     matchId: string,
     name: string,
@@ -92,6 +103,7 @@ const BrandPipeline = () => {
     followersCount: number | null,
     campaign: string,
     stage: Stage,
+    distanceMiles?: number | null,
   ): Influencer => {
     const displayName = name || username || "Creator";
     const handle = username ? `@${username}` : "@creator";
@@ -111,6 +123,7 @@ const BrandPipeline = () => {
       stage,
       avatar: avatar || "CR",
       engagement: "—",
+      distanceMiles: distanceMiles ?? null,
     };
   };
 
@@ -133,6 +146,7 @@ const BrandPipeline = () => {
           match.creator.followersCount,
           match.offer.title,
           "applied",
+          match.creator.distanceMiles ?? null,
         ),
       );
     });
@@ -147,11 +161,17 @@ const BrandPipeline = () => {
           match.creator.followersCount,
           match.offer.title,
           "approved",
+          match.creator.distanceMiles ?? null,
         ),
       );
     });
 
     shipments.forEach((shipment: BrandShipment) => {
+      const shipped =
+        shipment.fulfillmentType === "MANUAL"
+          ? shipment.status === "SHIPPED"
+          : ["FULFILLED", "COMPLETED"].includes(shipment.status);
+      if (!shipped) return;
       map.set(
         shipment.match.id,
         buildInfluencer(
@@ -161,6 +181,7 @@ const BrandPipeline = () => {
           null,
           shipment.offer.title,
           "shipped",
+          null,
         ),
       );
     });
@@ -176,6 +197,7 @@ const BrandPipeline = () => {
           deliverable.creator.followersCount,
           deliverable.offer.title,
           "posted",
+          null,
         ),
       );
     });
@@ -190,6 +212,7 @@ const BrandPipeline = () => {
           deliverable.creator.followersCount,
           deliverable.offer.title,
           "complete",
+          null,
         ),
       );
     });
@@ -211,6 +234,20 @@ const BrandPipeline = () => {
   useEffect(() => {
     setInfluencersList(computedInfluencers);
   }, [computedInfluencers]);
+
+  useEffect(() => {
+    const next: Record<string, { carrier: string; trackingNumber: string; trackingUrl: string }> = {};
+    (shipmentsData?.shipments ?? [])
+      .filter((shipment) => shipment.fulfillmentType === "MANUAL" && shipment.status !== "SHIPPED")
+      .forEach((shipment) => {
+        next[shipment.id] = {
+          carrier: shipment.carrier ?? "",
+          trackingNumber: shipment.trackingNumber ?? "",
+          trackingUrl: shipment.trackingUrl ?? "",
+        };
+      });
+    setManualForms(next);
+  }, [shipmentsData]);
 
   const handleDragStart = (influencer: Influencer) => {
     setDraggedInfluencer(influencer);
@@ -402,6 +439,14 @@ const BrandPipeline = () => {
                         <span className="text-neon-green">{influencer.followers}</span>
                         <span>|</span>
                         <span className="text-neon-yellow">{influencer.engagement} eng</span>
+                        {formatDistance(influencer.distanceMiles) && (
+                          <>
+                            <span>|</span>
+                            <span className="text-neon-blue">
+                              {formatDistance(influencer.distanceMiles)}
+                            </span>
+                          </>
+                        )}
                       </div>
 
                       <div className="px-2 py-1 bg-muted text-xs font-mono inline-block">
@@ -412,6 +457,107 @@ const BrandPipeline = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+        <div className="mt-8 border-4 border-border bg-card">
+          <div className="p-4 border-b-4 border-border flex items-center justify-between">
+            <h2 className="font-pixel text-sm text-neon-yellow">[MANUAL_SHIPMENTS]</h2>
+            <span className="text-xs font-mono text-muted-foreground">
+              {manualShipments.length} pending
+            </span>
+          </div>
+          <div className="divide-y-2 divide-border">
+            {manualShipments.length ? (
+              manualShipments.map((shipment) => (
+                <div key={shipment.id} className="p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-mono text-sm">{shipment.creator.username ?? "Creator"}</p>
+                      <p className="text-xs font-mono text-muted-foreground">{shipment.offer.title}</p>
+                    </div>
+                    <span className="text-xs font-pixel text-neon-yellow">
+                      {shipment.status}
+                    </span>
+                  </div>
+                  <div className="grid md:grid-cols-3 gap-3">
+                    <Input
+                      value={manualForms[shipment.id]?.carrier ?? ""}
+                      onChange={(event) =>
+                        setManualForms((prev) => ({
+                          ...prev,
+                          [shipment.id]: {
+                            ...prev[shipment.id],
+                            carrier: event.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="Carrier"
+                      className="border-2 border-border font-mono text-xs"
+                    />
+                    <Input
+                      value={manualForms[shipment.id]?.trackingNumber ?? ""}
+                      onChange={(event) =>
+                        setManualForms((prev) => ({
+                          ...prev,
+                          [shipment.id]: {
+                            ...prev[shipment.id],
+                            trackingNumber: event.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="Tracking number"
+                      className="border-2 border-border font-mono text-xs"
+                    />
+                    <Input
+                      value={manualForms[shipment.id]?.trackingUrl ?? ""}
+                      onChange={(event) =>
+                        setManualForms((prev) => ({
+                          ...prev,
+                          [shipment.id]: {
+                            ...prev[shipment.id],
+                            trackingUrl: event.target.value,
+                          },
+                        }))
+                      }
+                      placeholder="Tracking URL"
+                      className="border-2 border-border font-mono text-xs"
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <Button
+                      size="sm"
+                      className="bg-neon-yellow text-background font-pixel text-xs pixel-btn"
+                      onClick={async () => {
+                        try {
+                          const payload = manualForms[shipment.id] ?? {
+                            carrier: "",
+                            trackingNumber: "",
+                            trackingUrl: "",
+                          };
+                          await updateManualShipment(shipment.id, {
+                            status: "SHIPPED",
+                            carrier: payload.carrier || undefined,
+                            trackingNumber: payload.trackingNumber || undefined,
+                            trackingUrl: payload.trackingUrl || undefined,
+                          });
+                          toast({ title: "SHIPPED", description: "Tracking saved." });
+                          await queryClient.invalidateQueries({ queryKey: ["brand-shipments"] });
+                        } catch (err) {
+                          const message = err instanceof ApiError ? err.message : "Update failed";
+                          toast({ title: "UPDATE FAILED", description: message });
+                        }
+                      }}
+                    >
+                      MARK_SHIPPED
+                    </Button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="p-4 text-xs font-mono text-muted-foreground">
+                Manual shipments will appear here when Shopify is not connected.
+              </div>
+            )}
           </div>
         </div>
       </div>

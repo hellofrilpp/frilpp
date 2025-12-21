@@ -32,6 +32,9 @@ const metadataSchema = z
     nicheOther: z.string().trim().min(2).max(64).nullable().optional(),
     region: z.enum(REGION_OPTIONS).nullable().optional(),
     campaignName: z.string().trim().max(160).nullable().optional(),
+    fulfillmentType: z.enum(["SHOPIFY", "MANUAL"]).nullable().optional(),
+    locationRadiusMiles: z.number().min(1).max(5000).nullable().optional(),
+    presetId: z.string().trim().max(40).nullable().optional(),
   })
   .passthrough()
   .superRefine((data, ctx) => {
@@ -141,6 +144,8 @@ export async function GET(request: Request) {
         maxClaims: offers.maxClaims,
         deadlineDaysAfterDelivery: offers.deadlineDaysAfterDelivery,
         deliverableType: offers.deliverableType,
+        acceptanceFollowersThreshold: offers.acceptanceFollowersThreshold,
+        acceptanceAboveThresholdAutoAccept: offers.acceptanceAboveThresholdAutoAccept,
         metadata: offers.metadata,
         publishedAt: offers.publishedAt,
         createdAt: offers.createdAt,

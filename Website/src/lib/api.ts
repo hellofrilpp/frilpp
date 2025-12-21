@@ -104,6 +104,9 @@ export type BrandOffer = {
   maxClaims: number;
   deadlineDaysAfterDelivery: number;
   deliverableType: "REELS" | "FEED" | "UGC_ONLY";
+  acceptanceFollowersThreshold: number;
+  acceptanceAboveThresholdAutoAccept: boolean;
+  metadata: Record<string, unknown>;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
@@ -165,6 +168,7 @@ export type BrandMatch = {
     followersCount: number | null;
     country: string | null;
     shippingReady: boolean;
+    distanceMiles?: number | null;
   };
 };
 
@@ -189,10 +193,12 @@ export async function rejectBrandMatch(matchId: string) {
 
 export type BrandShipment = {
   id: string;
+  fulfillmentType: "SHOPIFY" | "MANUAL";
   status: string;
-  shopDomain: string;
+  shopDomain: string | null;
   shopifyOrderId: string | null;
   shopifyOrderName: string | null;
+  carrier?: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
   error: string | null;
@@ -204,6 +210,21 @@ export type BrandShipment = {
 
 export async function getBrandShipments() {
   return apiFetch<{ ok: boolean; shipments: BrandShipment[] }>("/api/brand/shipments");
+}
+
+export async function updateManualShipment(
+  shipmentId: string,
+  payload: {
+    status?: "PENDING" | "SHIPPED";
+    carrier?: string;
+    trackingNumber?: string;
+    trackingUrl?: string;
+  },
+) {
+  return apiFetch<{ ok: boolean }>(`/api/brand/shipments/manual/${shipmentId}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
 }
 
 export type BrandDeliverable = {
@@ -259,10 +280,74 @@ export type BrandAnalyticsOffer = {
   clickCount: number;
   orderCount: number;
   revenueCents: number;
+  refundCents: number;
+  netRevenueCents: number;
 };
 
 export async function getBrandAnalytics() {
   return apiFetch<{ ok: boolean; offers: BrandAnalyticsOffer[] }>("/api/brand/analytics");
+}
+
+export type BrandCreatorAnalytics = {
+  creatorId: string;
+  username: string | null;
+  followersCount: number | null;
+  country: string | null;
+  categories: string[] | null;
+  matchCount: number;
+  verifiedCount: number;
+  clickCount: number;
+  orderCount: number;
+  revenueCents: number;
+  refundCents: number;
+  netRevenueCents: number;
+  seedCostCents: number;
+  earningsCents?: number;
+  repeatBuyerCount?: number;
+  roiPercent: number | null;
+  ltvCents: number;
+};
+
+export async function getBrandCreatorAnalytics() {
+  return apiFetch<{ ok: boolean; creators: BrandCreatorAnalytics[] }>(
+    "/api/brand/analytics/creators",
+  );
+}
+
+export type CreatorRecommendation = {
+  creatorId: string;
+  username: string;
+  score: number;
+  reason: string;
+  rank: number;
+  distanceMiles?: number | null;
+};
+
+export type OfferDraftInput = {
+  title?: string;
+  countriesAllowed?: Array<"US" | "IN">;
+  platforms?: string[];
+  contentTypes?: string[];
+  niches?: string[];
+  locationRadiusMiles?: number | null;
+  minFollowers?: number;
+  maxFollowers?: number;
+  category?: string;
+  description?: string;
+};
+
+export async function getCreatorRecommendations(payload: {
+  offerId?: string;
+  limit?: number;
+  offerDraft?: OfferDraftInput;
+}) {
+  return apiFetch<{ ok: boolean; creators: CreatorRecommendation[]; fallback?: boolean }>(
+    "/api/ai/creators",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export type BrandAcceptanceSettings = {
@@ -302,6 +387,14 @@ export type BrandProfile = {
   description: string | null;
   industry: string | null;
   location: string | null;
+  address1?: string | null;
+  address2?: string | null;
+  city?: string | null;
+  province?: string | null;
+  zip?: string | null;
+  country?: string | null;
+  lat?: number | null;
+  lng?: number | null;
   logoUrl: string | null;
 };
 
@@ -373,6 +466,8 @@ export type CreatorFeedOffer = {
   countriesAllowed: string[];
   deadlineDaysAfterDelivery: number;
   maxClaims: number;
+  locationRadiusMiles?: number | null;
+  distanceMiles?: number | null;
 };
 
 export async function getCreatorFeed(country?: "US" | "IN") {
@@ -404,6 +499,8 @@ export type CreatorProfile = {
   city: string | null;
   province: string | null;
   zip: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export async function getCreatorProfile() {
@@ -431,6 +528,8 @@ export async function completeCreatorOnboarding(payload: {
   city: string;
   province?: string;
   zip: string;
+  lat?: number;
+  lng?: number;
 }) {
   return apiFetch<{ ok: boolean }>("/api/onboarding/creator", {
     method: "POST",
@@ -519,6 +618,14 @@ export async function getSocialAccounts() {
 }
 
 export type PicklistItem = { id: string; label: string };
+export type OfferPreset = {
+  id: string;
+  label: string;
+  description: string;
+  platforms: string[];
+  contentTypes: string[];
+  template: string;
+};
 
 export type PicklistsResponse = {
   ok: boolean;
@@ -528,6 +635,7 @@ export type PicklistsResponse = {
   contentTypes: PicklistItem[];
   platformsByCountry: { US: PicklistItem[]; IN: PicklistItem[] };
   regions: PicklistItem[];
+  offerPresets: OfferPreset[];
   countries: string[];
 };
 

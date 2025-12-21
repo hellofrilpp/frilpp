@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  doublePrecision,
   integer,
   jsonb,
   pgEnum,
@@ -51,6 +52,14 @@ export const brands = pgTable("brands", {
   description: text("description"),
   industry: text("industry"),
   location: text("location"),
+  address1: text("address1"),
+  address2: text("address2"),
+  city: text("city"),
+  province: text("province"),
+  zip: text("zip"),
+  country: text("country"),
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
   logoUrl: text("logo_url"),
   countriesDefault: text("countries_default").array().notNull(),
   instagramHandle: text("instagram_handle"),
@@ -130,6 +139,8 @@ export const creators = pgTable("creators", {
   city: text("city"),
   province: text("province"),
   zip: text("zip"),
+  lat: doublePrecision("lat"),
+  lng: doublePrecision("lng"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
@@ -442,12 +453,37 @@ export const attributedOrders = pgTable("attributed_orders", {
     .references(() => matches.id, { onDelete: "cascade" }),
   shopDomain: text("shop_domain").notNull(),
   shopifyOrderId: text("shopify_order_id").notNull(),
+  shopifyCustomerId: text("shopify_customer_id"),
   currency: text("currency").notNull(),
   totalPrice: integer("total_price_cents").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
 });
+
+export const attributedRefunds = pgTable(
+  "attributed_refunds",
+  {
+    id: text("id").primaryKey(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    shopDomain: text("shop_domain").notNull(),
+    shopifyOrderId: text("shopify_order_id").notNull(),
+    shopifyRefundId: text("shopify_refund_id").notNull(),
+    currency: text("currency").notNull(),
+    totalRefund: integer("total_refund_cents").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    refundUnique: uniqueIndex("attributed_refunds_shopify_refund_unique").on(
+      t.shopDomain,
+      t.shopifyRefundId,
+    ),
+  }),
+);
 
 export const matchDiscounts = pgTable(
   "match_discounts",
@@ -477,6 +513,11 @@ export const shopifyOrderStatusEnum = pgEnum("shopify_order_status", [
   "ERROR",
 ]);
 
+export const manualShipmentStatusEnum = pgEnum("manual_shipment_status", [
+  "PENDING",
+  "SHIPPED",
+]);
+
 export const shopifyOrders = pgTable(
   "shopify_orders",
   {
@@ -504,5 +545,29 @@ export const shopifyOrders = pgTable(
   },
   (t) => ({
     matchIdUnique: uniqueIndex("shopify_orders_match_id_unique").on(t.matchId),
+  }),
+);
+
+export const manualShipments = pgTable(
+  "manual_shipments",
+  {
+    id: text("id").primaryKey(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    status: manualShipmentStatusEnum("status").notNull().default("PENDING"),
+    carrier: text("carrier"),
+    trackingNumber: text("tracking_number"),
+    trackingUrl: text("tracking_url"),
+    shippedAt: timestamp("shipped_at", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    matchIdUnique: uniqueIndex("manual_shipments_match_id_unique").on(t.matchId),
   }),
 );

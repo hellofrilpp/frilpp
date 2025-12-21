@@ -98,6 +98,13 @@ export async function POST(request: Request) {
       address: `${base}/api/webhooks/shopify/fulfillments-create`,
     });
 
+    const refunds = await ensureWebhook({
+      shopDomain: store.shopDomain,
+      accessToken: token,
+      topic: "refunds/create",
+      address: `${base}/api/webhooks/shopify/refunds-create`,
+    });
+
     const uninstalled = await ensureWebhook({
       shopDomain: store.shopDomain,
       accessToken: token,
@@ -105,7 +112,7 @@ export async function POST(request: Request) {
       address: `${base}/api/webhooks/shopify/app-uninstalled`,
     });
 
-    return Response.json({ ok: true, webhooks: { orders, fulfillments, uninstalled } });
+    return Response.json({ ok: true, webhooks: { orders, fulfillments, refunds, uninstalled } });
   } catch (err) {
     return Response.json(
       { ok: false, error: err instanceof Error ? err.message : "Webhook registration failed" },

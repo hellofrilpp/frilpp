@@ -15,6 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import BrandLayout from "@/components/brand/BrandLayout";
+import LocationPicker from "@/components/LocationPicker";
 import {
   ApiError,
   apiUrl,
@@ -42,6 +43,14 @@ const BrandSettings = () => {
     description: "",
     industry: "",
     location: "",
+    address1: "",
+    address2: "",
+    city: "",
+    province: "",
+    zip: "",
+    country: "",
+    lat: null as number | null,
+    lng: null as number | null,
     logoUrl: "",
   });
   const [instagramHandle, setInstagramHandle] = useState("");
@@ -87,6 +96,14 @@ const BrandSettings = () => {
       description: profileData.profile.description ?? "",
       industry: profileData.profile.industry ?? "",
       location: profileData.profile.location ?? "",
+      address1: profileData.profile.address1 ?? "",
+      address2: profileData.profile.address2 ?? "",
+      city: profileData.profile.city ?? "",
+      province: profileData.profile.province ?? "",
+      zip: profileData.profile.zip ?? "",
+      country: profileData.profile.country ?? "",
+      lat: profileData.profile.lat ?? null,
+      lng: profileData.profile.lng ?? null,
       logoUrl: profileData.profile.logoUrl ?? "",
     });
   }, [profileData]);
@@ -193,6 +210,88 @@ const BrandSettings = () => {
                   onChange={(event) => setProfile((prev) => ({ ...prev, location: event.target.value }))}
                   className="mt-2 border-2 border-border font-mono"
                 />
+              </div>
+            </div>
+
+            <LocationPicker
+              label="AUTO_FILL_ADDRESS"
+              onSelect={(location) =>
+                setProfile((prev) => ({
+                  ...prev,
+                  location: location.label,
+                  address1: location.address1,
+                  city: location.city,
+                  province: location.province,
+                  zip: location.zip,
+                  country: location.country ?? prev.country,
+                  lat: location.lat,
+                  lng: location.lng,
+                }))
+              }
+            />
+
+            <div className="grid md:grid-cols-2 gap-4">
+              <div>
+                <Label className="font-mono text-xs">ADDRESS_LINE_1</Label>
+                <Input
+                  value={profile.address1}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, address1: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
+              </div>
+              <div>
+                <Label className="font-mono text-xs">ADDRESS_LINE_2</Label>
+                <Input
+                  value={profile.address2}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, address2: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4">
+              <div>
+                <Label className="font-mono text-xs">CITY</Label>
+                <Input
+                  value={profile.city}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, city: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
+              </div>
+              <div>
+                <Label className="font-mono text-xs">STATE</Label>
+                <Input
+                  value={profile.province}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, province: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
+              </div>
+              <div>
+                <Label className="font-mono text-xs">ZIP</Label>
+                <Input
+                  value={profile.zip}
+                  onChange={(event) => setProfile((prev) => ({ ...prev, zip: event.target.value }))}
+                  className="mt-2 border-2 border-border font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label className="font-mono text-xs">COUNTRY</Label>
+              <div className="mt-2 flex gap-2">
+                {(["US", "IN"] as const).map((option) => (
+                  <button
+                    key={option}
+                    onClick={() => setProfile((prev) => ({ ...prev, country: option }))}
+                    className={`px-3 py-2 border-2 text-xs font-mono transition-all pixel-btn ${
+                      profile.country === option
+                        ? "border-neon-green bg-neon-green/20 text-neon-green"
+                        : "border-border hover:border-neon-green"
+                    }`}
+                  >
+                    {option === "US" ? "UNITED STATES" : "INDIA"}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -397,7 +496,11 @@ const BrandSettings = () => {
             onClick={async () => {
               try {
                 setSaving(true);
-                await updateBrandProfile(profile);
+                const payload = {
+                  ...profile,
+                  country: profile.country || undefined,
+                };
+                await updateBrandProfile(payload);
                 await updateBrandNotifications(notifications);
                 await updateBrandAcceptanceSettings({
                   threshold: acceptanceThreshold,

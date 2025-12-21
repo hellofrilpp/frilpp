@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { creators, matches, offers, shopifyOrders } from "@/db/schema";
+import { creators, manualShipments, matches, offers, shopifyOrders } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     ? and(eq(offers.brandId, ctx.brandId), eq(shopifyOrders.status, parsed.data.status))
     : eq(offers.brandId, ctx.brandId);
 
-  const rows = await db
+  const shopifyRows = await db
     .select({
       shopifyOrderRowId: shopifyOrders.id,
       status: shopifyOrders.status,
@@ -60,10 +60,34 @@ export async function GET(request: Request) {
     .orderBy(desc(shopifyOrders.updatedAt))
     .limit(200);
 
-  return Response.json({
-    ok: true,
-    shipments: rows.map((r) => ({
+  const manualRows = await db
+    .select({
+      shipmentId: manualShipments.id,
+      status: manualShipments.status,
+      carrier: manualShipments.carrier,
+      trackingNumber: manualShipments.trackingNumber,
+      trackingUrl: manualShipments.trackingUrl,
+      updatedAt: manualShipments.updatedAt,
+      matchId: matches.id,
+      campaignCode: matches.campaignCode,
+      offerTitle: offers.title,
+      creatorId: creators.id,
+      creatorUsername: creators.username,
+      creatorEmail: creators.email,
+      creatorCountry: creators.country,
+    })
+    .from(manualShipments)
+    .innerJoin(matches, eq(matches.id, manualShipments.matchId))
+    .innerJoin(offers, eq(offers.id, matches.offerId))
+    .innerJoin(creators, eq(creators.id, matches.creatorId))
+    .where(eq(offers.brandId, ctx.brandId))
+    .orderBy(desc(manualShipments.updatedAt))
+    .limit(200);
+
+  const shipments = [
+    ...shopifyRows.map((r) => ({
       id: r.shopifyOrderRowId,
+      fulfillmentType: "SHOPIFY",
       status: r.status,
       shopDomain: r.shopDomain,
       shopifyOrderId: r.shopifyOrderId ?? null,
@@ -81,6 +105,31 @@ export async function GET(request: Request) {
         country: r.creatorCountry ?? null,
       },
     })),
+    ...manualRows.map((r) => ({
+      id: r.shipmentId,
+      fulfillmentType: "MANUAL",
+      status: r.status,
+      shopDomain: null,
+      shopifyOrderId: null,
+      shopifyOrderName: null,
+      trackingNumber: r.trackingNumber ?? null,
+      trackingUrl: r.trackingUrl ?? null,
+      error: null,
+      carrier: r.carrier ?? null,
+      updatedAt: r.updatedAt.toISOString(),
+      match: { id: r.matchId, campaignCode: r.campaignCode },
+      offer: { title: r.offerTitle },
+      creator: {
+        id: r.creatorId,
+        username: r.creatorUsername,
+        email: r.creatorEmail ?? null,
+        country: r.creatorCountry ?? null,
+      },
+    })),
+  ].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
+
+  return Response.json({
+    ok: true,
+    shipments,
   });
 }
-

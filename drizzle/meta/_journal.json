@@ -64,6 +64,20 @@
       "when": 1766199734000,
       "tag": "0008_unique_constraints",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1767072000000,
+      "tag": "0013_location_manual_shipments_refunds",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1767190000000,
+      "tag": "0014_attributed_orders_customer",
+      "breakpoints": true
     }
   ]
 }

@@ -9,13 +9,19 @@ import {
 } from "lucide-react";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery } from "@tanstack/react-query";
-import { ApiError, getBrandAnalytics, getBrandMatches } from "@/lib/api";
+import { ApiError, getBrandAnalytics, getBrandCreatorAnalytics, getBrandMatches } from "@/lib/api";
 import { useMemo } from "react";
+
+const formatMoney = (cents: number) => `$${(cents / 100).toFixed(0)}`;
 
 const BrandAnalytics = () => {
   const { data: analyticsData, error: analyticsError } = useQuery({
     queryKey: ["brand-analytics"],
     queryFn: getBrandAnalytics,
+  });
+  const { data: creatorAnalyticsData } = useQuery({
+    queryKey: ["brand-creator-analytics"],
+    queryFn: getBrandCreatorAnalytics,
   });
   const { data: acceptedMatchesData } = useQuery({
     queryKey: ["brand-matches", "accepted"],
@@ -27,9 +33,12 @@ const BrandAnalytics = () => {
   }
 
   const offers = analyticsData?.offers ?? [];
+  const creatorRows = creatorAnalyticsData?.creators ?? [];
   const totalReach = offers.reduce((sum, offer) => sum + offer.clickCount, 0);
   const totalPosts = offers.reduce((sum, offer) => sum + offer.matchCount, 0);
   const totalOrders = offers.reduce((sum, offer) => sum + offer.orderCount, 0);
+  const totalNetRevenueCents = offers.reduce((sum, offer) => sum + offer.netRevenueCents, 0);
+  const totalRefundCents = offers.reduce((sum, offer) => sum + offer.refundCents, 0);
   const conversion = totalReach ? (totalOrders / totalReach) * 100 : 0;
 
   const overviewStats = useMemo(
@@ -56,14 +65,14 @@ const BrandAnalytics = () => {
         color: "neon-purple",
       },
       {
-        label: "COST/POST",
-        value: "$0",
-        change: "BARTER",
-        trend: "neutral",
+        label: "NET REVENUE",
+        value: formatMoney(totalNetRevenueCents),
+        change: totalRefundCents ? `-${formatMoney(totalRefundCents)} refunds` : "NO_REFUNDS",
+        trend: totalRefundCents ? "down" : "up",
         color: "neon-yellow",
       },
     ],
-    [totalReach, totalPosts, conversion],
+    [totalReach, totalPosts, conversion, totalNetRevenueCents, totalRefundCents],
   );
 
   const campaignPerformance = offers.map((offer) => ({
@@ -87,9 +96,9 @@ const BrandAnalytics = () => {
   }, [acceptedMatchesData]);
 
   const contentMetrics = [
-    { icon: Eye, label: "VIEWS", value: `${totalReach}`, color: "neon-green" },
-    { icon: Heart, label: "ORDERS", value: `${totalOrders}`, color: "neon-pink" },
-    { icon: Share2, label: "CLICKS", value: `${totalReach}`, color: "neon-purple" },
+    { icon: Eye, label: "CLICKS", value: `${totalReach}`, color: "neon-green" },
+    { icon: Heart, label: "NET REV", value: formatMoney(totalNetRevenueCents), color: "neon-pink" },
+    { icon: Share2, label: "REFUNDS", value: formatMoney(totalRefundCents), color: "neon-purple" },
     { icon: Camera, label: "CONTENT", value: `${totalPosts}`, color: "neon-yellow" },
   ];
 
@@ -198,6 +207,66 @@ const BrandAnalytics = () => {
                 <p className="text-xs font-mono text-muted-foreground">{metric.label}</p>
               </div>
             ))}
+          </div>
+        </div>
+
+        <div className="mt-6 border-4 border-border bg-card">
+          <div className="p-4 border-b-4 border-border">
+            <h2 className="font-pixel text-sm text-neon-green">[CREATOR_ROI_LTV]</h2>
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead>
+                <tr className="border-b-2 border-border">
+                  <th className="text-left p-4 text-xs font-pixel text-muted-foreground">CREATOR</th>
+                  <th className="text-right p-4 text-xs font-pixel text-muted-foreground">MATCHES</th>
+                  <th className="text-right p-4 text-xs font-pixel text-muted-foreground">EARNINGS</th>
+                  <th className="text-right p-4 text-xs font-pixel text-muted-foreground">NET REV</th>
+                  <th className="text-right p-4 text-xs font-pixel text-muted-foreground">REFUNDS</th>
+                  <th className="text-right p-4 text-xs font-pixel text-muted-foreground">REPEAT</th>
+                  <th className="text-right p-4 text-xs font-pixel text-muted-foreground">ROI</th>
+                  <th className="text-right p-4 text-xs font-pixel text-muted-foreground">LTV</th>
+                </tr>
+              </thead>
+              <tbody>
+                {creatorRows.length ? (
+                  creatorRows.map((creator) => (
+                    <tr key={creator.creatorId} className="border-b-2 border-border last:border-b-0 hover:bg-muted/50">
+                      <td className="p-4">
+                        <span className="font-mono text-sm">
+                          {creator.username ?? "Creator"}
+                        </span>
+                      </td>
+                      <td className="p-4 text-right font-mono">{creator.matchCount}</td>
+                      <td className="p-4 text-right font-mono text-neon-yellow">
+                        {formatMoney(creator.earningsCents ?? creator.seedCostCents)}
+                      </td>
+                      <td className="p-4 text-right font-pixel text-neon-green">
+                        {formatMoney(creator.netRevenueCents)}
+                      </td>
+                      <td className="p-4 text-right font-mono text-neon-purple">
+                        {formatMoney(creator.refundCents)}
+                      </td>
+                      <td className="p-4 text-right font-mono">
+                        {creator.repeatBuyerCount ?? 0}
+                      </td>
+                      <td className="p-4 text-right font-mono">
+                        {creator.roiPercent !== null ? `${creator.roiPercent}%` : "—"}
+                      </td>
+                      <td className="p-4 text-right font-mono">
+                        {formatMoney(creator.ltvCents)}
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="p-4 text-xs font-mono text-muted-foreground" colSpan={8}>
+                      No creator performance data yet.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>

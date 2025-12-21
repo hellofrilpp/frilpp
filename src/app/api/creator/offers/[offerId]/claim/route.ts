@@ -11,6 +11,7 @@ import { log } from "@/lib/logger";
 import { enqueueNotification } from "@/lib/notifications";
 import { ipKey, rateLimit } from "@/lib/rate-limit";
 import { createDiscountForMatch } from "@/lib/shopify-discounts";
+import { ensureManualShipmentForMatch } from "@/lib/manual-shipments";
 import { ensureShopifyOrderForMatch } from "@/lib/shopify-orders";
 
 export const runtime = "nodejs";
@@ -317,6 +318,14 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
             .where(eq(offerProducts.offerId, offer.id))
             .limit(20)
         : [];
+      const fulfillmentType =
+        typeof offer.metadata === "object" && offer.metadata
+          ? String((offer.metadata as Record<string, unknown>).fulfillmentType ?? "")
+          : "";
+      const wantsManual = fulfillmentType === "MANUAL";
+      const needsManualShipment =
+        offer.deliverableType !== "UGC_ONLY" &&
+        (wantsManual || !store || offerProductRows.length === 0);
 
       if (store && offer.deliverableType !== "UGC_ONLY") {
         try {
@@ -355,6 +364,14 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
           orderCreated = true;
         } catch {
           orderCreated = false;
+        }
+      }
+
+      if (needsManualShipment) {
+        try {
+          await ensureManualShipmentForMatch(matchId);
+        } catch {
+          // ignore manual shipment failures
         }
       }
 
