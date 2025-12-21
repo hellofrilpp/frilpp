@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { 
   Search,
   MoreVertical,
@@ -79,24 +79,26 @@ const BrandPipeline = () => {
     (shipment) => shipment.fulfillmentType === "MANUAL" && shipment.status !== "SHIPPED",
   );
 
-  if (matchesError instanceof ApiError && matchesError.status === 401) {
-    window.location.href = "/brand/auth";
-  }
+  useEffect(() => {
+    if (matchesError instanceof ApiError && matchesError.status === 401) {
+      window.location.href = "/brand/auth";
+    }
+  }, [matchesError]);
 
-  const formatFollowers = (count?: number | null) => {
+  const formatFollowers = useCallback((count?: number | null) => {
     if (!count) return "—";
     if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
     if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
     return `${count}`;
-  };
+  }, []);
 
-  const formatDistance = (distance?: number | null) => {
+  const formatDistance = useCallback((distance?: number | null) => {
     if (distance === null || distance === undefined) return null;
     if (distance < 1) return "<1mi";
     return `${distance.toFixed(distance < 10 ? 1 : 0)}mi`;
-  };
+  }, []);
 
-  const buildInfluencer = (
+  const buildInfluencer = useCallback((
     matchId: string,
     name: string,
     username: string | null,
@@ -125,7 +127,7 @@ const BrandPipeline = () => {
       engagement: "—",
       distanceMiles: distanceMiles ?? null,
     };
-  };
+  }, [formatFollowers]);
 
   const computedInfluencers = useMemo(() => {
     const map = new Map<string, Influencer>();
@@ -219,6 +221,7 @@ const BrandPipeline = () => {
 
     return Array.from(map.values());
   }, [
+    buildInfluencer,
     pendingMatchesData,
     acceptedMatchesData,
     shipmentsData,

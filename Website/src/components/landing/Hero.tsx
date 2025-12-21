@@ -146,7 +146,7 @@ const Hero = () => {
                   asChild
                 >
                   <Link to="/brand/signup">
-                    I'M A BRAND
+                    I&apos;M A BRAND
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
@@ -158,7 +158,7 @@ const Hero = () => {
                   asChild
                 >
                   <Link to="/influencer/signup">
-                    I'M A CREATOR
+                    I&apos;M A CREATOR
                     <Zap className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>

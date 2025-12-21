@@ -22,4 +22,4 @@ Frilpp uses email magic links with a Postgres-backed session cookie.
   - `RATE_LIMIT_AUTH_PER_IP_PER_HOUR`
   - `RATE_LIMIT_AUTH_PER_EMAIL_PER_HOUR`
 
-If Resend isn’t configured, `/api/auth/request` returns a `debug` link for local development.
+If Resend isn’t configured, `/api/auth/request` returns an error (`Email not configured`).

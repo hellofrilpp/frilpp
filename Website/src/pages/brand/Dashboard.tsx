@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { 
   Package, 
@@ -44,14 +44,19 @@ const BrandDashboard = () => {
     enabled: false,
   });
 
-  if (offersError instanceof ApiError && offersError.status === 401) {
-    window.location.href = "/brand/auth";
-  }
+  useEffect(() => {
+    if (offersError instanceof ApiError && offersError.status === 401) {
+      window.location.href = "/brand/auth";
+    }
+  }, [offersError]);
 
-  const offers = offersData?.offers ?? [];
-  const pendingMatches = pendingMatchesData?.matches ?? [];
-  const acceptedMatches = acceptedMatchesData?.matches ?? [];
-  const verifiedDeliverables = verifiedDeliverablesData?.deliverables ?? [];
+  const offers = useMemo(() => offersData?.offers ?? [], [offersData?.offers]);
+  const pendingMatches = useMemo(() => pendingMatchesData?.matches ?? [], [pendingMatchesData?.matches]);
+  const acceptedMatches = useMemo(() => acceptedMatchesData?.matches ?? [], [acceptedMatchesData?.matches]);
+  const verifiedDeliverables = useMemo(
+    () => verifiedDeliverablesData?.deliverables ?? [],
+    [verifiedDeliverablesData?.deliverables],
+  );
 
   const reachEstimate = acceptedMatches.reduce((sum, match) => sum + (match.creator.followersCount ?? 0), 0);
   const formatReach = (value: number) => {

@@ -10,6 +10,27 @@ export type LocationSuggestion = {
   lng: number;
 };
 
+type MapboxContextItem = {
+  id: string;
+  text: string;
+  short_code?: string;
+};
+
+type MapboxFeature = {
+  center: [number, number];
+  context?: MapboxContextItem[];
+  address?: string;
+  properties?: {
+    address?: string;
+  };
+  text: string;
+  place_name?: string;
+};
+
+type MapboxResponse = {
+  features?: MapboxFeature[];
+};
+
 const rawToken = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_MAPBOX_TOKEN;
 const MAPBOX_TOKEN = rawToken ? rawToken.trim() : "";
 
@@ -31,7 +52,7 @@ const getContextCountry = (context: Array<{ id: string; text: string; short_code
   return normalizeCountry(code);
 };
 
-const toSuggestion = (feature: any): LocationSuggestion => {
+const toSuggestion = (feature: MapboxFeature): LocationSuggestion => {
   const [lng, lat] = feature.center as [number, number];
   const context = feature.context as Array<{ id: string; text: string; short_code?: string }> | undefined;
   const addressNumber = feature.address ?? feature.properties?.address ?? "";
@@ -54,7 +75,7 @@ export async function searchAddress(query: string): Promise<LocationSuggestion[]
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?autocomplete=true&types=address,place,locality,postcode,region,country&limit=5&access_token=${MAPBOX_TOKEN}`;
   const res = await fetch(url);
   if (!res.ok) return [];
-  const json = (await res.json().catch(() => null)) as { features?: any[] } | null;
+  const json = (await res.json().catch(() => null)) as MapboxResponse | null;
   const features = json?.features ?? [];
   return features.map(toSuggestion);
 }
@@ -64,7 +85,7 @@ export async function reverseGeocode(lat: number, lng: number): Promise<Location
   const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=address,place,locality,postcode,region,country&limit=1&access_token=${MAPBOX_TOKEN}`;
   const res = await fetch(url);
   if (!res.ok) return null;
-  const json = (await res.json().catch(() => null)) as { features?: any[] } | null;
+  const json = (await res.json().catch(() => null)) as MapboxResponse | null;
   const feature = json?.features?.[0];
   if (!feature) return null;
   return toSuggestion(feature);

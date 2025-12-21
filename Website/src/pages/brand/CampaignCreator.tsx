@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import BrandLayout from "@/components/brand/BrandLayout";
 import {
@@ -53,40 +52,92 @@ const contentTypeXp: Record<string, number> = {
   OTHER: 30,
 };
 
+type CampaignRegion = "US" | "IN" | "US_IN";
+type FulfillmentType = "" | "SHOPIFY" | "MANUAL";
+
+type CampaignFormData = {
+  productName: string;
+  productValue: string;
+  category: string;
+  categoryOther: string;
+  description: string;
+  productImage: string;
+  presetId: string;
+  fulfillmentType: FulfillmentType;
+  platforms: string[];
+  platformOther: string;
+  contentTypes: string[];
+  contentTypeOther: string;
+  hashtags: string;
+  guidelines: string;
+  minFollowers: string;
+  maxFollowers: string;
+  niches: string[];
+  nicheOther: string;
+  region: CampaignRegion;
+  locationRadiusMiles: string;
+  campaignName: string;
+  quantity: string;
+};
+
+const initialFormData: CampaignFormData = {
+  productName: "",
+  productValue: "",
+  category: "",
+  categoryOther: "",
+  description: "",
+  productImage: "",
+  presetId: "",
+  fulfillmentType: "",
+  platforms: [],
+  platformOther: "",
+  contentTypes: [],
+  contentTypeOther: "",
+  hashtags: "",
+  guidelines: "",
+  minFollowers: "1000",
+  maxFollowers: "50000",
+  niches: [],
+  nicheOther: "",
+  region: "US_IN",
+  locationRadiusMiles: "",
+  campaignName: "",
+  quantity: "10",
+};
+
+type OfferMetadata = Partial<{
+  campaignName: string;
+  productValue: number | string;
+  category: string;
+  categoryOther: string;
+  description: string;
+  platforms: unknown;
+  platformOther: string;
+  contentTypes: unknown;
+  contentTypeOther: string;
+  hashtags: string;
+  guidelines: string;
+  niches: unknown;
+  nicheOther: string;
+  region: CampaignRegion;
+  presetId: string;
+  fulfillmentType: FulfillmentType;
+  locationRadiusMiles: number | string;
+}>;
+
+type StringArrayField = {
+  [Key in keyof CampaignFormData]: CampaignFormData[Key] extends string[] ? Key : never;
+}[keyof CampaignFormData];
+
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+
+const emptyPlatformsByCountry = { US: [], IN: [] };
+
 const CampaignCreator = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
-  const [formData, setFormData] = useState({
-    // Step 1 - Product
-    productName: "",
-    productValue: "",
-    category: "",
-    categoryOther: "",
-    description: "",
-    productImage: "",
-    presetId: "",
-    fulfillmentType: "",
-    
-    // Step 2 - Content
-    platforms: [] as string[],
-    platformOther: "",
-    contentTypes: [] as string[],
-    contentTypeOther: "",
-    hashtags: "",
-    guidelines: "",
-    
-    // Step 3 - Criteria
-    minFollowers: "1000",
-    maxFollowers: "50000",
-    niches: [] as string[],
-    nicheOther: "",
-    region: "US_IN",
-    locationRadiusMiles: "",
-    
-    // Step 4 - Review
-    campaignName: "",
-    quantity: "10",
-  });
+  const [formData, setFormData] = useState<CampaignFormData>(initialFormData);
   const [productSearch, setProductSearch] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<ShopifyProduct | null>(null);
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
@@ -113,7 +164,7 @@ const CampaignCreator = () => {
   const creatorCategories = picklists?.creatorCategories ?? [];
   const contentTypeOptions = picklists?.contentTypes ?? [];
   const regionOptions = picklists?.regions ?? [];
-  const platformsByCountry = picklists?.platformsByCountry ?? { US: [], IN: [] };
+  const platformsByCountry = picklists?.platformsByCountry ?? emptyPlatformsByCountry;
   const offerPresets = picklists?.offerPresets ?? [];
   const countriesAllowed = useMemo(() => {
     if (formData.region === "US") return ["US"] as Array<"US" | "IN">;
@@ -185,8 +236,8 @@ const CampaignCreator = () => {
     });
   }, [shopifyStatus]);
 
-  const updateField = (field: string, value: any) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+  const updateField = <Key extends keyof CampaignFormData>(field: Key, value: CampaignFormData[Key]) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
   };
 
   const applyPreset = (preset: { id: string; platforms: string[]; contentTypes: string[] }) => {
@@ -200,13 +251,12 @@ const CampaignCreator = () => {
     }));
   };
 
-  const toggleArrayField = (field: string, value: string) => {
-    setFormData(prev => ({
-      ...prev,
-      [field]: (prev as any)[field].includes(value)
-        ? (prev as any)[field].filter((v: string) => v !== value)
-        : [...(prev as any)[field], value]
-    }));
+  const toggleArrayField = <Key extends StringArrayField>(field: Key, value: string) => {
+    setFormData((prev) => {
+      const current = prev[field];
+      const next = current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
+      return { ...prev, [field]: next };
+    });
   };
 
   const nextStep = () => {
@@ -355,7 +405,7 @@ const CampaignCreator = () => {
         toast.error("No previous offers found");
         return;
       }
-      const meta = (last.metadata ?? {}) as Record<string, any>;
+      const meta = (last.metadata ?? {}) as OfferMetadata;
       const region =
         last.countriesAllowed?.length === 2
           ? "US_IN"
@@ -372,13 +422,13 @@ const CampaignCreator = () => {
         category: meta.category || prev.category,
         categoryOther: meta.categoryOther || "",
         description: meta.description || "",
-        platforms: Array.isArray(meta.platforms) ? meta.platforms : [],
+        platforms: asStringArray(meta.platforms),
         platformOther: meta.platformOther || "",
-        contentTypes: Array.isArray(meta.contentTypes) ? meta.contentTypes : [],
+        contentTypes: asStringArray(meta.contentTypes),
         contentTypeOther: meta.contentTypeOther || "",
         hashtags: meta.hashtags || "",
         guidelines: meta.guidelines || "",
-        niches: Array.isArray(meta.niches) ? meta.niches : [],
+        niches: asStringArray(meta.niches),
         nicheOther: meta.nicheOther || "",
         region: meta.region || region,
         campaignName: meta.campaignName || last.title || "",
@@ -612,7 +662,7 @@ const CampaignCreator = () => {
                       >
                         <p className="font-pixel text-xs text-neon-purple">MANUAL_SHIP</p>
                         <p className="font-mono text-xs text-muted-foreground mt-1">
-                          Ship yourself. We'll track and remind.
+                          Ship yourself. We’ll track and remind.
                         </p>
                       </button>
                     </div>
@@ -806,7 +856,7 @@ const CampaignCreator = () => {
                     <span className="font-pixel text-sm text-neon-purple">STEP 3</span>
                   </div>
                   <h2 className="text-xl font-pixel">CREATOR CRITERIA</h2>
-                  <p className="font-mono text-sm text-muted-foreground mt-2">&gt; Who's your ideal creator?</p>
+                  <p className="font-mono text-sm text-muted-foreground mt-2">&gt; Who’s your ideal creator?</p>
                 </div>
 
                 <div className="space-y-6">

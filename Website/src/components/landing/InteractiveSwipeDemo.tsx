@@ -66,7 +66,7 @@ interface SwipeCardProps {
 const SwipeCard = ({ product, onSwipe, isTop }: SwipeCardProps) => {
   const [exitDirection, setExitDirection] = useState<"left" | "right" | null>(null);
 
-  const handleDragEnd = (_: any, info: PanInfo) => {
+  const handleDragEnd = (_event: MouseEvent | TouchEvent | PointerEvent, info: PanInfo) => {
     if (Math.abs(info.offset.x) > 100) {
       const direction = info.offset.x > 0 ? "right" : "left";
       setExitDirection(direction);
@@ -274,7 +274,7 @@ const InteractiveSwipeDemo = () => {
                 transition={{ duration: 0.5 }}
               >
                 <Sparkles className="w-6 h-6" />
-                <span className="font-pixel text-lg">IT'S A MATCH!</span>
+                <span className="font-pixel text-lg">IT&apos;S A MATCH!</span>
                 <Sparkles className="w-6 h-6" />
               </motion.div>
               <motion.p

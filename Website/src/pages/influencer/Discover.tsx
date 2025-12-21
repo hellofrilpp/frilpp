@@ -70,11 +70,6 @@ const InfluencerDiscover = () => {
   }, [data]);
 
   useEffect(() => {
-    setCurrentIndex(0);
-    setMatchedOffers([]);
-  }, [offers.length]);
-
-  useEffect(() => {
     if (error instanceof ApiError && error.code === "NEEDS_CREATOR_PROFILE") {
       window.location.href = "/influencer/onboarding";
     }

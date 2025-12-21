@@ -87,7 +87,7 @@ const Testimonials = () => {
               
               {/* Quote */}
               <p className="font-mono text-sm leading-relaxed mb-6 text-foreground">
-                "{testimonial.quote}"
+                “{testimonial.quote}”
               </p>
               
               {/* Author */}
@@ -102,7 +102,7 @@ const Testimonials = () => {
                 <div>
                   <p className="font-pixel text-xs text-foreground">{testimonial.author}</p>
                   <p className="text-xs font-mono text-muted-foreground">
-                    {testimonial.role} // {testimonial.company}
+                    {testimonial.role} {"//"} {testimonial.company}
                   </p>
                 </div>
               </div>

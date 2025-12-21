@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { 
   Plus, 
@@ -41,14 +41,16 @@ const BrandCampaigns = () => {
     queryKey: ["brand-matches", "accepted"],
     queryFn: () => getBrandMatches("ACCEPTED"),
   });
-  const { data: verifiedDeliverablesData } = useQuery({
-    queryKey: ["brand-deliverables", "verified"],
-    queryFn: () => getBrandDeliverables("VERIFIED"),
-  });
+	const { data: verifiedDeliverablesData } = useQuery({
+		queryKey: ["brand-deliverables", "verified"],
+		queryFn: () => getBrandDeliverables("VERIFIED"),
+	});
 
-  if (offersError instanceof ApiError && offersError.status === 401) {
-    window.location.href = "/brand/auth";
-  }
+	useEffect(() => {
+		if (offersError instanceof ApiError && offersError.status === 401) {
+			window.location.href = "/brand/auth";
+		}
+	}, [offersError]);
 
   const statusLabel = (status: BrandOffer["status"]) => {
     if (status === "PUBLISHED") return "active";

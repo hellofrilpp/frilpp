@@ -18,7 +18,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Auth (magic link)
 - Visit `/login` and request a magic link.
-- For local development, if Resend isn’t configured, the API returns a `debug` link you can click.
+- Email delivery requires Resend (`RESEND_API_KEY` + `RESEND_FROM` or `AUTH_EMAIL_FROM`). If it’s not configured, the API returns an error.
 - After login, use `/onboarding` to create a brand workspace and/or a creator profile.
 
 ### Database (Vercel Postgres)

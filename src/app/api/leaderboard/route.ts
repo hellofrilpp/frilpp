@@ -25,7 +25,7 @@ const initials = (value: string) => {
   return parts.map((part) => part[0]?.toUpperCase() ?? "").join("");
 };
 
-export async function GET(request: Request) {
+export async function GET() {
   if (!process.env.DATABASE_URL) {
     return Response.json(
       { ok: false, error: "DATABASE_URL is not configured" },
@@ -227,14 +227,15 @@ export async function GET(request: Request) {
         id: brand.id,
         name,
         category: brand.industry ?? "D2C",
+        deals,
         xp: verified * 100,
         creators: creatorsCount,
         avatar: initials(name),
         trend: percentTrend(recent, prior),
       };
     })
-    .filter((brand) => brand.xp > 0 || brand.creators > 0)
-    .sort((a, b) => b.xp - a.xp || b.creators - a.creators)
+    .filter((brand) => brand.xp > 0 || brand.deals > 0 || brand.creators > 0)
+    .sort((a, b) => b.xp - a.xp || b.deals - a.deals || b.creators - a.creators)
     .slice(0, 10)
     .map((brand, index) => ({ ...brand, rank: index + 1 }));
 

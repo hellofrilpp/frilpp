@@ -26,9 +26,17 @@ const SOUND_FREQUENCIES = {
 
 let audioContext: AudioContext | null = null;
 
+type WindowWithWebkitAudioContext = Window & {
+  webkitAudioContext?: typeof AudioContext;
+};
+
 const getAudioContext = () => {
   if (!audioContext) {
-    audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const Ctor = window.AudioContext || (window as WindowWithWebkitAudioContext).webkitAudioContext;
+    if (!Ctor) {
+      throw new Error("AudioContext not supported");
+    }
+    audioContext = new Ctor();
   }
   return audioContext;
 };
@@ -53,7 +61,7 @@ const playBeep = (type: FeedbackType) => {
     
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + duration / 1000);
-  } catch (e) {
+  } catch {
     // Audio not supported
   }
 };

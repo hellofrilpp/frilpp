@@ -32,7 +32,6 @@ const normalizeOptional = (value: string | undefined) => {
 const validateUrl = (value: string | null, field: string) => {
   if (!value) return;
   try {
-    // eslint-disable-next-line no-new
     new URL(value);
   } catch {
     throw new Error(`${field} must be a valid URL`);

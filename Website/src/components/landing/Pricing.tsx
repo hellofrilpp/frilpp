@@ -10,8 +10,8 @@ const plans = [
     icon: Zap,
     color: "neon-green",
     features: [
-      "5 active product listings",
-      "Up to 20 matches/month",
+      "1 trial order",
+      "1 active product listing",
       "Basic analytics",
       "Email support",
     ],
@@ -20,7 +20,7 @@ const plans = [
   },
   {
     name: "GROWTH",
-    price: "$99",
+    price: "$29",
     period: "/MO",
     description: "Scale your seeding",
     icon: Rocket,

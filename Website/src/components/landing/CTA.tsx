@@ -40,7 +40,7 @@ const CTA = () => {
           <p className="text-sm font-mono text-background/70 mb-12 max-w-xl mx-auto leading-relaxed">
             &gt; JOIN 10,000+ BRANDS & CREATORS<br />
             &gt; START MATCHING TODAY<br />
-            <span className="text-background">&gt; IT'S FREE TO PLAY_</span>
+            <span className="text-background">&gt; IT&apos;S FREE TO PLAY_</span>
           </p>
 
           {/* Dual CTAs */}

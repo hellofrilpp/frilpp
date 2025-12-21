@@ -123,7 +123,7 @@ const InfluencerProfile = () => {
           </div>
           <h1 className="text-lg font-pixel text-foreground mb-1">{displayName}</h1>
           <p className="font-mono text-xs text-muted-foreground mb-4">
-            {handle} // {followers}
+            {handle} {"//"} {followers}
           </p>
           
           <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-neon-green bg-neon-green/10">

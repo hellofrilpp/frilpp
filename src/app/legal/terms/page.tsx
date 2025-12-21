@@ -95,7 +95,7 @@ export default function TermsPage() {
 
             <div className="text-sm font-semibold">Disclaimers and limitation of liability</div>
             <p className="text-muted-foreground">
-              The service is provided on an "as is" and "as available" basis. To the maximum
+              The service is provided on an &quot;as is&quot; and &quot;as available&quot; basis. To the maximum
               extent permitted by law, Frilpp disclaims all warranties and limits liability for
               indirect or consequential damages.
             </p>

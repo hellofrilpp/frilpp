@@ -6,20 +6,18 @@ const ACCESSIBILITY_CLASS = "a11y";
 const STORAGE_KEY = "frilpp-a11y";
 
 export function AccessibilityToggle() {
-  const [enabled, setEnabled] = useState(false);
+  const [enabled, setEnabled] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return window.localStorage.getItem(STORAGE_KEY) === "1";
+  });
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(STORAGE_KEY);
-    const isEnabled = stored === "1";
-    setEnabled(isEnabled);
-    document.documentElement.classList.toggle(ACCESSIBILITY_CLASS, isEnabled);
-  }, []);
+    document.documentElement.classList.toggle(ACCESSIBILITY_CLASS, enabled);
+    window.localStorage.setItem(STORAGE_KEY, enabled ? "1" : "0");
+  }, [enabled]);
 
   const handleToggle = () => {
-    const next = !enabled;
-    setEnabled(next);
-    document.documentElement.classList.toggle(ACCESSIBILITY_CLASS, next);
-    window.localStorage.setItem(STORAGE_KEY, next ? "1" : "0");
+    setEnabled((prev) => !prev);
   };
 
   return (

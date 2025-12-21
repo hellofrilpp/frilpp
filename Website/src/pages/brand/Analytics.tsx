@@ -10,7 +10,7 @@ import {
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery } from "@tanstack/react-query";
 import { ApiError, getBrandAnalytics, getBrandCreatorAnalytics, getBrandMatches } from "@/lib/api";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
 const formatMoney = (cents: number) => `$${(cents / 100).toFixed(0)}`;
 
@@ -28,9 +28,11 @@ const BrandAnalytics = () => {
     queryFn: () => getBrandMatches("ACCEPTED"),
   });
 
-  if (analyticsError instanceof ApiError && analyticsError.status === 401) {
-    window.location.href = "/brand/auth";
-  }
+  useEffect(() => {
+    if (analyticsError instanceof ApiError && analyticsError.status === 401) {
+      window.location.href = "/brand/auth";
+    }
+  }, [analyticsError]);
 
   const offers = analyticsData?.offers ?? [];
   const creatorRows = creatorAnalyticsData?.creators ?? [];
@@ -41,39 +43,36 @@ const BrandAnalytics = () => {
   const totalRefundCents = offers.reduce((sum, offer) => sum + offer.refundCents, 0);
   const conversion = totalReach ? (totalOrders / totalReach) * 100 : 0;
 
-  const overviewStats = useMemo(
-    () => [
-      {
-        label: "TOTAL REACH",
-        value: totalReach ? `${totalReach}` : "0",
-        change: "+0%",
-        trend: "up",
-        color: "neon-green",
-      },
-      {
-        label: "CONTENT",
-        value: totalPosts ? `${totalPosts}` : "0",
-        change: "+0",
-        trend: "up",
-        color: "neon-pink",
-      },
-      {
-        label: "AVG ENGAGEMENT",
-        value: `${conversion.toFixed(1)}%`,
-        change: "+0%",
-        trend: "up",
-        color: "neon-purple",
-      },
-      {
-        label: "NET REVENUE",
-        value: formatMoney(totalNetRevenueCents),
-        change: totalRefundCents ? `-${formatMoney(totalRefundCents)} refunds` : "NO_REFUNDS",
-        trend: totalRefundCents ? "down" : "up",
-        color: "neon-yellow",
-      },
-    ],
-    [totalReach, totalPosts, conversion, totalNetRevenueCents, totalRefundCents],
-  );
+  const overviewStats = [
+    {
+      label: "TOTAL REACH",
+      value: totalReach ? `${totalReach}` : "0",
+      change: "+0%",
+      trend: "up",
+      color: "neon-green",
+    },
+    {
+      label: "CONTENT",
+      value: totalPosts ? `${totalPosts}` : "0",
+      change: "+0",
+      trend: "up",
+      color: "neon-pink",
+    },
+    {
+      label: "AVG ENGAGEMENT",
+      value: `${conversion.toFixed(1)}%`,
+      change: "+0%",
+      trend: "up",
+      color: "neon-purple",
+    },
+    {
+      label: "NET REVENUE",
+      value: formatMoney(totalNetRevenueCents),
+      change: totalRefundCents ? `-${formatMoney(totalRefundCents)} refunds` : "NO_REFUNDS",
+      trend: totalRefundCents ? "down" : "up",
+      color: "neon-yellow",
+    },
+  ];
 
   const campaignPerformance = offers.map((offer) => ({
     name: offer.title,

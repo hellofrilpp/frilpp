@@ -1,4 +1,4 @@
-import { HelpCircle, ChevronDown } from "lucide-react";
+import { HelpCircle } from "lucide-react";
 import {
   Accordion,
   AccordionContent,

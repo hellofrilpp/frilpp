@@ -25,6 +25,13 @@ const steps = [
   },
 ];
 
+const particles = Array.from({ length: 15 }, () => ({
+  left: `${Math.random() * 100}%`,
+  top: `${Math.random() * 100}%`,
+  duration: 2 + Math.random() * 2,
+  delay: Math.random() * 2,
+}));
+
 const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
@@ -55,22 +62,22 @@ const HowItWorks = () => {
       
       {/* Animated particles */}
       <div className="absolute inset-0 pointer-events-none">
-        {[...Array(15)].map((_, i) => (
+        {particles.map((p, i) => (
           <motion.div
             key={i}
             className="absolute w-2 h-2 bg-neon-purple/20"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: p.left,
+              top: p.top,
             }}
             animate={{
               scale: [1, 1.5, 1],
               opacity: [0.2, 0.5, 0.2],
             }}
             transition={{
-              duration: 2 + Math.random() * 2,
+              duration: p.duration,
               repeat: Infinity,
-              delay: Math.random() * 2,
+              delay: p.delay,
             }}
           />
         ))}

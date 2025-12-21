@@ -6,6 +6,8 @@ import { CreatorAchievement, getCreatorAchievements } from "@/lib/api";
 
 export type Achievement = CreatorAchievement;
 
+const emptyAchievements: Achievement[] = [];
+
 export const useAchievements = () => {
   const queryClient = useQueryClient();
   const { fireLevelUp, fireMatch, fireFromSides } = useConfetti();
@@ -18,7 +20,7 @@ export const useAchievements = () => {
     queryFn: getCreatorAchievements,
   });
 
-  const achievements = data?.achievements ?? [];
+  const achievements = data?.achievements ?? emptyAchievements;
   const totalXp = data?.totalXp ?? 0;
   const unlockedCount = data?.unlockedCount ?? 0;
   const level = data?.level ?? 1;

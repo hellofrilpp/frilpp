@@ -53,6 +53,14 @@ const itemVariants = {
   },
 };
 
+const floatingParticles = Array.from({ length: 20 }, (_, index) => ({
+  id: index,
+  left: `${Math.random() * 100}%`,
+  top: `${Math.random() * 100}%`,
+  duration: 3 + Math.random() * 2,
+  delay: Math.random() * 2,
+}));
+
 const ProductExplainer = () => {
   return (
     <section className="py-24 bg-card border-t-4 border-border relative overflow-hidden">
@@ -63,22 +71,22 @@ const ProductExplainer = () => {
       
       {/* Floating particles */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        {[...Array(20)].map((_, i) => (
+        {floatingParticles.map((particle) => (
           <motion.div
-            key={i}
+            key={particle.id}
             className="absolute w-1 h-1 bg-neon-green/30"
             style={{
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
+              left: particle.left,
+              top: particle.top,
             }}
             animate={{
               y: [0, -30, 0],
               opacity: [0.3, 1, 0.3],
             }}
             transition={{
-              duration: 3 + Math.random() * 2,
+              duration: particle.duration,
               repeat: Infinity,
-              delay: Math.random() * 2,
+              delay: particle.delay,
             }}
           />
         ))}

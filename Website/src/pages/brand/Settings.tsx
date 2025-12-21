@@ -474,7 +474,7 @@ const BrandSettings = () => {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <p className="font-pixel text-sm text-neon-green">GROWTH_PLAN</p>
-                <p className="text-xs font-mono text-muted-foreground">$99/month · Renews Jan 15, 2025</p>
+                <p className="text-xs font-mono text-muted-foreground">$29/month · Renews Jan 15, 2025</p>
               </div>
               <Button variant="outline" size="sm" className="border-2 border-border font-mono text-xs">
                 MANAGE

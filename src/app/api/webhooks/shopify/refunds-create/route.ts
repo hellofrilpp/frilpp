@@ -1,5 +1,5 @@
 import crypto from "node:crypto";
-import { eq, sql } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { attributedOrders } from "@/db/schema";
 import { log } from "@/lib/logger";
