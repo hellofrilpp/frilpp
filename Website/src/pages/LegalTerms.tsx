@@ -1,11 +1,9 @@
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const runtime = "nodejs";
-
-export default function TermsPage() {
+const LegalTerms = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto max-w-3xl px-4 py-10 md:px-8">
@@ -22,7 +20,7 @@ export default function TermsPage() {
               These terms govern your access to and use of Frilpp.
             </p>
           </div>
-          <Link href="/">
+          <Link to="/">
             <Button variant="outline">Home</Button>
           </Link>
         </div>
@@ -95,7 +93,7 @@ export default function TermsPage() {
 
             <div className="text-sm font-semibold">Disclaimers and limitation of liability</div>
             <p className="text-muted-foreground">
-              The service is provided on an "as is" and "as available" basis. To the maximum
+              The service is provided on an &quot;as is&quot; and &quot;as available&quot; basis. To the maximum
               extent permitted by law, Frilpp disclaims all warranties and limits liability for
               indirect or consequential damages.
             </p>
@@ -115,4 +113,6 @@ export default function TermsPage() {
       </div>
     </div>
   );
-}
+};
+
+export default LegalTerms;

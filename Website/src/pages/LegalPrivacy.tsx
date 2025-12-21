@@ -1,11 +1,9 @@
-import Link from "next/link";
+import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-export const runtime = "nodejs";
-
-export default function PrivacyPage() {
+const LegalPrivacy = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto max-w-3xl px-4 py-10 md:px-8">
@@ -22,7 +20,7 @@ export default function PrivacyPage() {
               This policy explains what we collect and how we use it.
             </p>
           </div>
-          <Link href="/">
+          <Link to="/">
             <Button variant="outline">Home</Button>
           </Link>
         </div>
@@ -101,4 +99,6 @@ export default function PrivacyPage() {
       </div>
     </div>
   );
-}
+};
+
+export default LegalPrivacy;

@@ -160,9 +160,12 @@ export async function POST(request: Request) {
     text: `Sign in to Frilpp: ${callbackUrl}`,
   });
 
-  return Response.json({
-    ok: true,
-    sent: send.ok,
-    debug: send.ok ? null : callbackUrl,
-  });
+  if (!send.ok) {
+    return Response.json(
+      { ok: false, error: send.error ?? "Email send failed" },
+      { status: send.skipped ? 500 : 502 },
+    );
+  }
+
+  return Response.json({ ok: true, sent: true });
 }

@@ -22,14 +22,11 @@ const VerifyEmail = () => {
     event.preventDefault();
     setIsLoading(true);
     try {
-      const res = await requestMagicLink(email.trim(), nextPath);
+      await requestMagicLink(email.trim(), nextPath);
       toast({
         title: "CHECK YOUR EMAIL",
-        description: res.debug
-          ? "Dev link opened in this tab."
-          : "We sent a sign-in link. It expires in 10 minutes.",
+        description: "We sent a sign-in link. It expires in 10 minutes.",
       });
-      if (res.debug) window.location.href = res.debug;
     } catch (err) {
       let message = err instanceof ApiError ? err.message : "Verification failed";
       if (err instanceof ApiError && err.code === "SOCIAL_REQUIRED") {

@@ -1,7 +1,5 @@
 import { Link } from "react-router-dom";
-import { Twitter, Instagram, Linkedin, Youtube, ArrowUpRight, Gamepad2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { Gamepad2 } from "lucide-react";
 import FrilppLogo from "@/components/FrilppLogo";
 
 const footerLinks = {
@@ -12,26 +10,17 @@ const footerLinks = {
     { name: "PRICING", href: "#pricing" },
     { name: "FAQ", href: "#faq" },
   ],
-  "[INFO]": [
-    { name: "ABOUT", href: "#" },
-    { name: "BLOG", href: "#" },
-    { name: "CAREERS", href: "#" },
-    { name: "PRESS", href: "#" },
-    { name: "CONTACT", href: "#" },
+  "[PORTALS]": [
+    { name: "BRAND_LOGIN", href: "/brand/auth" },
+    { name: "CREATOR_LOGIN", href: "/influencer/auth" },
+    { name: "LEADERBOARD", href: "/leaderboard" },
+    { name: "ACHIEVEMENTS", href: "/achievements" },
   ],
   "[LEGAL]": [
-    { name: "PRIVACY", href: "#" },
-    { name: "TERMS", href: "#" },
-    { name: "COOKIES", href: "#" },
+    { name: "PRIVACY", href: "/legal/privacy" },
+    { name: "TERMS", href: "/legal/terms" },
   ],
 };
-
-const socialLinks = [
-  { icon: Twitter, href: "#", label: "Twitter" },
-  { icon: Instagram, href: "#", label: "Instagram" },
-  { icon: Linkedin, href: "#", label: "LinkedIn" },
-  { icon: Youtube, href: "#", label: "YouTube" },
-];
 
 const Footer = () => {
   return (
@@ -57,20 +46,12 @@ const Footer = () => {
               &gt; SWIPE.MATCH.CREATE
             </p>
 
-            {/* Newsletter */}
-            <div className="space-y-3">
-              <p className="text-xs font-pixel text-neon-purple">[NEWSLETTER]</p>
-              <div className="flex gap-2">
-                <Input 
-                  type="email" 
-                  placeholder="ENTER_EMAIL" 
-                  className="bg-background border-2 border-border font-mono text-sm focus:border-primary"
-                />
-                <Button className="bg-primary text-primary-foreground px-4 pixel-btn">
-                  <ArrowUpRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+            <p className="font-mono text-xs text-muted-foreground">
+              CONTACT:{" "}
+              <a className="text-neon-green hover:underline" href="mailto:hello@frilpp.com">
+                hello@frilpp.com
+              </a>
+            </p>
           </div>
 
           {/* Links Columns */}
@@ -100,20 +81,6 @@ const Footer = () => {
             <p className="text-xs font-mono text-muted-foreground">
               © {new Date().getFullYear()} FRILPP // ALL_RIGHTS_RESERVED
             </p>
-          </div>
-          
-          {/* Social Links */}
-          <div className="flex items-center gap-3">
-            {socialLinks.map((social) => (
-              <a
-                key={social.label}
-                href={social.href}
-                className="w-10 h-10 border-2 border-border flex items-center justify-center hover:bg-primary hover:text-primary-foreground hover:border-primary transition-all pixel-btn"
-                aria-label={social.label}
-              >
-                <social.icon className="w-4 h-4" />
-              </a>
-            ))}
           </div>
         </div>
 

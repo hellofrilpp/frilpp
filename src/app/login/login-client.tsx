@@ -15,13 +15,11 @@ export default function LoginClient() {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const [debugLink, setDebugLink] = useState<string | null>(null);
   const search = useSearchParams();
   const nextPath = sanitizeNextPath(search.get("next"), "/onboarding");
 
   async function submit() {
     setStatus("sending");
-    setDebugLink(null);
     try {
       const res = await fetch("/api/auth/request", {
         method: "POST",
@@ -29,14 +27,13 @@ export default function LoginClient() {
         body: JSON.stringify({ email, next: nextPath, acceptTerms, acceptPrivacy }),
       });
       const data = (await res.json().catch(() => null)) as
-        | { ok: true; debug?: string | null }
+        | { ok: true; sent: boolean }
         | { ok: false; error?: string };
       if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
         throw new Error(
           data && "error" in data && typeof data.error === "string" ? data.error : "Failed",
         );
       }
-      setDebugLink("debug" in data ? (data.debug ?? null) : null);
       setStatus("sent");
     } catch {
       setStatus("error");
@@ -130,15 +127,6 @@ export default function LoginClient() {
             >
               {status === "sending" ? "Sending..." : "Send sign-in link"}
             </Button>
-
-            {debugLink ? (
-              <div className="rounded-lg border bg-muted p-4 text-sm">
-                <div className="text-xs font-semibold text-muted-foreground">Dev fallback link</div>
-                <a className="mt-2 block break-all font-mono text-xs underline" href={debugLink}>
-                  {debugLink}
-                </a>
-              </div>
-            ) : null}
           </CardContent>
         </Card>
       </div>

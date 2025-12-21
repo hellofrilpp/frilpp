@@ -57,7 +57,6 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
 export type MagicLinkResponse = {
   ok: boolean;
   sent: boolean;
-  debug?: string | null;
 };
 
 export async function requestMagicLink(email: string, next?: string) {

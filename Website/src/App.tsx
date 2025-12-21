@@ -22,6 +22,8 @@ import InfluencerDiscover from "./pages/influencer/Discover";
 import InfluencerDeals from "./pages/influencer/Deals";
 import InfluencerProfile from "./pages/influencer/Profile";
 import VerifyEmail from "./pages/VerifyEmail";
+import LegalTerms from "./pages/LegalTerms";
+import LegalPrivacy from "./pages/LegalPrivacy";
 
 // Other Pages
 import Leaderboard from "./pages/Leaderboard";
@@ -62,6 +64,8 @@ const App = () => (
           <Route path="/leaderboard" element={<Leaderboard />} />
           <Route path="/achievements" element={<Achievements />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/legal/terms" element={<LegalTerms />} />
+          <Route path="/legal/privacy" element={<LegalPrivacy />} />
           
           <Route path="*" element={<NotFound />} />
         </Routes>
