@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import FrilppLogo from "@/components/FrilppLogo";
 
 const Header = () => {
@@ -43,7 +42,6 @@ const Header = () => {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
-            <ThemeToggle />
             <Button variant="ghost" className="text-xs font-mono hover:text-neon-green" asChild>
               <Link to="/brand/login">&gt; LOG_IN</Link>
             </Button>
@@ -81,9 +79,6 @@ const Header = () => {
                 [LEADERBOARD]
               </Link>
               <div className="flex flex-col gap-2 pt-4 border-t-2 border-border">
-                <div className="flex justify-center pb-2">
-                  <ThemeToggle />
-                </div>
                 <Button variant="outline" asChild className="w-full border-2 border-primary text-primary font-mono text-xs">
                   <Link to="/brand/login">&gt; LOG_IN</Link>
                 </Button>
