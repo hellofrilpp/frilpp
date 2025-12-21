@@ -94,7 +94,7 @@ const FAQ = () => {
             <span className="font-mono text-sm text-muted-foreground">
               Still have questions?
             </span>
-            <a href="mailto:support@frilpp.com" className="font-pixel text-xs text-neon-purple hover:underline">
+            <a href="mailto:hello@frilpp.com" className="font-pixel text-xs text-neon-purple hover:underline">
               CONTACT_US →
             </a>
           </div>
