@@ -14,7 +14,7 @@ const InfluencerAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleVerifyEmail = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
@@ -31,14 +31,14 @@ const InfluencerAuth = () => {
       });
       if (res.debug) window.location.href = res.debug;
     } catch (err) {
-      let message = err instanceof ApiError ? err.message : "Login failed";
+      let message = err instanceof ApiError ? err.message : "Verification failed";
       if (err instanceof ApiError && err.code === "SOCIAL_REQUIRED") {
         message = "Connect Instagram or TikTok first, then verify email.";
       }
       if (err instanceof ApiError && err.code === "SOCIAL_EXPIRED") {
         message = "Social connection expired. Please reconnect and try again.";
       }
-      toast({ title: "LOGIN FAILED", description: message });
+      toast({ title: "FAILED", description: message });
     } finally {
       setIsLoading(false);
     }
@@ -78,36 +78,41 @@ const InfluencerAuth = () => {
           <CardContent className="space-y-6">
             <div className="text-center">
               <p className="font-mono text-xs text-muted-foreground mb-4">
-                Verify your email after social connect
+                Start by connecting Instagram or TikTok
               </p>
             </div>
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="creator-email" className="font-mono text-xs">EMAIL</Label>
-                <Input
-                  id="creator-email"
-                  name="creator-email"
-                  type="email"
-                  placeholder="creator@email.com"
-                  required
-                  className="border-2 border-border bg-background font-mono"
-                />
-              </div>
-              <Button
-                type="submit"
-                className="w-full bg-neon-purple text-background font-pixel pixel-btn"
-                disabled={isLoading}
-              >
-                {isLoading ? "SENDING..." : "SEND LINK →"}
-              </Button>
-            </form>
             
             <SocialLoginButtons
               accentColor="purple"
               role="creator"
               nextPath="/influencer/onboarding"
             />
+
+            <div className="border-2 border-dashed border-border p-4">
+              <p className="text-xs font-mono text-muted-foreground mb-3">
+                Already connected? Verify your email to continue.
+              </p>
+              <form onSubmit={handleVerifyEmail} className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="creator-email" className="font-mono text-xs">EMAIL</Label>
+                  <Input
+                    id="creator-email"
+                    name="creator-email"
+                    type="email"
+                    placeholder="creator@email.com"
+                    required
+                    className="border-2 border-border bg-background font-mono"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full bg-neon-purple text-background font-pixel pixel-btn"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "SENDING..." : "SEND MAGIC LINK →"}
+                </Button>
+              </form>
+            </div>
 
             <div className="mt-6 text-center">
               <p className="text-xs font-mono text-muted-foreground">
