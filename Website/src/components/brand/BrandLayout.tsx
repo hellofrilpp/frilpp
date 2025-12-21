@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { 
   LayoutDashboard, 
@@ -13,10 +13,22 @@ import {
   Trophy
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import FrilppLogo from "@/components/FrilppLogo";
 import { ApiError, apiFetch, apiUrl, getAuthMe, logout } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 const navItems = [
   { icon: LayoutDashboard, label: "OVERVIEW", href: "/brand/dashboard" },
@@ -26,6 +38,8 @@ const navItems = [
   { icon: Settings, label: "SETTINGS", href: "/brand/settings" },
 ];
 
+const emptyMemberships: Array<{ brandId: string; role: string; brandName: string }> = [];
+
 interface BrandLayoutProps {
   children: React.ReactNode;
 }
@@ -34,10 +48,26 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
-  const { data: authData } = useQuery({
+  const queryClient = useQueryClient();
+  const { data: authData, isLoading: authLoading } = useQuery({
     queryKey: ["auth-me"],
     queryFn: getAuthMe,
   });
+  const user = authData?.user ?? null;
+  const memberships = user?.memberships ?? emptyMemberships;
+
+  const [gateMode, setGateMode] = useState<"none" | "create" | "select">("none");
+  const [gateBrandName, setGateBrandName] = useState("");
+  const [gateCountries, setGateCountries] = useState<{ US: boolean; IN: boolean }>({ US: true, IN: true });
+  const [gateBrandId, setGateBrandId] = useState<string | null>(null);
+  const [gateSubmitting, setGateSubmitting] = useState(false);
+  const autoSelectRef = useRef(false);
+  const pendingCreateRef = useRef(false);
+
+  const currentPath = useMemo(
+    () => `${location.pathname}${location.search || ""}`,
+    [location.pathname, location.search],
+  );
 
   const activeMembership = authData?.user?.memberships.find(
     (membership) => membership.brandId === authData.user?.activeBrandId,
@@ -52,52 +82,217 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
     .toUpperCase();
 
   useEffect(() => {
-    const ensureSession = async () => {
-      try {
-        await apiFetch<{ ok: boolean; activeBrandId: string | null }>("/api/brand/active");
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401) {
-          window.location.href = "/brand/auth";
-        }
-        if (err instanceof ApiError && err.code === "NEEDS_LEGAL_ACCEPTANCE") {
-          window.location.href = apiUrl("/legal/accept?next=/brand/dashboard");
-        }
-      }
-    };
+    if (authLoading) return;
 
-    ensureSession();
+    if (!user) {
+      window.location.href = "/brand/auth";
+      return;
+    }
+
+    if (!user.tosAcceptedAt || !user.privacyAcceptedAt) {
+      window.location.href = apiUrl(`/legal/accept?next=${encodeURIComponent(currentPath)}`);
+      return;
+    }
+
+    if (user.activeBrandId) {
+      setGateMode("none");
+      return;
+    }
 
     const pendingName = localStorage.getItem("pendingBrandName");
-    if (!pendingName) return;
 
-    const ensureBrand = async () => {
-      try {
-        const active = await apiFetch<{ ok: boolean; activeBrandId: string | null }>(
-          "/api/brand/active",
-        );
-        if (active.activeBrandId) {
+    if (!memberships.length && pendingName && !pendingCreateRef.current) {
+      pendingCreateRef.current = true;
+      setGateSubmitting(true);
+      apiFetch<{ ok: boolean }>("/api/onboarding/brand", {
+        method: "POST",
+        body: JSON.stringify({ name: pendingName, countriesDefault: ["US", "IN"] }),
+      })
+        .then(() => {
           localStorage.removeItem("pendingBrandName");
-          return;
-        }
+          queryClient.invalidateQueries({ queryKey: ["auth-me"] });
+          window.location.href = "/brand/campaigns/new";
+        })
+        .catch((err) => {
+          if (err instanceof ApiError && err.status === 401) {
+            window.location.href = "/brand/auth";
+            return;
+          }
+          setGateBrandName(pendingName);
+          setGateMode("create");
+        })
+        .finally(() => setGateSubmitting(false));
+      return;
+    }
 
-        await apiFetch<{ ok: boolean }>("/api/onboarding/brand", {
-          method: "POST",
-          body: JSON.stringify({ name: pendingName, countriesDefault: ["US", "IN"] }),
-        });
-        localStorage.removeItem("pendingBrandName");
-      } catch (err) {
-        if (err instanceof ApiError && err.status === 401) return;
-        if (err instanceof ApiError && err.code === "NEEDS_LEGAL_ACCEPTANCE") {
-          window.location.href = apiUrl("/legal/accept?next=/brand/dashboard");
-        }
-      }
-    };
+    if (!memberships.length) {
+      setGateBrandName(pendingName ?? "");
+      setGateMode("create");
+      return;
+    }
 
-    ensureBrand();
-  }, []);
+    if (memberships.length === 1) {
+      if (autoSelectRef.current) return;
+      autoSelectRef.current = true;
+      setGateSubmitting(true);
+      apiFetch<{ ok: boolean }>("/api/brand/active", {
+        method: "POST",
+        body: JSON.stringify({ brandId: memberships[0]!.brandId }),
+      })
+        .then(() => queryClient.invalidateQueries({ queryKey: ["auth-me"] }))
+        .catch((err) => {
+          if (err instanceof ApiError && err.status === 401) {
+            window.location.href = "/brand/auth";
+          }
+        })
+        .finally(() => setGateSubmitting(false));
+      return;
+    }
+
+    setGateBrandId(memberships[0]?.brandId ?? null);
+    setGateMode("select");
+  }, [authLoading, currentPath, memberships, queryClient, user]);
+
+  const resolvedCountries = useMemo(() => {
+    const next: Array<"US" | "IN"> = [];
+    if (gateCountries.US) next.push("US");
+    if (gateCountries.IN) next.push("IN");
+    return next;
+  }, [gateCountries]);
 
   return (
     <div className="min-h-screen bg-background flex">
+      <AlertDialog open={gateMode !== "none"}>
+        <AlertDialogContent className="border-4 border-border bg-card">
+          {gateMode === "create" ? (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-pixel text-sm text-neon-pink">SET UP YOUR BRAND</AlertDialogTitle>
+                <AlertDialogDescription className="font-mono text-xs">
+                  Create your workspace to start posting offers.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs">BRAND NAME</Label>
+                  <Input
+                    value={gateBrandName}
+                    onChange={(e) => setGateBrandName(e.target.value)}
+                    placeholder="Awesome Brand Inc."
+                    className="border-2 border-border bg-background font-mono"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label className="font-mono text-xs">COUNTRIES</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="flex items-center gap-2 border-2 border-border p-3 bg-background">
+                      <Checkbox
+                        checked={gateCountries.US}
+                        onCheckedChange={(checked) => setGateCountries((prev) => ({ ...prev, US: Boolean(checked) }))}
+                      />
+                      <span className="font-mono text-xs">United States</span>
+                    </label>
+                    <label className="flex items-center gap-2 border-2 border-border p-3 bg-background">
+                      <Checkbox
+                        checked={gateCountries.IN}
+                        onCheckedChange={(checked) => setGateCountries((prev) => ({ ...prev, IN: Boolean(checked) }))}
+                      />
+                      <span className="font-mono text-xs">India</span>
+                    </label>
+                  </div>
+                </div>
+              </div>
+
+              <AlertDialogFooter>
+                <AlertDialogAction
+                  className="font-pixel text-xs bg-neon-pink text-background"
+                  disabled={gateSubmitting || gateBrandName.trim().length < 2 || resolvedCountries.length === 0}
+                  onClick={async () => {
+                    try {
+                      setGateSubmitting(true);
+                      await apiFetch<{ ok: boolean }>("/api/onboarding/brand", {
+                        method: "POST",
+                        body: JSON.stringify({ name: gateBrandName.trim(), countriesDefault: resolvedCountries }),
+                      });
+                      localStorage.removeItem("pendingBrandName");
+                      await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
+                      window.location.href = "/brand/campaigns/new";
+                    } catch (err) {
+                      if (err instanceof ApiError && err.status === 401) {
+                        window.location.href = "/brand/auth";
+                        return;
+                      }
+                    } finally {
+                      setGateSubmitting(false);
+                    }
+                  }}
+                >
+                  {gateSubmitting ? "CREATING..." : "CONTINUE →"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          ) : (
+            <>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="font-pixel text-sm text-neon-yellow">SELECT A BRAND</AlertDialogTitle>
+                <AlertDialogDescription className="font-mono text-xs">
+                  Choose which workspace you want to manage.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+
+              <div className="space-y-2">
+                {memberships.map((membership) => (
+                  <button
+                    key={membership.brandId}
+                    type="button"
+                    onClick={() => setGateBrandId(membership.brandId)}
+                    className={cn(
+                      "w-full text-left border-2 p-3 transition-colors",
+                      gateBrandId === membership.brandId
+                        ? "border-neon-green bg-neon-green/10"
+                        : "border-border bg-background hover:border-neon-green",
+                    )}
+                  >
+                    <p className="font-pixel text-xs text-foreground">{membership.brandName}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{membership.role}</p>
+                  </button>
+                ))}
+              </div>
+
+              <AlertDialogFooter>
+                <AlertDialogAction
+                  className="font-pixel text-xs bg-neon-yellow text-background"
+                  disabled={gateSubmitting || !gateBrandId}
+                  onClick={async () => {
+                    if (!gateBrandId) return;
+                    try {
+                      setGateSubmitting(true);
+                      await apiFetch<{ ok: boolean }>("/api/brand/active", {
+                        method: "POST",
+                        body: JSON.stringify({ brandId: gateBrandId }),
+                      });
+                      await queryClient.invalidateQueries({ queryKey: ["auth-me"] });
+                      setGateMode("none");
+                      window.location.href = "/brand/dashboard";
+                    } catch (err) {
+                      if (err instanceof ApiError && err.status === 401) {
+                        window.location.href = "/brand/auth";
+                      }
+                    } finally {
+                      setGateSubmitting(false);
+                    }
+                  }}
+                >
+                  {gateSubmitting ? "SWITCHING..." : "CONTINUE →"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </>
+          )}
+        </AlertDialogContent>
+      </AlertDialog>
+
       {/* Desktop Sidebar */}
       <aside 
         className={cn(

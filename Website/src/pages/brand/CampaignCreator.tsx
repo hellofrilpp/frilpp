@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { 
   ArrowLeft, 
@@ -134,6 +134,8 @@ const asStringArray = (value: unknown): string[] =>
 
 const emptyPlatformsByCountry = { US: [], IN: [] };
 
+const DRAFT_KEY = "frilpp:brandCampaignDraft:v1";
+
 const CampaignCreator = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -143,6 +145,75 @@ const CampaignCreator = () => {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [productQuantity, setProductQuantity] = useState(1);
   const [copying, setCopying] = useState(false);
+  const restoredRef = useRef(false);
+  const draftReadyRef = useRef(false);
+
+  useEffect(() => {
+    if (restoredRef.current) return;
+    restoredRef.current = true;
+
+    const raw = localStorage.getItem(DRAFT_KEY);
+    if (!raw) {
+      draftReadyRef.current = true;
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (!parsed || typeof parsed !== "object") {
+        draftReadyRef.current = true;
+        return;
+      }
+
+      const draft = parsed as Partial<{
+        currentStep: unknown;
+        formData: Partial<CampaignFormData> | null;
+        productQuantity: unknown;
+        selectedVariantId: unknown;
+      }>;
+
+      if (draft.formData && typeof draft.formData === "object") {
+        setFormData((prev) => ({
+          ...prev,
+          ...draft.formData,
+          platforms: Array.isArray(draft.formData.platforms) ? draft.formData.platforms : prev.platforms,
+          contentTypes: Array.isArray(draft.formData.contentTypes) ? draft.formData.contentTypes : prev.contentTypes,
+          niches: Array.isArray(draft.formData.niches) ? draft.formData.niches : prev.niches,
+        }));
+      }
+
+      if (typeof draft.currentStep === "number" && Number.isFinite(draft.currentStep)) {
+        const step = Math.max(1, Math.min(4, Math.floor(draft.currentStep)));
+        setCurrentStep(step);
+      }
+
+      if (typeof draft.productQuantity === "number" && Number.isFinite(draft.productQuantity)) {
+        setProductQuantity(Math.max(1, Math.floor(draft.productQuantity)));
+      }
+
+      if (typeof draft.selectedVariantId === "string" || draft.selectedVariantId === null) {
+        setSelectedVariantId(draft.selectedVariantId);
+      }
+
+      toast.success("Draft restored");
+    } catch {
+      // Ignore corrupted drafts.
+    } finally {
+      draftReadyRef.current = true;
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!draftReadyRef.current) return;
+    const payload = {
+      currentStep,
+      formData,
+      productQuantity,
+      selectedVariantId,
+      updatedAt: Date.now(),
+    };
+    localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
+  }, [currentStep, formData, productQuantity, selectedVariantId]);
 
   const { data: shopifyStatus } = useQuery({
     queryKey: ["shopify-status"],
@@ -279,23 +350,28 @@ const CampaignCreator = () => {
     const title = formData.campaignName || formData.productName;
     if (!title) {
       toast.error("Campaign name required");
+      setCurrentStep(1);
       return;
     }
 
     if (formData.category === "OTHER" && !formData.categoryOther.trim()) {
       toast.error("Add a category for Other");
+      setCurrentStep(1);
       return;
     }
     if (formData.platforms.includes("OTHER") && !formData.platformOther.trim()) {
       toast.error("Add a platform for Other");
+      setCurrentStep(2);
       return;
     }
     if (formData.contentTypes.includes("OTHER") && !formData.contentTypeOther.trim()) {
       toast.error("Add a content type for Other");
+      setCurrentStep(2);
       return;
     }
     if (formData.niches.includes("OTHER") && !formData.nicheOther.trim()) {
       toast.error("Add a niche for Other");
+      setCurrentStep(3);
       return;
     }
 
@@ -308,14 +384,17 @@ const CampaignCreator = () => {
     if (fulfillmentType === "SHOPIFY") {
       if (!shopifyStatus?.connected) {
         toast.error("Connect Shopify or switch to manual fulfillment");
+        setCurrentStep(1);
         return;
       }
       if (!selectedProduct) {
         toast.error("Select a Shopify product or choose manual fulfillment");
+        setCurrentStep(1);
         return;
       }
       if (!selectedVariantId) {
         toast.error("Select a variant for the Shopify product");
+        setCurrentStep(1);
         return;
       }
     }
@@ -371,6 +450,7 @@ const CampaignCreator = () => {
         toast.success("🎮 Campaign launched! Let the matching begin!", {
           description: "Influencers will start seeing your offer.",
         });
+        localStorage.removeItem(DRAFT_KEY);
         navigate("/brand/campaigns");
       })
       .catch((err) => {
@@ -528,15 +608,33 @@ const CampaignCreator = () => {
                     <p className="font-pixel text-xs text-neon-green">FAST START</p>
                     <p className="font-mono text-xs text-muted-foreground">Copy your last offer in one click.</p>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={copying}
-                    onClick={handleCopyLastOffer}
-                    className="border-2 border-border font-pixel text-xs"
-                  >
-                    {copying ? "COPYING..." : "COPY_LAST_OFFER"}
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={copying}
+                      onClick={handleCopyLastOffer}
+                      className="border-2 border-border font-pixel text-xs"
+                    >
+                      {copying ? "COPYING..." : "COPY_LAST_OFFER"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        localStorage.removeItem(DRAFT_KEY);
+                        setFormData(initialFormData);
+                        setSelectedProduct(null);
+                        setSelectedVariantId(null);
+                        setProductQuantity(1);
+                        setCurrentStep(1);
+                        toast.success("Draft cleared");
+                      }}
+                      className="border-2 border-border font-pixel text-xs"
+                    >
+                      CLEAR_DRAFT
+                    </Button>
+                  </div>
                 </div>
 
                 <div className="space-y-6">

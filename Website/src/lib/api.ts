@@ -50,8 +50,23 @@ export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> 
   }
 
   const data = await parseJsonSafely(response);
+  const code = data?.code;
+
+  if (typeof window !== "undefined") {
+    const nextPath = `${window.location.pathname}${window.location.search}`;
+    if (response.status === 409 && code === "NEEDS_LEGAL_ACCEPTANCE") {
+      window.location.href = apiUrl(`/legal/accept?next=${encodeURIComponent(nextPath)}`);
+    }
+    if (response.status === 409 && code === "NEEDS_BRAND_SELECTION") {
+      window.location.href = apiUrl(`/onboarding?next=${encodeURIComponent(nextPath)}`);
+    }
+    if (response.status === 409 && code === "NEEDS_CREATOR_PROFILE") {
+      window.location.href = apiUrl(`/influencer/onboarding`);
+    }
+  }
+
   const message = data?.error || `Request failed (${response.status})`;
-  throw new ApiError(message, response.status, data?.code, data ?? undefined);
+  throw new ApiError(message, response.status, code, data ?? undefined);
 }
 
 export type MagicLinkResponse = {
