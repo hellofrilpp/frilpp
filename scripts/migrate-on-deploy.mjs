@@ -1,7 +1,3 @@
-import { sql } from "@vercel/postgres";
-import { drizzle } from "drizzle-orm/vercel-postgres";
-import { migrate } from "drizzle-orm/vercel-postgres/migrator";
-
 const shouldRun =
   process.env.MIGRATE_ON_DEPLOY === "true" &&
   process.env.VERCEL === "1" &&
@@ -11,10 +7,32 @@ if (!shouldRun) {
   process.exit(0);
 }
 
-if (!process.env.DATABASE_URL) {
-  console.log("[migrate] DATABASE_URL missing; skipping");
+const looksPooled = (value) => Boolean(value && /(^|-)pooler\./.test(value));
+
+const pooledConnectionString =
+  process.env.POSTGRES_URL ??
+  (looksPooled(process.env.DATABASE_URL) ? process.env.DATABASE_URL : undefined);
+
+const directConnectionString =
+  process.env.POSTGRES_URL_NON_POOLING ??
+  process.env.POSTGRES_PRISMA_URL ??
+  (!pooledConnectionString ? process.env.DATABASE_URL : undefined);
+
+const connectionString = directConnectionString ?? pooledConnectionString;
+
+if (!connectionString) {
+  console.log("[migrate] no database connection string found; skipping");
   process.exit(0);
 }
+
+const { createClient, createPool } = await import("@vercel/postgres");
+const { drizzle } = await import("drizzle-orm/vercel-postgres");
+const { migrate } = await import("drizzle-orm/vercel-postgres/migrator");
+
+const client = directConnectionString
+  ? createClient({ connectionString })
+  : createPool({ connectionString });
+const sql = client.sql.bind(client);
 
 const LOCK_KEY = 734112903; // arbitrary constant for frilpp migrations
 
@@ -27,7 +45,7 @@ try {
   }
 
   console.log("[migrate] running drizzle migrations...");
-  const db = drizzle(sql);
+  const db = drizzle(client);
   await migrate(db, { migrationsFolder: "drizzle" });
   console.log("[migrate] done");
 
@@ -37,4 +55,3 @@ try {
   console.error(err);
   process.exit(1);
 }
-

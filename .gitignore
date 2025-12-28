@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
+
+# Website build output (generated during `pnpm run build`)
+/public/site/
 
 # vercel
 .vercel

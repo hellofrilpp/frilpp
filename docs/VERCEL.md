@@ -21,6 +21,7 @@
   - local: `pnpm db:migrate`
   - Vercel: automatic during production deploy if `MIGRATE_ON_DEPLOY=true` (recommended), or run `pnpm db:migrate` manually/CI
 - `drizzle/` is committed and becomes the source of truth for schema evolution.
+ - Ensure your deploy has a DB connection string configured (`POSTGRES_URL` / `POSTGRES_URL_NON_POOLING` from Vercel Postgres, or `DATABASE_URL`).
 
 ## Alerts / logs (recommended)
 - Set `ALERT_EMAIL_TO` + Resend env vars to receive alert emails when crons/webhooks fail.
