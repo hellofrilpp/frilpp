@@ -130,7 +130,7 @@ const SwipeCard = ({ product, onSwipe, isTop }: SwipeCardProps) => {
           </div>
           
           <h3 className="font-pixel text-base mb-1 text-foreground">{product.name}</h3>
-          <p className="text-xs font-mono text-muted-foreground mb-4">{product.requirement} = FREE PRODUCT</p>
+          <p className="text-xs font-mono text-muted-foreground mb-4">{product.requirement} = PRODUCT DROP</p>
           
           {/* Swipe Buttons - Only interactive on top card */}
           {isTop && (

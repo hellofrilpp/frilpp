@@ -7,7 +7,7 @@ const options: Array<{ id: MarketingMarket; label: string }> = [
 ];
 
 export default function MarketToggle(props: { size?: "sm" | "md" }) {
-  const { market, setMarket } = useMarket();
+  const { market, setMarket, clearMarketOverride } = useMarket();
   const size = props.size ?? "sm";
 
   return (
@@ -28,7 +28,16 @@ export default function MarketToggle(props: { size?: "sm" | "md" }) {
           {opt.label}
         </Button>
       ))}
+      <Button
+        type="button"
+        size={size === "sm" ? "sm" : "default"}
+        variant="ghost"
+        className="font-mono text-[10px] text-muted-foreground hover:text-foreground px-2"
+        onClick={clearMarketOverride}
+        title="Auto-detect from IP"
+      >
+        Auto
+      </Button>
     </div>
   );
 }
-

@@ -7,6 +7,7 @@ import { buildTikTokOAuthUrl } from "@/lib/tiktok";
 export const runtime = "nodejs";
 
 const providerSchema = z.enum(["instagram", "tiktok"]);
+const roleSchema = z.enum(["brand", "creator"]);
 
 function isUsCountry(request: Request) {
   const country = request.headers.get("x-vercel-ip-country") ||
@@ -33,7 +34,8 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const provider = providerParsed.data;
   const url = new URL(request.url);
   const nextPath = sanitizeNextPath(url.searchParams.get("next"), "/onboarding");
-  const role = url.searchParams.get("role");
+  const roleParsed = roleSchema.safeParse(url.searchParams.get("role"));
+  const role = roleParsed.success ? roleParsed.data : null;
 
   if (provider === "tiktok" && !isUsCountry(request)) {
     return Response.json(
@@ -73,6 +75,13 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     maxAge: 60 * 10,
   });
   if (role) {
+    jar.set("frilpp_lane", role, {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
     jar.set("social_oauth_role", role, {
       httpOnly: true,
       sameSite: "lax",

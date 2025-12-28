@@ -24,6 +24,7 @@ export default function OnboardingPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [status, setStatus] = useState<"loading" | "idle" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
+  const [lane, setLane] = useState<"brand" | "creator" | null>(null);
 
   const [brandName, setBrandName] = useState("My brand");
   const [brandCountries, setBrandCountries] = useState<Array<"US" | "IN">>(["US"]);
@@ -41,6 +42,9 @@ export default function OnboardingPage() {
   const hasBrand = Boolean(me?.memberships?.length);
   const hasCreator = Boolean(me?.hasCreatorProfile);
   const legalOk = Boolean(me?.tosAcceptedAt && me?.privacyAcceptedAt);
+
+  const showBrandOnboarding = lane === null || lane === "brand";
+  const showCreatorOnboarding = lane === null || lane === "creator";
 
   const primaryNextLink = useMemo(() => {
     if (hasBrand) return "/brand/offers";
@@ -67,6 +71,24 @@ export default function OnboardingPage() {
 
   useEffect(() => {
     void loadMe();
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = document.cookie ?? "";
+      const match = raw
+        .split(/;\s*/g)
+        .map((part) => part.split("="))
+        .find(([key]) => key === "frilpp_lane");
+      const value = match?.[1] ? decodeURIComponent(match[1]) : null;
+      if (value === "brand" || value === "creator") {
+        setLane(value);
+      } else {
+        setLane(null);
+      }
+    } catch {
+      setLane(null);
+    }
   }, []);
 
   async function logout() {
@@ -172,7 +194,11 @@ export default function OnboardingPage() {
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Get set up</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Create a brand workspace, a creator profile, or both.
+              {lane === "brand"
+                ? "Create your brand workspace."
+                : lane === "creator"
+                  ? "Create your creator profile."
+                  : "Create a brand workspace, a creator profile, or both."}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -271,7 +297,8 @@ export default function OnboardingPage() {
 
         {me && legalOk ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            <Card>
+            {showBrandOnboarding ? (
+              <Card>
               <CardHeader>
                 <CardTitle>Create a brand workspace</CardTitle>
                 <CardDescription>For D2C teams publishing offers.</CardDescription>
@@ -311,9 +338,11 @@ export default function OnboardingPage() {
                   Create brand
                 </Button>
               </CardContent>
-            </Card>
+              </Card>
+            ) : null}
 
-            <Card>
+            {showCreatorOnboarding ? (
+              <Card>
               <CardHeader>
                 <CardTitle>Create a creator profile</CardTitle>
                 <CardDescription>Required to claim offers (pickup/local delivery supported).</CardDescription>
@@ -390,7 +419,8 @@ export default function OnboardingPage() {
                   </div>
                 ) : null}
               </CardContent>
-            </Card>
+              </Card>
+            ) : null}
           </div>
         ) : null}
       </div>

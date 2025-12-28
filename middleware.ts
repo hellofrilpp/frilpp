@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const SESSION_COOKIE_NAME = "frilpp_session";
 const LEGAL_COOKIE_NAME = "frilpp_legal";
+const LANE_COOKIE_NAME = "frilpp_lane";
 
 const BRAND_PUBLIC_PATHS = new Set(["/brand/auth", "/brand/login", "/brand/signup"]);
 const CREATOR_PUBLIC_PATHS = new Set([
@@ -39,6 +40,20 @@ export function middleware(request: NextRequest) {
     const url = request.nextUrl.clone();
     url.pathname = "/legal/accept";
     url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
+    return NextResponse.redirect(url);
+  }
+
+  const lane = request.cookies.get(LANE_COOKIE_NAME)?.value;
+  if (lane === "brand" && request.nextUrl.pathname.startsWith("/influencer")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/brand/offers";
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+  if (lane === "creator" && request.nextUrl.pathname.startsWith("/brand")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/influencer/feed";
+    url.search = "";
     return NextResponse.redirect(url);
   }
 

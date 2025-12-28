@@ -31,12 +31,12 @@ export default function InfluencerAuthPage() {
             <CardDescription>Claim local deals in minutes.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            <a href="/api/auth/social/instagram/connect?next=%2Fonboarding">
+            <a href="/api/auth/social/instagram/connect?next=%2Fonboarding&role=creator">
               <Button className="w-full" variant="secondary">
                 Instagram
               </Button>
             </a>
-            <a href="/api/auth/social/tiktok/connect?next=%2Fonboarding">
+            <a href="/api/auth/social/tiktok/connect?next=%2Fonboarding&role=creator">
               <Button className="w-full" variant="secondary">
                 TikTok
               </Button>

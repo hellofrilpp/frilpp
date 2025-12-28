@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     question: "Can I cancel anytime?",
-    answer: "Yes. During beta, the product is free to use. If we introduce paid tiers later, you’ll be able to manage that from settings.",
+    answer: "Yes. Plans are month-to-month. Cancel anytime from settings; access continues until the billing period ends.",
   },
 ];
 

@@ -134,7 +134,7 @@ const ForInfluencers = () => {
             </div>
             
             <h2 className="text-xl md:text-2xl lg:text-3xl font-pixel mb-8 leading-relaxed">
-              <span className="text-neon-pink">FREE STUFF</span>
+              <span className="text-neon-pink">PRODUCT DROPS</span>
               <br />
               <span className="text-foreground">JUST BY</span>
               <br />

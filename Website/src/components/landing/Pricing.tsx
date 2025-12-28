@@ -1,58 +1,69 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowRight, Zap, Crown, Rocket } from "lucide-react";
-
-const plans = [
-  {
-    name: "BUSINESS",
-    price: "FREE",
-    description: "Local offers for SMBs",
-    icon: Zap,
-    color: "neon-green",
-    features: [
-      "Instagram/TikTok onboarding",
-      "Local radius + auto-accept threshold",
-      "Pickup / local delivery / shipping",
-      "Clicks + redemptions ROI",
-      "Verified posting + creator streaks",
-    ],
-    cta: "POST AN OFFER",
-    popular: false,
-  },
-  {
-    name: "CREATOR",
-    price: "FREE",
-    description: "Claim local drops",
-    icon: Rocket,
-    color: "neon-pink",
-    features: [
-      "IG/TikTok-only signup (email optional)",
-      "Local deals feed",
-      "One-tap claim + share-kit",
-      "Achievements + streaks",
-      "Performance stats",
-    ],
-    cta: "JOIN AS CREATOR",
-    popular: true,
-  },
-  {
-    name: "TEAMS",
-    price: "CUSTOM",
-    description: "For multi-location brands",
-    icon: Crown,
-    color: "neon-yellow",
-    features: [
-      "Multiple locations",
-      "More roles + permissions",
-      "Custom reporting",
-      "Integrations (Shopify optional)",
-    ],
-    cta: "CONTACT",
-    popular: false,
-  },
-];
+import { useMarket } from "@/components/landing/market";
 
 const Pricing = () => {
+  const { market } = useMarket();
+  const currency = market === "IN" ? "₹" : "$";
+  const businessPrice = market === "IN" ? 299 : 29;
+  const creatorPrice = market === "IN" ? 100 : 10;
+
+  const plans = [
+    {
+      name: "BUSINESS",
+      price: `${currency}${businessPrice}`,
+      period: "/MO",
+      description: "Local offers for SMBs",
+      icon: Zap,
+      color: "neon-green",
+      features: [
+        "Instagram/TikTok onboarding",
+        "Local radius + auto-accept threshold",
+        "Pickup / local delivery / shipping",
+        "Clicks + redemptions ROI",
+        "Verified posting + creator streaks",
+      ],
+      cta: "POST AN OFFER",
+      href: "/brand/signup",
+      popular: false,
+    },
+    {
+      name: "CREATOR",
+      price: `${currency}${creatorPrice}`,
+      period: "/MO",
+      description: "Claim local drops",
+      icon: Rocket,
+      color: "neon-pink",
+      features: [
+        "IG/TikTok-only signup (email optional)",
+        "Local deals feed",
+        "One-tap claim + share-kit",
+        "Achievements + streaks",
+        "Performance stats",
+      ],
+      cta: "JOIN AS CREATOR",
+      href: "/influencer/signup",
+      popular: true,
+    },
+    {
+      name: "TEAMS",
+      price: "CUSTOM",
+      description: "For multi-location brands",
+      icon: Crown,
+      color: "neon-yellow",
+      features: [
+        "Multiple locations",
+        "More roles + permissions",
+        "Custom reporting",
+        "Integrations (Shopify optional)",
+      ],
+      cta: "CONTACT",
+      href: "mailto:hello@frilpp.com",
+      popular: false,
+    },
+  ] as const;
+
   return (
     <section id="pricing" className="py-24 bg-card border-t-4 border-border relative">
       {/* Grid background */}
@@ -73,7 +84,7 @@ const Pricing = () => {
             <span className="text-foreground"> RESULTS</span>
           </h2>
           <p className="font-mono text-sm text-muted-foreground">
-            &gt; Free during beta. Pricing will evolve with the product.
+            &gt; Simple monthly pricing that matches your market.
           </p>
         </div>
 
@@ -133,7 +144,7 @@ const Pricing = () => {
                 } pixel-btn`}
                 asChild
               >
-                <Link to={plan.name === "CREATOR" ? "/influencer/signup" : "/brand/signup"}>
+                <Link to={plan.href}>
                   {plan.cta}
                   <ArrowRight className="w-3 h-3 ml-2" />
                 </Link>

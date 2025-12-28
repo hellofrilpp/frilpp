@@ -196,6 +196,16 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   if (existing) {
     await createSession(existing.userId);
 
+    if (roleCookie === "brand" || roleCookie === "creator") {
+      jar.set("frilpp_lane", roleCookie, {
+        httpOnly: false,
+        sameSite: "lax",
+        secure: process.env.NODE_ENV === "production",
+        path: "/",
+        maxAge: 60 * 60 * 24 * 30,
+      });
+    }
+
     jar.delete("social_oauth_state");
     jar.delete("social_oauth_provider");
     jar.delete("social_oauth_next");
