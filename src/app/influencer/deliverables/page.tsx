@@ -135,6 +135,15 @@ export default function CreatorDeliverablesPage() {
             <Link href="/influencer/feed">
               <Button variant="secondary">Feed</Button>
             </Link>
+            <Link href="/influencer/deals">
+              <Button variant="outline">Deals</Button>
+            </Link>
+            <Link href="/influencer/performance">
+              <Button variant="outline">Performance</Button>
+            </Link>
+            <Link href="/influencer/achievements">
+              <Button variant="outline">Achievements</Button>
+            </Link>
             <Link href="/influencer/settings">
               <Button variant="outline">Profile</Button>
             </Link>
@@ -204,6 +213,11 @@ export default function CreatorDeliverablesPage() {
                             >
                               Copy link
                             </Button>
+                            <Link href={`/influencer/matches/${encodeURIComponent(r.match.id)}/share`}>
+                              <Button size="sm" variant="secondary" type="button">
+                                Share kit
+                              </Button>
+                            </Link>
                             <Button
                               size="sm"
                               variant="outline"

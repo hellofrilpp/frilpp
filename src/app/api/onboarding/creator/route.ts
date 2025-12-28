@@ -15,14 +15,14 @@ const bodySchema = z.object({
   country: z.enum(["US", "IN"]),
   categories: z.array(z.enum(CREATOR_CATEGORIES)).max(20).optional(),
   categoriesOther: z.string().trim().min(2).max(64).optional(),
-  fullName: z.string().min(1).max(128),
-  email: z.string().email(),
+  fullName: z.string().min(1).max(128).optional(),
+  email: z.string().email().optional(),
   phone: z.string().min(3).max(32).optional(),
-  address1: z.string().min(1).max(128),
+  address1: z.string().min(1).max(128).optional(),
   address2: z.string().max(128).optional(),
-  city: z.string().min(1).max(64),
+  city: z.string().min(1).max(64).optional(),
   province: z.string().max(64).optional(),
-  zip: z.string().min(1).max(16),
+  zip: z.string().min(1).max(16).optional(),
   lat: z.number().min(-90).max(90).optional(),
   lng: z.number().min(-180).max(180).optional(),
 }).superRefine((data, ctx) => {
@@ -61,12 +61,16 @@ export async function POST(request: Request) {
   }
 
   const userId = sessionOrResponse.user.id;
+  const userEmail = sessionOrResponse.user.email;
   const existing = await db.select({ id: creators.id }).from(creators).where(eq(creators.id, userId)).limit(1);
   const now = new Date();
+
+  const resolvedEmail = parsed.data.email ?? userEmail;
+
   if (existing[0]) {
     await db
       .update(creators)
-      .set({ ...parsed.data, updatedAt: now })
+      .set({ ...parsed.data, email: resolvedEmail, updatedAt: now })
       .where(eq(creators.id, userId));
   } else {
     await db.insert(creators).values({
@@ -77,14 +81,14 @@ export async function POST(request: Request) {
       country: parsed.data.country,
       categories: parsed.data.categories ?? null,
       categoriesOther: parsed.data.categoriesOther ?? null,
-      fullName: parsed.data.fullName,
-      email: parsed.data.email,
+      fullName: parsed.data.fullName ?? null,
+      email: resolvedEmail,
       phone: parsed.data.phone ?? null,
-      address1: parsed.data.address1,
+      address1: parsed.data.address1 ?? null,
       address2: parsed.data.address2 ?? null,
-      city: parsed.data.city,
+      city: parsed.data.city ?? null,
       province: parsed.data.province ?? null,
-      zip: parsed.data.zip,
+      zip: parsed.data.zip ?? null,
       lat: parsed.data.lat ?? null,
       lng: parsed.data.lng ?? null,
       createdAt: now,

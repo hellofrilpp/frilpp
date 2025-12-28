@@ -6,15 +6,17 @@ import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
 
+const kmToMiles = (km: number) => km / 1.609344;
+
 const querySchema = z.object({
   status: z
     .enum(["PENDING_APPROVAL", "ACCEPTED", "REVOKED", "CANCELED", "CLAIMED"])
     .optional(),
 });
 
-const haversineMiles = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const r = 3958.8;
+  const r = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
@@ -80,27 +82,31 @@ export async function GET(request: Request) {
 
   return Response.json({
     ok: true,
-    matches: rows.map((r) => ({
-      matchId: r.matchId,
-      status: r.matchStatus,
-      campaignCode: r.campaignCode,
-      createdAt: r.createdAt.toISOString(),
-      acceptedAt: r.acceptedAt?.toISOString() ?? null,
-      offer: { id: r.offerId, title: r.offerTitle },
-      creator: {
-        id: r.creatorId,
-        username: r.creatorUsername,
-        followersCount: r.creatorFollowers ?? null,
-        country: r.creatorCountry ?? null,
-        shippingReady: Boolean(r.creatorAddress1 && r.creatorCity && r.creatorZip),
-        distanceMiles:
-          brandLat !== null &&
-          brandLng !== null &&
-          r.creatorLat !== null &&
-          r.creatorLng !== null
-            ? haversineMiles(brandLat, brandLng, r.creatorLat, r.creatorLng)
-            : null,
-      },
-    })),
+    matches: rows.map((r) => {
+      const distanceKm =
+        brandLat !== null &&
+        brandLng !== null &&
+        r.creatorLat !== null &&
+        r.creatorLng !== null
+          ? haversineKm(brandLat, brandLng, r.creatorLat, r.creatorLng)
+          : null;
+      return {
+        matchId: r.matchId,
+        status: r.matchStatus,
+        campaignCode: r.campaignCode,
+        createdAt: r.createdAt.toISOString(),
+        acceptedAt: r.acceptedAt?.toISOString() ?? null,
+        offer: { id: r.offerId, title: r.offerTitle },
+        creator: {
+          id: r.creatorId,
+          username: r.creatorUsername,
+          followersCount: r.creatorFollowers ?? null,
+          country: r.creatorCountry ?? null,
+          shippingReady: Boolean(r.creatorAddress1 && r.creatorCity && r.creatorZip),
+          distanceKm,
+          distanceMiles: distanceKm !== null ? kmToMiles(distanceKm) : null,
+        },
+      };
+    }),
   });
 }

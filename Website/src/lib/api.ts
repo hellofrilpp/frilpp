@@ -182,6 +182,7 @@ export type BrandMatch = {
     followersCount: number | null;
     country: string | null;
     shippingReady: boolean;
+    distanceKm?: number | null;
     distanceMiles?: number | null;
   };
 };
@@ -334,6 +335,7 @@ export type CreatorRecommendation = {
   score: number;
   reason: string;
   rank: number;
+  distanceKm?: number | null;
   distanceMiles?: number | null;
 };
 
@@ -343,6 +345,7 @@ export type OfferDraftInput = {
   platforms?: string[];
   contentTypes?: string[];
   niches?: string[];
+  locationRadiusKm?: number | null;
   locationRadiusMiles?: number | null;
   minFollowers?: number;
   maxFollowers?: number;

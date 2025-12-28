@@ -27,6 +27,13 @@ export async function POST(request: Request) {
     );
   }
 
+  if (String(process.env.AUTH_ENABLE_MAGIC_LINK ?? "").toLowerCase() !== "true") {
+    return Response.json(
+      { ok: false, error: "Magic link login is disabled. Continue with Instagram or TikTok." },
+      { status: 403 },
+    );
+  }
+
   const json = await request.json().catch(() => null);
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {

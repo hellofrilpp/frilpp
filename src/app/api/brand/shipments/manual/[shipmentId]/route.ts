@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, creators, manualShipments, matches, offers } from "@/db/schema";
+import { brands, creators, deliverables, manualShipments, matches, offers } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 import { enqueueNotification } from "@/lib/notifications";
 
@@ -66,6 +66,25 @@ export async function PATCH(request: Request, context: { params: Promise<{ shipm
   await db.update(manualShipments).set(update).where(eq(manualShipments.id, shipmentId));
 
   if (parsed.data.status === "SHIPPED") {
+    try {
+      const offerRows = await db
+        .select({ deadlineDaysAfterDelivery: offers.deadlineDaysAfterDelivery })
+        .from(matches)
+        .innerJoin(offers, eq(offers.id, matches.offerId))
+        .where(eq(matches.id, row.matchId))
+        .limit(1);
+      const offer = offerRows[0] ?? null;
+      if (offer) {
+        const dueAt = new Date(Date.now() + offer.deadlineDaysAfterDelivery * 24 * 60 * 60 * 1000);
+        await db
+          .update(deliverables)
+          .set({ dueAt })
+          .where(eq(deliverables.matchId, row.matchId));
+      }
+    } catch {
+      // ignore due date update failures
+    }
+
     const payload = {
       brandName: row.brandName ?? "Frilpp",
       trackingNumber: parsed.data.trackingNumber ?? null,

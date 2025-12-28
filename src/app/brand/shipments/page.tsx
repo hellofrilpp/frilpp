@@ -20,7 +20,12 @@ type ShipmentRow = {
   carrier?: string | null;
   updatedAt: string;
   match: { id: string; campaignCode: string };
-  offer: { title: string };
+  offer: {
+    title: string;
+    fulfillmentType: "SHOPIFY" | "MANUAL" | null;
+    manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY" | null;
+    manualFulfillmentNotes: string | null;
+  };
   creator: { id: string; username: string | null; email: string | null; country: string | null };
 };
 
@@ -259,6 +264,16 @@ export default function BrandShipmentsPage() {
                         {r.fulfillmentType === "MANUAL" ? (
                           <div className="mt-4 grid gap-2 rounded-lg border bg-muted p-3 text-xs">
                             <div className="font-semibold text-muted-foreground">Manual fulfillment</div>
+                            <div className="flex flex-wrap gap-2">
+                              {r.offer.manualFulfillmentMethod ? (
+                                <Badge variant="secondary">
+                                  {r.offer.manualFulfillmentMethod === "PICKUP" ? "Pickup" : "Local delivery"}
+                                </Badge>
+                              ) : null}
+                              {r.offer.manualFulfillmentNotes ? (
+                                <Badge variant="secondary">Notes: {r.offer.manualFulfillmentNotes}</Badge>
+                              ) : null}
+                            </div>
                             <div className="grid gap-2 sm:grid-cols-3">
                               <Input
                                 placeholder="Carrier"
@@ -297,7 +312,7 @@ export default function BrandShipmentsPage() {
                                 onClick={() => saveManualShipment(r.id, "SHIPPED")}
                                 disabled={Boolean(savingById[r.id])}
                               >
-                                Mark shipped
+                                {r.offer.manualFulfillmentMethod === "PICKUP" ? "Mark picked up" : "Mark delivered"}
                               </Button>
                             </div>
                           </div>

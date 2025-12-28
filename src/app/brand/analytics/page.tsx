@@ -74,6 +74,9 @@ export default function BrandAnalyticsPage() {
             <Link href="/brand/offers">
               <Button variant="outline">Offers</Button>
             </Link>
+            <Link href="/brand/analytics/creators">
+              <Button variant="outline">Creators</Button>
+            </Link>
             <Link href="/brand/shipments">
               <Button variant="outline">Shipments</Button>
             </Link>

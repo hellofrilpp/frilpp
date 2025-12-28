@@ -12,6 +12,12 @@ export type OfferCard = {
   countriesAllowed: CountryCode[];
   deadlineDaysAfterDelivery: number;
   maxClaims: number;
+  locationRadius?: number | null;
+  distance?: number | null;
+  unit?: "MI" | "KM";
+  fulfillmentType?: "MANUAL" | "SHOPIFY" | null;
+  manualFulfillmentMethod?: "PICKUP" | "LOCAL_DELIVERY" | null;
+  manualFulfillmentNotes?: string | null;
 };
 
 export const demoOffers: OfferCard[] = [

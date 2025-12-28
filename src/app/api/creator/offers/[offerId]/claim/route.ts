@@ -20,6 +20,9 @@ const bodySchema = z.object({
   // reserved for future (e.g., shipping address confirmation)
 });
 
+const kmToMiles = (km: number) => km / 1.609344;
+const milesToKm = (miles: number) => miles * 1.609344;
+
 const toNumber = (value: unknown) => {
   if (typeof value === "number") return value;
   if (typeof value === "string" && value.trim()) {
@@ -29,9 +32,9 @@ const toNumber = (value: unknown) => {
   return null;
 };
 
-const haversineMiles = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const r = 3958.8;
+  const r = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
@@ -40,6 +43,14 @@ const haversineMiles = (lat1: number, lon1: number, lat2: number, lon2: number) 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return r * c;
 };
+
+function parseRadiusKm(metadata: Record<string, unknown>) {
+  const km = toNumber(metadata.locationRadiusKm);
+  if (km && km > 0) return km;
+  const miles = toNumber(metadata.locationRadiusMiles);
+  if (miles && miles > 0) return milesToKm(miles);
+  return null;
+}
 
 function claimError(code: string, message: string, status: number): never {
   const err = new Error(message) as Error & { code: string; status: number };
@@ -132,12 +143,39 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
       );
     }
 
-    const locationRadiusMiles = (() => {
+    const offerMetadata =
+      offer.metadata && typeof offer.metadata === "object"
+        ? (offer.metadata as Record<string, unknown>)
+        : {};
+    const fulfillmentType =
+      typeof offerMetadata.fulfillmentType === "string"
+        ? offerMetadata.fulfillmentType.toUpperCase()
+        : "";
+    const manualMethod =
+      typeof offerMetadata.manualFulfillmentMethod === "string"
+        ? offerMetadata.manualFulfillmentMethod.toUpperCase()
+        : "";
+    const needsDeliveryAddress =
+      fulfillmentType === "SHOPIFY" || (fulfillmentType === "MANUAL" && manualMethod === "LOCAL_DELIVERY");
+    if (needsDeliveryAddress) {
+      if (!creator.address1 || !creator.city || !creator.zip || !creator.country) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Add your delivery address in Profile before claiming this offer",
+            code: "NEEDS_ADDRESS",
+          },
+          { status: 409 },
+        );
+      }
+    }
+
+    const locationRadiusKm = (() => {
       if (!offer.metadata || typeof offer.metadata !== "object") return null;
-      const v = toNumber((offer.metadata as Record<string, unknown>).locationRadiusMiles);
+      const v = parseRadiusKm(offer.metadata as Record<string, unknown>);
       return v && v > 0 ? v : null;
     })();
-    if (locationRadiusMiles) {
+    if (locationRadiusKm) {
       const brandRows = await db
         .select({ lat: brands.lat, lng: brands.lng })
         .from(brands)
@@ -156,15 +194,17 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
           { status: 409 },
         );
       }
-      const distanceMiles = haversineMiles(creator.lat, creator.lng, brand.lat, brand.lng);
-      if (distanceMiles > locationRadiusMiles) {
+      const distanceKm = haversineKm(creator.lat, creator.lng, brand.lat, brand.lng);
+      if (distanceKm > locationRadiusKm) {
         return Response.json(
           {
             ok: false,
             error: "Not eligible for this local offer",
             code: "OUT_OF_RANGE",
-            distanceMiles: Math.round(distanceMiles * 10) / 10,
-            radiusMiles: locationRadiusMiles,
+            distanceKm: Math.round(distanceKm * 10) / 10,
+            radiusKm: Math.round(locationRadiusKm * 10) / 10,
+            distanceMiles: Math.round(kmToMiles(distanceKm) * 10) / 10,
+            radiusMiles: Math.round(kmToMiles(locationRadiusKm) * 10) / 10,
           },
           { status: 403 },
         );
@@ -173,7 +213,7 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
 
     const creatorFollowers = creator.followersCount ?? 0;
     const range = getCreatorFollowerRange();
-    if (creatorFollowers < range.min || creatorFollowers > range.max) {
+    if (creator.followersCount !== null && creator.followersCount !== undefined && (creatorFollowers < range.min || creatorFollowers > range.max)) {
       return Response.json(
         {
           ok: false,

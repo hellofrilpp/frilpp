@@ -14,6 +14,25 @@ function deliverableLabel(deliverable: OfferCard["deliverable"]) {
   return "UGC only";
 }
 
+function formatDistance(distance: number | null | undefined, unit: OfferCard["unit"] | undefined) {
+  if (distance === null || distance === undefined) return null;
+  if (!Number.isFinite(distance)) return null;
+  const u = unit === "KM" ? "km" : "mi";
+  if (distance < 0.1) return `<0.1 ${u}`;
+  return `${Math.round(distance * 10) / 10} ${u}`;
+}
+
+function formatFulfillment(current: OfferCard | null) {
+  if (!current) return null;
+  if (current.fulfillmentType === "SHOPIFY") return "Shipping";
+  if (current.fulfillmentType === "MANUAL") {
+    if (current.manualFulfillmentMethod === "LOCAL_DELIVERY") return "Local delivery";
+    if (current.manualFulfillmentMethod === "PICKUP") return "Pickup";
+    return "Manual";
+  }
+  return null;
+}
+
 export default function InfluencerFeedPage() {
   const [offers, setOffers] = useState<OfferCard[]>([]);
   const [index, setIndex] = useState(0);
@@ -91,6 +110,15 @@ export default function InfluencerFeedPage() {
 
   const current = offers[index] ?? null;
   const remaining = Math.max(0, offers.length - index);
+  const distanceLabel = useMemo(
+    () => formatDistance(current?.distance ?? null, current?.unit),
+    [current?.distance, current?.unit],
+  );
+  const radiusLabel = useMemo(
+    () => formatDistance(current?.locationRadius ?? null, current?.unit),
+    [current?.locationRadius, current?.unit],
+  );
+  const fulfillmentLabel = useMemo(() => formatFulfillment(current), [current]);
 
   const summary = useMemo(
     () => ({
@@ -135,6 +163,9 @@ export default function InfluencerFeedPage() {
           if (code === "NEEDS_LOCATION") {
             throw new Error(`${msg}. Go to Profile → set your location and try again.`);
           }
+          if (code === "NEEDS_ADDRESS") {
+            throw new Error(`${msg}. Go to Profile → add your delivery address and try again.`);
+          }
           throw new Error(msg);
         }
         setClaimMessage(
@@ -177,8 +208,17 @@ export default function InfluencerFeedPage() {
             <Link href="/influencer/settings">
               <Button variant="secondary">Profile</Button>
             </Link>
+            <Link href="/influencer/deals">
+              <Button variant="outline">Deals</Button>
+            </Link>
             <Link href="/influencer/deliverables">
               <Button variant="outline">Deliverables</Button>
+            </Link>
+            <Link href="/influencer/performance">
+              <Button variant="outline">Performance</Button>
+            </Link>
+            <Link href="/influencer/achievements">
+              <Button variant="outline">Achievements</Button>
             </Link>
             <Link href="/onboarding">
               <Button variant="outline">Onboarding</Button>
@@ -212,12 +252,22 @@ export default function InfluencerFeedPage() {
                     <Badge>Deliverable: {deliverableLabel(current.deliverable)}</Badge>
                     <Badge>Due: {current.deadlineDaysAfterDelivery}d after delivery</Badge>
                     <Badge>Countries: {current.countriesAllowed.join(", ")}</Badge>
+                    {distanceLabel ? <Badge variant="secondary">Distance: {distanceLabel}</Badge> : null}
+                    {radiusLabel ? <Badge variant="secondary">Local radius: {radiusLabel}</Badge> : null}
+                    {fulfillmentLabel ? (
+                      <Badge variant="secondary">Fulfillment: {fulfillmentLabel}</Badge>
+                    ) : null}
                     {current.usageRightsRequired ? (
                       <Badge variant="secondary">
                         Usage rights: {formatUsageRightsScope(current.usageRightsScope)}
                       </Badge>
                     ) : null}
                   </div>
+                  {current.manualFulfillmentNotes ? (
+                    <div className="mt-3 rounded-lg border bg-muted p-3 text-xs text-muted-foreground">
+                      Instructions: {current.manualFulfillmentNotes}
+                    </div>
+                  ) : null}
 
                   <div className="mt-5 rounded-lg border bg-muted p-4 text-sm text-muted-foreground">
                     You’ll get a unique code + share link after claiming. Put the code in your caption
@@ -244,7 +294,7 @@ export default function InfluencerFeedPage() {
                 </p>
                 <div className="mt-6 flex justify-center">
                   {gate?.type === "login" ? (
-                    <Link href="/login">
+                    <Link href="/influencer/auth">
                       <Button variant="secondary">Login</Button>
                     </Link>
                   ) : gate?.type === "onboarding" ? (

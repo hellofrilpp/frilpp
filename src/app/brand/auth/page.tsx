@@ -41,16 +41,9 @@ export default function BrandAuthPage() {
                 TikTok
               </Button>
             </a>
-            <div className="mt-2 text-center text-xs text-muted-foreground">
-              Prefer email?{" "}
-              <Link className="underline" href="/login">
-                Use magic link
-              </Link>
-            </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
-

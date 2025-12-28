@@ -24,7 +24,9 @@ type OfferDraft = {
   usageRightsRequired: boolean;
   usageRightsScope: "PAID_ADS_12MO" | "PAID_ADS_6MO" | "PAID_ADS_UNLIMITED" | "ORGANIC_ONLY";
   fulfillmentType: "SHOPIFY" | "MANUAL";
-  locationRadiusMiles: number | null;
+  manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY";
+  manualFulfillmentNotes: string;
+  locationRadiusKm: number | null;
   ctaUrl: string;
   platforms: Array<"INSTAGRAM" | "TIKTOK">;
 };
@@ -42,6 +44,13 @@ type SelectedProduct = {
   quantity: number;
   title: string;
   variantTitle: string;
+};
+
+type NearbyCreator = {
+  id: string;
+  username: string;
+  followersCount: number;
+  distanceKm: number;
 };
 
 const templatePresets: Record<
@@ -107,7 +116,9 @@ export default function NewOfferPage() {
     usageRightsRequired: false,
     usageRightsScope: "PAID_ADS_12MO",
     fulfillmentType: "MANUAL",
-    locationRadiusMiles: 25,
+    manualFulfillmentMethod: "PICKUP",
+    manualFulfillmentNotes: "",
+    locationRadiusKm: 25 * 1.609344,
     ctaUrl: "",
     platforms: ["INSTAGRAM"],
     ...templatePresets.REEL,
@@ -135,11 +146,76 @@ export default function NewOfferPage() {
     {},
   );
 
+  const [nearby, setNearby] = useState<{
+    radiusKm: number;
+    creatorCount: number;
+    creators: NearbyCreator[];
+  } | null>(null);
+  const [nearbyStatus, setNearbyStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [nearbyError, setNearbyError] = useState<string | null>(null);
+
   const campaignCodeExample = useMemo(() => "FRILP-A1B2C3", []);
   const productsSelectedCount = useMemo(
     () => selectedProducts.reduce((acc, p) => acc + (p.quantity || 0), 0),
     [selectedProducts],
   );
+
+  useEffect(() => {
+    const radiusKm = draft.locationRadiusKm ?? null;
+    if (!radiusKm || radiusKm <= 0) {
+      setNearby(null);
+      setNearbyStatus("idle");
+      setNearbyError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(async () => {
+      setNearbyStatus("loading");
+      setNearbyError(null);
+      try {
+        const res = await fetch(
+          `/api/brand/creators/nearby?radiusKm=${encodeURIComponent(radiusKm)}&countries=${encodeURIComponent(
+            draft.countriesAllowed.join(","),
+          )}&limit=6`,
+          { signal: controller.signal },
+        );
+        const data = (await res.json().catch(() => null)) as
+          | {
+              ok: true;
+              radiusKm: number;
+              creatorCount: number;
+              creators: NearbyCreator[];
+            }
+          | { ok: false; error?: string };
+
+        if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
+          throw new Error(
+            data && "error" in data && typeof data.error === "string"
+              ? data.error
+              : "Failed to load creators near you",
+          );
+        }
+
+        setNearby({
+          radiusKm: data.radiusKm,
+          creatorCount: data.creatorCount,
+          creators: data.creators,
+        });
+        setNearbyStatus("idle");
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setNearby(null);
+        setNearbyStatus("error");
+        setNearbyError(err instanceof Error ? err.message : "Failed to load creators near you");
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
+  }, [draft.locationRadiusKm, draft.countriesAllowed]);
 
   const steps = useMemo(
     () =>
@@ -263,7 +339,12 @@ export default function NewOfferPage() {
           })),
           metadata: {
             fulfillmentType: draft.fulfillmentType,
-            locationRadiusMiles: draft.locationRadiusMiles,
+            manualFulfillmentMethod: draft.fulfillmentType === "MANUAL" ? draft.manualFulfillmentMethod : null,
+            manualFulfillmentNotes:
+              draft.fulfillmentType === "MANUAL" && draft.manualFulfillmentNotes.trim()
+                ? draft.manualFulfillmentNotes.trim()
+                : null,
+            locationRadiusKm: draft.locationRadiusKm,
             ctaUrl: draft.ctaUrl.trim() ? draft.ctaUrl.trim() : null,
             platforms: draft.platforms,
           },
@@ -307,6 +388,12 @@ export default function NewOfferPage() {
   const dmTemplate = useMemo(() => {
     if (!publishedOfferId) return "";
     const link = origin ? `${origin}/o/${publishedOfferId}` : `/o/${publishedOfferId}`;
+    const fulfillmentLine =
+      draft.fulfillmentType === "MANUAL"
+        ? draft.manualFulfillmentMethod === "LOCAL_DELIVERY"
+          ? "- This is local delivery: add your delivery address in Profile before claiming."
+          : "- This is pickup: your location is used for eligibility."
+        : "- This ships via Shopify (address required).";
     return [
       "Hey! We’d love to send you a free product in exchange for content.",
       "",
@@ -314,9 +401,10 @@ export default function NewOfferPage() {
       "",
       "Notes:",
       "- If the offer is local, make sure your location is set in settings before claiming.",
+      fulfillmentLine,
       "- If posting is required, include the unique code in your caption.",
     ].join("\n");
-  }, [origin, publishedOfferId]);
+  }, [draft.fulfillmentType, draft.manualFulfillmentMethod, origin, publishedOfferId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -828,19 +916,31 @@ export default function NewOfferPage() {
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="radiusMiles">Max distance (miles)</Label>
+                      <Label htmlFor="radius">Max distance ({draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN" ? "km" : "miles"})</Label>
                       <Input
-                        id="radiusMiles"
+                        id="radius"
                         type="number"
                         min={1}
                         placeholder="25"
-                        value={draft.locationRadiusMiles ?? ""}
+                        value={(() => {
+                          const km = draft.locationRadiusKm;
+                          if (!km) return "";
+                          const isKm = draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN";
+                          const value = isKm ? km : km / 1.609344;
+                          return Math.round(value * 10) / 10;
+                        })()}
                         onChange={(e) => {
                           const raw = e.target.value;
                           const value = raw.trim() ? Number(raw) : null;
+                          const isKm = draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN";
                           setDraft((d) => ({
                             ...d,
-                            locationRadiusMiles: value && Number.isFinite(value) ? value : null,
+                            locationRadiusKm:
+                              value && Number.isFinite(value)
+                                ? isKm
+                                  ? value
+                                  : value * 1.609344
+                                : null,
                           }));
                         }}
                       />
@@ -862,6 +962,64 @@ export default function NewOfferPage() {
                       </div>
                     </div>
                   </div>
+
+                  {draft.locationRadiusKm ? (
+                    <div className="mt-4 rounded-lg border bg-card p-3">
+                      <div className="text-xs font-semibold text-foreground">
+                        Creators near you
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Based on creators who have set their location (nano range).
+                      </div>
+                      {nearbyStatus === "loading" ? (
+                        <div className="mt-2 text-xs text-muted-foreground">Loading…</div>
+                      ) : nearbyStatus === "error" ? (
+                        <div className="mt-2 text-xs text-danger">
+                          {nearbyError ?? "Failed to load."}{" "}
+                          <Link className="underline" href="/brand/settings/profile">
+                            Set brand location
+                          </Link>
+                          .
+                        </div>
+                      ) : nearby ? (
+                        <div className="mt-2 grid gap-2 text-xs text-muted-foreground">
+                          <div>
+                            {(() => {
+                              const isKm = draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN";
+                              const radius = isKm ? nearby.radiusKm : nearby.radiusKm / 1.609344;
+                              const unit = isKm ? "km" : "mi";
+                              return `~${nearby.creatorCount} creators within ${Math.round(radius * 10) / 10} ${unit}`;
+                            })()}
+                          </div>
+                          {nearby.creators.length ? (
+                            <div className="grid gap-1">
+                              {nearby.creators.map((c) => (
+                                <div key={c.id} className="flex items-center justify-between gap-3">
+                                  <div className="min-w-0 truncate">
+                                    {c.username} · {c.followersCount.toLocaleString()} followers
+                                  </div>
+                                  <div className="shrink-0">
+                                    {(() => {
+                                      const isKm = draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN";
+                                      const distance = isKm ? c.distanceKm : c.distanceKm / 1.609344;
+                                      const unit = isKm ? "km" : "mi";
+                                      return `${Math.round(distance * 10) / 10} ${unit}`;
+                                    })()}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <div>No creators found in this radius yet.</div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          Set your brand location to estimate nearby creators.
+                        </div>
+                      )}
+                    </div>
+                  ) : null}
 
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     <div>
@@ -917,6 +1075,47 @@ export default function NewOfferPage() {
                       <div className="mt-1 text-xs text-muted-foreground">
                         Manual works for local delivery/pickup. Shopify auto-creates orders (requires connect).
                       </div>
+
+                      {draft.fulfillmentType === "MANUAL" ? (
+                        <div className="mt-3 grid gap-3 rounded-lg border bg-card p-3">
+                          <div>
+                            <div className="text-xs font-semibold text-muted-foreground">
+                              Manual mode
+                            </div>
+                            <div className="mt-2 flex flex-wrap gap-2">
+                              <Button
+                                size="sm"
+                                type="button"
+                                variant={draft.manualFulfillmentMethod === "PICKUP" ? "default" : "outline"}
+                                onClick={() => setDraft((d) => ({ ...d, manualFulfillmentMethod: "PICKUP" }))}
+                              >
+                                Pickup
+                              </Button>
+                              <Button
+                                size="sm"
+                                type="button"
+                                variant={draft.manualFulfillmentMethod === "LOCAL_DELIVERY" ? "default" : "outline"}
+                                onClick={() => setDraft((d) => ({ ...d, manualFulfillmentMethod: "LOCAL_DELIVERY" }))}
+                              >
+                                Local delivery
+                              </Button>
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              Pickup uses your brand address. Local delivery asks creators for an address at claim time.
+                            </div>
+                          </div>
+
+                          <div className="grid gap-2">
+                            <Label htmlFor="manualNotes">Instructions (optional)</Label>
+                            <Input
+                              id="manualNotes"
+                              placeholder="Pickup window / delivery notes…"
+                              value={draft.manualFulfillmentNotes}
+                              onChange={(e) => setDraft((d) => ({ ...d, manualFulfillmentNotes: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 </div>

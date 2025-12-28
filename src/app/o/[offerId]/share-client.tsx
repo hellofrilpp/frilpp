@@ -17,14 +17,38 @@ type OfferDetails = {
   deliverableType: "REELS" | "FEED" | "UGC_ONLY";
   usageRightsRequired: boolean;
   usageRightsScope: string | null;
+  fulfillmentType: "SHOPIFY" | "MANUAL" | null;
+  manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY" | null;
+  manualFulfillmentNotes: string | null;
+  locationRadiusKm: number | null;
+  locationRadiusMiles: number | null;
+  pickupAddress: string | null;
   publishedAt: string | null;
   brandName: string;
 };
+
+const milesToKm = (miles: number) => miles * 1.609344;
+const kmToMiles = (km: number) => km / 1.609344;
+
+function formatDistance(value: number) {
+  const rounded = Math.round(value * 10) / 10;
+  return Number.isInteger(rounded) ? String(rounded) : String(rounded);
+}
 
 function deliverableLabel(type: OfferDetails["deliverableType"]) {
   if (type === "REELS") return "1 Reel (enforced)";
   if (type === "FEED") return "1 Feed post (enforced)";
   return "UGC only (no posting)";
+}
+
+function fulfillmentLabel(offer: OfferDetails) {
+  if (offer.fulfillmentType === "SHOPIFY") return "Shipping";
+  if (offer.fulfillmentType === "MANUAL") {
+    if (offer.manualFulfillmentMethod === "LOCAL_DELIVERY") return "Local delivery";
+    if (offer.manualFulfillmentMethod === "PICKUP") return "Pickup";
+    return "Manual";
+  }
+  return "—";
 }
 
 export default function OfferShareClient(props: { offerId: string }) {
@@ -66,6 +90,38 @@ export default function OfferShareClient(props: { offerId: string }) {
   const shareTitle = useMemo(() => {
     if (!offer) return "Barter offer";
     return `${offer.brandName} barter offer`;
+  }, [offer]);
+
+  const radiusBadge = useMemo(() => {
+    if (!offer) return null;
+    const onlyIN = offer.countriesAllowed.length === 1 && offer.countriesAllowed[0] === "IN";
+    const onlyUS = offer.countriesAllowed.length === 1 && offer.countriesAllowed[0] === "US";
+
+    const radiusKm =
+      typeof offer.locationRadiusKm === "number" && Number.isFinite(offer.locationRadiusKm)
+        ? offer.locationRadiusKm
+        : typeof offer.locationRadiusMiles === "number" && Number.isFinite(offer.locationRadiusMiles)
+          ? milesToKm(offer.locationRadiusMiles)
+          : null;
+    const radiusMiles =
+      typeof offer.locationRadiusMiles === "number" && Number.isFinite(offer.locationRadiusMiles)
+        ? offer.locationRadiusMiles
+        : typeof offer.locationRadiusKm === "number" && Number.isFinite(offer.locationRadiusKm)
+          ? kmToMiles(offer.locationRadiusKm)
+          : null;
+
+    if (onlyIN && radiusKm) {
+      return `Local radius: ${formatDistance(radiusKm)} km`;
+    }
+    if (onlyUS && radiusMiles) {
+      return `Local radius: ${formatDistance(radiusMiles)} mi`;
+    }
+    if (radiusMiles && radiusKm) {
+      return `Local radius: ${formatDistance(radiusMiles)} mi (${formatDistance(radiusKm)} km)`;
+    }
+    if (radiusKm) return `Local radius: ${formatDistance(radiusKm)} km`;
+    if (radiusMiles) return `Local radius: ${formatDistance(radiusMiles)} mi`;
+    return null;
   }, [offer]);
 
   async function claim() {
@@ -122,7 +178,7 @@ export default function OfferShareClient(props: { offerId: string }) {
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">{shareTitle}</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Claim in one click. If you’re approved, we auto-create the Shopify shipment order.
+              Claim in one click. If approved, you’ll get a unique code + share link for tracking ROI.
             </p>
           </div>
           <div className="flex gap-2">
@@ -160,6 +216,8 @@ export default function OfferShareClient(props: { offerId: string }) {
                   <Badge>Deliverable: {deliverableLabel(offer.deliverableType)}</Badge>
                   <Badge>Countries: {offer.countriesAllowed.join(", ")}</Badge>
                   <Badge>Due: {offer.deadlineDaysAfterDelivery}d after delivery</Badge>
+                  <Badge variant="secondary">Fulfillment: {fulfillmentLabel(offer)}</Badge>
+                  {radiusBadge ? <Badge variant="secondary">{radiusBadge}</Badge> : null}
                   {offer.usageRightsRequired ? (
                     <Badge variant="secondary">Usage rights required</Badge>
                   ) : null}
@@ -169,6 +227,22 @@ export default function OfferShareClient(props: { offerId: string }) {
                   If this offer requires posting, you’ll get a unique code after claiming. Include
                   it in your caption so Frilpp can attribute purchases.
                 </div>
+
+                {offer.fulfillmentType === "MANUAL" && offer.manualFulfillmentMethod === "PICKUP" ? (
+                  <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+                    Pickup{offer.pickupAddress ? `: ${offer.pickupAddress}` : ""}.
+                  </div>
+                ) : offer.fulfillmentType === "MANUAL" && offer.manualFulfillmentMethod === "LOCAL_DELIVERY" ? (
+                  <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+                    Local delivery: you’ll need a delivery address in your profile before claiming.
+                  </div>
+                ) : null}
+
+                {offer.manualFulfillmentNotes ? (
+                  <div className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+                    Instructions: {offer.manualFulfillmentNotes}
+                  </div>
+                ) : null}
 
                 {offer.usageRightsRequired ? (
                   <div className="rounded-lg border bg-card p-4 text-sm">
@@ -185,7 +259,7 @@ export default function OfferShareClient(props: { offerId: string }) {
                     {claimStatus === "claiming" ? "Claiming..." : "Claim offer"}
                   </Button>
                   <Link href="/influencer/settings">
-                    <Button variant="outline">Update shipping</Button>
+                    <Button variant="outline">Update profile</Button>
                   </Link>
                   {claimStatus === "claimed" ? <Badge variant="success">Claimed</Badge> : null}
                   {claimStatus === "error" ? <Badge variant="danger">Error</Badge> : null}

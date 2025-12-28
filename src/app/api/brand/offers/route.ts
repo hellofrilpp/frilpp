@@ -16,6 +16,8 @@ import {
 
 export const runtime = "nodejs";
 
+const milesToKm = (miles: number) => miles * 1.609344;
+
 const metadataSchema = z
   .object({
     productValue: z.number().min(0).max(1_000_000).nullable().optional(),
@@ -33,6 +35,10 @@ const metadataSchema = z
     region: z.enum(REGION_OPTIONS).nullable().optional(),
     campaignName: z.string().trim().max(160).nullable().optional(),
     fulfillmentType: z.enum(["SHOPIFY", "MANUAL"]).nullable().optional(),
+    manualFulfillmentMethod: z.enum(["PICKUP", "LOCAL_DELIVERY"]).nullable().optional(),
+    manualFulfillmentNotes: z.string().trim().max(300).nullable().optional(),
+    // Local radius is stored in kilometers (preferred). `locationRadiusMiles` is accepted for backward compatibility.
+    locationRadiusKm: z.number().min(1).max(8000).nullable().optional(),
     locationRadiusMiles: z.number().min(1).max(5000).nullable().optional(),
     ctaUrl: z.string().trim().max(800).url().nullable().optional(),
     presetId: z.string().trim().max(40).nullable().optional(),
@@ -203,6 +209,13 @@ export async function POST(request: Request) {
 
   const input = parsed.data;
   const metadata = metadataParsed.data;
+  const radiusKm = (() => {
+    const km = metadata.locationRadiusKm;
+    if (typeof km === "number" && Number.isFinite(km) && km > 0) return km;
+    const miles = metadata.locationRadiusMiles;
+    if (typeof miles === "number" && Number.isFinite(miles) && miles > 0) return milesToKm(miles);
+    return null;
+  })();
 
   const allowedPlatforms = platformsForCountries(input.countriesAllowed);
   const invalidPlatforms = (metadata.platforms ?? []).filter(
@@ -249,6 +262,12 @@ export async function POST(request: Request) {
       input.usageRightsScope ??
       (input.usageRightsRequired ? "PAID_ADS_12MO" : undefined);
 
+    const storedMetadata: Record<string, unknown> = {
+      ...metadata,
+      locationRadiusKm: radiusKm,
+    };
+    delete storedMetadata.locationRadiusMiles;
+
     await db.insert(offers).values({
       id,
       brandId: ctx.brandId,
@@ -264,7 +283,7 @@ export async function POST(request: Request) {
       usageRightsScope: usageRightsScope ?? null,
       acceptanceFollowersThreshold: input.followersThreshold,
       acceptanceAboveThresholdAutoAccept: input.aboveThresholdAutoAccept,
-      metadata,
+      metadata: storedMetadata,
       publishedAt: new Date(),
     });
 

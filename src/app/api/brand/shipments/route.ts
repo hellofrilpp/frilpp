@@ -79,6 +79,7 @@ export async function GET(request: Request) {
             matchId: matches.id,
             campaignCode: matches.campaignCode,
             offerTitle: offers.title,
+            offerMetadata: offers.metadata,
             creatorId: creators.id,
             creatorUsername: creators.username,
             creatorEmail: creators.email,
@@ -111,6 +112,7 @@ export async function GET(request: Request) {
             matchId: matches.id,
             campaignCode: matches.campaignCode,
             offerTitle: offers.title,
+            offerMetadata: offers.metadata,
             creatorId: creators.id,
             creatorUsername: creators.username,
             creatorEmail: creators.email,
@@ -126,6 +128,7 @@ export async function GET(request: Request) {
 
   const shipments = [
     ...shopifyRows.map((r) => ({
+      offerMetadata: (r.offerMetadata ?? {}) as Record<string, unknown>,
       id: r.shopifyOrderRowId,
       fulfillmentType: "SHOPIFY",
       status: r.status,
@@ -146,6 +149,7 @@ export async function GET(request: Request) {
       },
     })),
     ...manualRows.map((r) => ({
+      offerMetadata: (r.offerMetadata ?? {}) as Record<string, unknown>,
       id: r.shipmentId,
       fulfillmentType: "MANUAL",
       status: r.status,
@@ -168,8 +172,44 @@ export async function GET(request: Request) {
     })),
   ].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
 
+  const parseOfferFulfillment = (metadata: Record<string, unknown>) => {
+    const fulfillmentType =
+      typeof metadata.fulfillmentType === "string"
+        ? (metadata.fulfillmentType.toUpperCase() === "SHOPIFY"
+            ? "SHOPIFY"
+            : metadata.fulfillmentType.toUpperCase() === "MANUAL"
+              ? "MANUAL"
+              : null)
+        : null;
+    const manualFulfillmentMethod =
+      typeof metadata.manualFulfillmentMethod === "string"
+        ? (metadata.manualFulfillmentMethod.toUpperCase() === "LOCAL_DELIVERY"
+            ? "LOCAL_DELIVERY"
+            : metadata.manualFulfillmentMethod.toUpperCase() === "PICKUP"
+              ? "PICKUP"
+              : null)
+        : null;
+    const manualFulfillmentNotes =
+      typeof metadata.manualFulfillmentNotes === "string" && metadata.manualFulfillmentNotes.trim()
+        ? metadata.manualFulfillmentNotes.trim()
+        : null;
+    return { fulfillmentType, manualFulfillmentMethod, manualFulfillmentNotes };
+  };
+
   return Response.json({
     ok: true,
-    shipments,
+    shipments: shipments.map((s) => {
+      const parsed = parseOfferFulfillment(s.offerMetadata);
+      return {
+        ...s,
+        offer: {
+          ...s.offer,
+          fulfillmentType: parsed.fulfillmentType,
+          manualFulfillmentMethod: parsed.manualFulfillmentMethod,
+          manualFulfillmentNotes: parsed.manualFulfillmentNotes,
+        },
+        offerMetadata: undefined,
+      };
+    }),
   });
 }

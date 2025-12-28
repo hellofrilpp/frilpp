@@ -211,7 +211,8 @@ export default function InfluencerSettingsPage() {
     }
   }
 
-  const shippingReady = Boolean(profile?.address1 && profile?.city && profile?.zip && profile?.country);
+  const basicsReady = Boolean(profile?.country);
+  const deliveryReady = Boolean(profile?.address1 && profile?.city && profile?.zip && profile?.country);
   const igConnected = Boolean(igStatus?.connected);
   const locationReady = profile?.lat !== null && profile?.lat !== undefined && profile?.lng !== null && profile?.lng !== undefined;
 
@@ -252,10 +253,10 @@ export default function InfluencerSettingsPage() {
               <Badge variant="secondary">Profile</Badge>
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">
-              Shipping + eligibility
+              Profile + eligibility
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Used for eligibility, local matching, and fulfillment coordination.
+              Used for eligibility, local matching, and pickup/local delivery coordination.
             </p>
           </div>
           <div className="flex gap-2">
@@ -280,21 +281,23 @@ export default function InfluencerSettingsPage() {
 
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>
-              {status === "loading"
-                ? "Loading…"
-                : status === "saving"
-                  ? "Saving…"
-                  : status === "saved"
-                    ? "Saved."
-                    : shippingReady
-                      ? locationReady
-                        ? "Ready to claim."
-                        : "Set location to claim local offers."
-                      : "Complete the basics so brands can fulfill offers."}
-            </CardDescription>
-          </CardHeader>
+              <CardTitle>Profile</CardTitle>
+              <CardDescription>
+                {status === "loading"
+                  ? "Loading…"
+                  : status === "saving"
+                    ? "Saving…"
+                    : status === "saved"
+                      ? "Saved."
+                      : basicsReady
+                        ? locationReady
+                          ? deliveryReady
+                            ? "Ready to claim pickup + delivery offers."
+                            : "Ready for pickup offers. Add address for delivery offers."
+                          : "Set location to claim local offers."
+                        : "Set your country to start claiming."}
+              </CardDescription>
+            </CardHeader>
           <CardContent>
             {!profile ? (
               <div className="text-sm text-muted-foreground">No profile loaded.</div>
@@ -532,10 +535,10 @@ export default function InfluencerSettingsPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={shippingReady ? "success" : "warning"}>
-                      {shippingReady ? "Shipping ready" : "Shipping incomplete"}
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant={deliveryReady ? "success" : "secondary"}>
+                      {deliveryReady ? "Delivery address ready" : "Pickup-only (no address)"}
                     </Badge>
                     {profile.country ? (
                       <Badge variant="secondary">{profile.country === "US" ? "US" : "IN"}</Badge>

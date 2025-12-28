@@ -122,8 +122,12 @@ type OfferMetadata = Partial<{
   region: CampaignRegion;
   presetId: string;
   fulfillmentType: FulfillmentType;
+  locationRadiusKm: number | string;
   locationRadiusMiles: number | string;
 }>;
+
+const milesToKm = (miles: number) => miles * 1.609344;
+const kmToMiles = (km: number) => km / 1.609344;
 
 type StringArrayField = {
   [Key in keyof CampaignFormData]: CampaignFormData[Key] extends string[] ? Key : never;
@@ -246,14 +250,16 @@ const CampaignCreator = () => {
   const offerDraftPayload = useMemo(() => {
     const minFollowers = Number(formData.minFollowers || 0);
     const maxFollowers = Number(formData.maxFollowers || 0);
-    const radiusMiles = Number(formData.locationRadiusMiles || 0);
+    const isKm = countriesAllowed.length === 1 && countriesAllowed[0] === "IN";
+    const radiusInput = Number(formData.locationRadiusMiles || 0);
+    const radiusKm = isKm ? radiusInput : milesToKm(radiusInput);
     return {
       title: formData.campaignName || formData.productName || undefined,
       countriesAllowed,
       platforms: formData.platforms,
       contentTypes: formData.contentTypes,
       niches: formData.niches,
-      locationRadiusMiles: Number.isFinite(radiusMiles) && radiusMiles > 0 ? radiusMiles : undefined,
+      locationRadiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : undefined,
       minFollowers: Number.isFinite(minFollowers) ? minFollowers : undefined,
       maxFollowers: Number.isFinite(maxFollowers) && maxFollowers > 0 ? maxFollowers : undefined,
       category: formData.category || undefined,
@@ -409,7 +415,9 @@ const CampaignCreator = () => {
             },
           ]
         : [];
-    const radiusMiles = Number(formData.locationRadiusMiles || 0);
+    const isKm = allowedCountries.length === 1 && allowedCountries[0] === "IN";
+    const radiusInput = Number(formData.locationRadiusMiles || 0);
+    const radiusKm = isKm ? radiusInput : milesToKm(radiusInput);
     const metadata = {
       productValue: formData.productValue ? Number(formData.productValue) : null,
       category: formData.category || null,
@@ -431,7 +439,7 @@ const CampaignCreator = () => {
       region: formData.region || null,
       campaignName: formData.campaignName || null,
       fulfillmentType,
-      locationRadiusMiles: Number.isFinite(radiusMiles) && radiusMiles > 0 ? radiusMiles : null,
+      locationRadiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : null,
       presetId: formData.presetId || null,
     };
 
@@ -470,10 +478,18 @@ const CampaignCreator = () => {
     return xp * parseInt(formData.quantity || "1");
   };
 
-  const formatDistance = (distance?: number | null) => {
-    if (distance === null || distance === undefined) return null;
-    if (distance < 1) return "<1mi";
-    return `${distance.toFixed(distance < 10 ? 1 : 0)}mi`;
+  const formatDistance = (distance: { distanceKm?: number | null; distanceMiles?: number | null }) => {
+    const isKm = countriesAllowed.length === 1 && countriesAllowed[0] === "IN";
+    const raw = isKm
+      ? distance.distanceKm ??
+        (distance.distanceMiles !== null && distance.distanceMiles !== undefined
+          ? milesToKm(distance.distanceMiles)
+          : null)
+      : distance.distanceMiles ?? null;
+    const unit = isKm ? "km" : "mi";
+    if (raw === null || raw === undefined) return null;
+    if (raw < 1) return isKm ? "<1km" : "<1mi";
+    return `${raw.toFixed(raw < 10 ? 1 : 0)}${unit}`;
   };
 
   const handleCopyLastOffer = async () => {
@@ -492,6 +508,27 @@ const CampaignCreator = () => {
           : last.countriesAllowed?.[0] === "IN"
             ? "IN"
             : "US";
+      const radiusKm = (() => {
+        const kmRaw = meta.locationRadiusKm;
+        const km =
+          typeof kmRaw === "number"
+            ? kmRaw
+            : typeof kmRaw === "string" && kmRaw.trim()
+              ? Number(kmRaw)
+              : null;
+        if (km !== null && Number.isFinite(km) && km > 0) return km;
+        const milesRaw = meta.locationRadiusMiles;
+        const miles =
+          typeof milesRaw === "number"
+            ? milesRaw
+            : typeof milesRaw === "string" && milesRaw.trim()
+              ? Number(milesRaw)
+              : null;
+        if (miles !== null && Number.isFinite(miles) && miles > 0) return milesToKm(miles);
+        return null;
+      })();
+      const radiusInput =
+        region === "IN" ? radiusKm : radiusKm !== null ? kmToMiles(radiusKm) : null;
       setFormData((prev) => ({
         ...prev,
         productName: meta.campaignName || last.title || prev.productName,
@@ -516,7 +553,7 @@ const CampaignCreator = () => {
         minFollowers: String(last.acceptanceFollowersThreshold ?? prev.minFollowers),
         presetId: meta.presetId || "",
         fulfillmentType: meta.fulfillmentType || prev.fulfillmentType,
-        locationRadiusMiles: meta.locationRadiusMiles ? String(meta.locationRadiusMiles) : "",
+        locationRadiusMiles: radiusInput !== null ? String(Math.round(radiusInput * 10) / 10) : "",
       }));
       setSelectedProduct(null);
       setSelectedVariantId(null);
@@ -1030,7 +1067,9 @@ const CampaignCreator = () => {
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="font-mono text-sm">NEARBY_RADIUS (miles)</Label>
+                    <Label className="font-mono text-sm">
+                      NEARBY_RADIUS ({countriesAllowed.length === 1 && countriesAllowed[0] === "IN" ? "km" : "miles"})
+                    </Label>
                     <Input
                       type="number"
                       min={0}
@@ -1142,9 +1181,9 @@ const CampaignCreator = () => {
                             <div>
                               <p className="font-mono text-sm">{creator.username}</p>
                               <p className="text-xs font-mono text-muted-foreground">{creator.reason}</p>
-                              {formatDistance(creator.distanceMiles) && (
+                              {formatDistance(creator) && (
                                 <p className="text-xs font-mono text-neon-blue">
-                                  {formatDistance(creator.distanceMiles)} away
+                                  {formatDistance(creator)} away
                                 </p>
                               )}
                             </div>

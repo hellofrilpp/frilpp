@@ -30,17 +30,12 @@ export default function OnboardingPage() {
 
   const [creatorForm, setCreatorForm] = useState({
     username: "",
-    followersCount: 1500,
     country: "US" as "US" | "IN",
-    fullName: "",
-    email: "",
     phone: "",
-    address1: "",
-    address2: "",
-    city: "",
-    province: "",
-    zip: "",
+    lat: null as number | null,
+    lng: null as number | null,
   });
+  const [locStatus, setLocStatus] = useState<"idle" | "locating" | "error">("idle");
 
   const isAuthed = Boolean(me);
   const hasBrand = Boolean(me?.memberships?.length);
@@ -108,16 +103,10 @@ export default function OnboardingPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           username: creatorForm.username || undefined,
-          followersCount: creatorForm.followersCount,
           country: creatorForm.country,
-          fullName: creatorForm.fullName,
-          email: creatorForm.email,
           phone: creatorForm.phone || undefined,
-          address1: creatorForm.address1,
-          address2: creatorForm.address2 || undefined,
-          city: creatorForm.city,
-          province: creatorForm.province || undefined,
-          zip: creatorForm.zip,
+          lat: creatorForm.lat ?? undefined,
+          lng: creatorForm.lng ?? undefined,
         }),
       });
       const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
@@ -130,6 +119,29 @@ export default function OnboardingPage() {
       await loadMe();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Creator create failed");
+    }
+  }
+
+  async function useMyLocation() {
+    setLocStatus("locating");
+    setMessage(null);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10_000,
+        });
+      });
+      setCreatorForm((p) => ({
+        ...p,
+        lat: pos.coords.latitude,
+        lng: pos.coords.longitude,
+      }));
+      setLocStatus("idle");
+      setMessage("Location captured.");
+    } catch {
+      setLocStatus("error");
+      setMessage("Failed to get location (check browser permissions).");
     }
   }
 
@@ -304,28 +316,9 @@ export default function OnboardingPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Create a creator profile</CardTitle>
-                <CardDescription>Required to claim offers and receive shipments.</CardDescription>
+                <CardDescription>Required to claim offers (pickup/local delivery supported).</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="creatorName">Full name</Label>
-                    <Input
-                      id="creatorName"
-                      value={creatorForm.fullName}
-                      onChange={(e) => setCreatorForm((p) => ({ ...p, fullName: e.target.value }))}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="creatorEmail">Email</Label>
-                    <Input
-                      id="creatorEmail"
-                      value={creatorForm.email}
-                      onChange={(e) => setCreatorForm((p) => ({ ...p, email: e.target.value }))}
-                    />
-                  </div>
-                </div>
-
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
                     <Label htmlFor="creatorUsername">Username</Label>
@@ -336,15 +329,12 @@ export default function OnboardingPage() {
                     />
                   </div>
                   <div className="grid gap-2">
-                    <Label htmlFor="creatorFollowers">Followers</Label>
+                    <Label htmlFor="creatorPhone">Phone (optional)</Label>
                     <Input
-                      id="creatorFollowers"
-                      type="number"
-                      min={0}
-                      value={creatorForm.followersCount}
-                      onChange={(e) =>
-                        setCreatorForm((p) => ({ ...p, followersCount: Number(e.target.value) }))
-                      }
+                      id="creatorPhone"
+                      value={creatorForm.phone}
+                      onChange={(e) => setCreatorForm((p) => ({ ...p, phone: e.target.value }))}
+                      placeholder="+1 555… / +91…"
                     />
                   </div>
                 </div>
@@ -369,37 +359,36 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label htmlFor="address1">Address line 1</Label>
-                  <Input
-                    id="address1"
-                    value={creatorForm.address1}
-                    onChange={(e) => setCreatorForm((p) => ({ ...p, address1: e.target.value }))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    id="city"
-                    value={creatorForm.city}
-                    onChange={(e) => setCreatorForm((p) => ({ ...p, city: e.target.value }))}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="zip">ZIP / PIN</Label>
-                  <Input
-                    id="zip"
-                    value={creatorForm.zip}
-                    onChange={(e) => setCreatorForm((p) => ({ ...p, zip: e.target.value }))}
-                  />
+                <div className="rounded-lg border bg-muted p-4">
+                  <div className="text-sm font-semibold">Location</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Required for local offers (nearby matching). You can also set it later in Profile.
+                  </div>
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button size="sm" variant="secondary" type="button" onClick={useMyLocation} disabled={locStatus === "locating"}>
+                      {locStatus === "locating" ? "Locating…" : "Use my location"}
+                    </Button>
+                    {creatorForm.lat !== null && creatorForm.lng !== null ? (
+                      <span className="text-xs text-muted-foreground">
+                        Set: <span className="font-mono">{creatorForm.lat.toFixed(5)}, {creatorForm.lng.toFixed(5)}</span>
+                      </span>
+                    ) : (
+                      <span className="text-xs text-muted-foreground">Not set.</span>
+                    )}
+                  </div>
                 </div>
 
                 <Button
                   onClick={createCreator}
-                  disabled={!creatorForm.fullName.trim() || !creatorForm.email.trim() || !creatorForm.address1.trim() || !creatorForm.city.trim() || !creatorForm.zip.trim()}
+                  disabled={!creatorForm.country}
                 >
                   Create creator profile
                 </Button>
+                {me ? (
+                  <div className="text-xs text-muted-foreground">
+                    Email on file: <span className="font-mono">{me.email}</span> (used for notifications).
+                  </div>
+                ) : null}
               </CardContent>
             </Card>
           </div>

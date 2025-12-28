@@ -16,6 +16,9 @@ import { zaiChat } from "@/lib/zai";
 
 export const runtime = "nodejs";
 
+const milesToKm = (miles: number) => miles * 1.609344;
+const kmToMiles = (km: number) => km / 1.609344;
+
 const offerDraftSchema = z
   .object({
     title: z.string().trim().min(1).max(120).optional(),
@@ -23,7 +26,8 @@ const offerDraftSchema = z
     platforms: z.array(z.string()).max(6).optional(),
     contentTypes: z.array(z.string()).max(6).optional(),
     niches: z.array(z.string()).max(8).optional(),
-    locationRadiusMiles: z.number().min(1).max(5000).optional(),
+    locationRadiusKm: z.number().min(1).max(8000).optional(),
+    locationRadiusMiles: z.number().min(1).max(5000).optional(), // legacy
     minFollowers: z.number().int().min(0).optional(),
     maxFollowers: z.number().int().min(0).optional(),
     category: z.string().trim().min(1).max(80).optional(),
@@ -42,16 +46,17 @@ function scoreCandidate(entry: {
   matchCount: number;
   verifiedCount: number;
   netRevenueCents: number;
-  distanceMiles: number | null;
+  distanceKm: number | null;
 }) {
   const followers = entry.followersCount ?? 0;
   const revenueScore = Math.min(100, Math.round(entry.netRevenueCents / 5000));
+  const distanceMiles = entry.distanceKm !== null ? kmToMiles(entry.distanceKm) : null;
   return (
     Math.min(100, Math.round(followers / 100)) +
     entry.matchCount * 5 +
     entry.verifiedCount * 8 +
     revenueScore * 2 +
-    (entry.distanceMiles !== null ? Math.max(0, 20 - Math.round(entry.distanceMiles / 10)) : 0)
+    (distanceMiles !== null ? Math.max(0, 20 - Math.round(distanceMiles / 10)) : 0)
   );
 }
 
@@ -64,9 +69,17 @@ const toNumber = (value: unknown) => {
   return null;
 };
 
-const haversineMiles = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+const parseRadiusKm = (opts: { km: unknown; miles: unknown }) => {
+  const km = toNumber(opts.km);
+  if (km !== null && km > 0) return km;
+  const miles = toNumber(opts.miles);
+  if (miles !== null && miles > 0) return milesToKm(miles);
+  return null;
+};
+
+const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const r = 3958.8;
+  const r = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
@@ -136,10 +149,13 @@ export async function POST(request: Request) {
     : Array.isArray(metadata["contentTypes"])
       ? (metadata["contentTypes"] as string[])
       : [];
-  const radiusMiles =
-    offerDraft?.locationRadiusMiles ?? toNumber(metadata["locationRadiusMiles"]) ?? null;
+  const radiusKm =
+    parseRadiusKm({
+      km: offerDraft?.locationRadiusKm ?? null,
+      miles: offerDraft?.locationRadiusMiles ?? null,
+    }) ?? parseRadiusKm({ km: metadata["locationRadiusKm"], miles: metadata["locationRadiusMiles"] });
   const hasLocationFilter =
-    radiusMiles !== null && radiusMiles > 0 && brandLat !== null && brandLng !== null;
+    radiusKm !== null && radiusKm > 0 && brandLat !== null && brandLng !== null;
 
   const followerRange = getCreatorFollowerRange();
   const minFollowers = Math.max(
@@ -217,16 +233,16 @@ export async function POST(request: Request) {
 
   const candidates = filteredCandidates
     .map((row) => {
-      const distanceMiles =
+      const distanceKm =
         brandLat !== null &&
         brandLng !== null &&
         row.lat !== null &&
         row.lng !== null
-          ? haversineMiles(brandLat, brandLng, row.lat, row.lng)
+          ? haversineKm(brandLat, brandLng, row.lat, row.lng)
           : null;
       if (hasLocationFilter) {
-        if (distanceMiles === null) return null;
-        if (distanceMiles > radiusMiles) return null;
+        if (distanceKm === null) return null;
+        if (radiusKm !== null && distanceKm > radiusKm) return null;
       }
       const perf = perfByCreator.get(row.creatorId) ?? {
         matchCount: 0,
@@ -241,7 +257,8 @@ export async function POST(request: Request) {
         followersCount: row.followersCount ?? 0,
         country: row.country ?? "",
         categories: (row.categories as string[] | null) ?? [],
-        distanceMiles,
+        distanceKm,
+        distanceMiles: distanceKm !== null ? kmToMiles(distanceKm) : null,
         matchCount: perf.matchCount,
         verifiedCount: perf.verifiedCount,
         netRevenueCents,
@@ -250,7 +267,7 @@ export async function POST(request: Request) {
           matchCount: perf.matchCount,
           verifiedCount: perf.verifiedCount,
           netRevenueCents,
-          distanceMiles,
+          distanceKm,
         }),
       };
     })
@@ -268,6 +285,7 @@ export async function POST(request: Request) {
       username: c.username,
       score: Math.max(1, Math.min(100, Math.round(c.score))),
       reason: "Ranked by historical performance and audience fit.",
+      distanceKm: c.distanceKm ?? null,
       distanceMiles: c.distanceMiles ?? null,
       rank: index + 1,
     }));
@@ -322,6 +340,7 @@ export async function POST(request: Request) {
         username: byId.get(item.creatorId)?.username ?? "Creator",
         score: Math.max(1, Math.min(100, Math.round(item.score ?? 0))),
         reason: item.reason ?? "Recommended by AI match.",
+        distanceKm: byId.get(item.creatorId)?.distanceKm ?? null,
         distanceMiles: byId.get(item.creatorId)?.distanceMiles ?? null,
         rank: index + 1,
       }))

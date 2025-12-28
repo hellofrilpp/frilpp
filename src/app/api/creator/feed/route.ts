@@ -6,6 +6,9 @@ import { getActiveStrikeCount, getCreatorFollowerRange, getStrikeLimit } from "@
 
 export const runtime = "nodejs";
 
+const kmToMiles = (km: number) => km / 1.609344;
+const milesToKm = (miles: number) => miles * 1.609344;
+
 const toNumber = (value: unknown) => {
   if (typeof value === "number") return value;
   if (typeof value === "string" && value.trim()) {
@@ -15,9 +18,9 @@ const toNumber = (value: unknown) => {
   return null;
 };
 
-const haversineMiles = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
   const toRad = (deg: number) => (deg * Math.PI) / 180;
-  const r = 3958.8;
+  const r = 6371;
   const dLat = toRad(lat2 - lat1);
   const dLon = toRad(lon2 - lon1);
   const a =
@@ -26,6 +29,14 @@ const haversineMiles = (lat1: number, lon1: number, lat2: number, lon2: number) 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return r * c;
 };
+
+function parseRadiusKm(metadata: Record<string, unknown>) {
+  const km = toNumber(metadata.locationRadiusKm);
+  if (km && km > 0) return km;
+  const miles = toNumber(metadata.locationRadiusMiles);
+  if (miles && miles > 0) return milesToKm(miles);
+  return null;
+}
 
 export async function GET(request: Request) {
   if (!process.env.DATABASE_URL) {
@@ -45,6 +56,7 @@ export async function GET(request: Request) {
     const creator = ctx.creator;
     const creatorCountry = creator.country;
     const country = creatorCountry ?? (countryQuery === "US" || countryQuery === "IN" ? countryQuery : null);
+    const unit = country === "IN" ? ("KM" as const) : ("MI" as const);
 
     const strikeLimit = getStrikeLimit();
     const strikes = await getActiveStrikeCount(creator.id);
@@ -54,18 +66,22 @@ export async function GET(request: Request) {
         blocked: true,
         reason: "Too many strikes",
         offers: [],
+        unit,
       });
     }
 
     const range = getCreatorFollowerRange();
-    const followers = creator.followersCount ?? 0;
-    if (followers < range.min || followers > range.max) {
-      return Response.json({
-        ok: true,
-        blocked: true,
-        reason: "Follower count outside nano range",
-        offers: [],
-      });
+    if (creator.followersCount !== null && creator.followersCount !== undefined) {
+      const followers = creator.followersCount;
+      if (followers < range.min || followers > range.max) {
+        return Response.json({
+          ok: true,
+          blocked: true,
+          reason: "Follower count outside nano range",
+          offers: [],
+          unit,
+        });
+      }
     }
 
     const whereClause =
@@ -102,8 +118,8 @@ export async function GET(request: Request) {
 
     const filtered = rows.filter((row) => {
       const metadata = (row.metadata ?? {}) as Record<string, unknown>;
-      const radiusMiles = toNumber(metadata.locationRadiusMiles);
-      if (!radiusMiles || radiusMiles <= 0) return true;
+      const radiusKm = parseRadiusKm(metadata);
+      if (!radiusKm || radiusKm <= 0) return true;
       if (
         creatorLat === null ||
         creatorLng === null ||
@@ -112,23 +128,26 @@ export async function GET(request: Request) {
       ) {
         return false;
       }
-      const distance = haversineMiles(creatorLat, creatorLng, row.brandLat, row.brandLng);
-      return distance <= radiusMiles;
+      const distanceKm = haversineKm(creatorLat, creatorLng, row.brandLat, row.brandLng);
+      return distanceKm <= radiusKm;
     });
 
     return Response.json({
       ok: true,
       blocked: false,
+      unit,
       offers: filtered.map((r) => {
         const metadata = (r.metadata ?? {}) as Record<string, unknown>;
-        const radiusMiles = toNumber(metadata.locationRadiusMiles);
-        const distanceMiles =
+        const radiusKm = parseRadiusKm(metadata);
+        const distanceKm =
           creatorLat !== null &&
           creatorLng !== null &&
           r.brandLat !== null &&
           r.brandLng !== null
-            ? haversineMiles(creatorLat, creatorLng, r.brandLat, r.brandLng)
+            ? haversineKm(creatorLat, creatorLng, r.brandLat, r.brandLng)
             : null;
+        const locationRadius = radiusKm !== null ? (unit === "KM" ? radiusKm : kmToMiles(radiusKm)) : null;
+        const distance = distanceKm !== null ? (unit === "KM" ? distanceKm : kmToMiles(distanceKm)) : null;
         return {
           id: r.id,
           brandName: r.brandName,
@@ -140,8 +159,29 @@ export async function GET(request: Request) {
           countriesAllowed: r.countriesAllowed,
           deadlineDaysAfterDelivery: r.deadlineDaysAfterDelivery,
           maxClaims: r.maxClaims,
-          locationRadiusMiles: radiusMiles ?? null,
-          distanceMiles,
+          locationRadius: locationRadius !== null && Number.isFinite(locationRadius) ? Math.round(locationRadius * 10) / 10 : null,
+          distance: distance !== null && Number.isFinite(distance) ? Math.round(distance * 10) / 10 : null,
+          unit,
+          fulfillmentType:
+            typeof metadata.fulfillmentType === "string"
+              ? (metadata.fulfillmentType.toUpperCase() === "SHOPIFY"
+                  ? "SHOPIFY"
+                  : metadata.fulfillmentType.toUpperCase() === "MANUAL"
+                    ? "MANUAL"
+                    : null)
+              : null,
+          manualFulfillmentMethod:
+            typeof metadata.manualFulfillmentMethod === "string"
+              ? (metadata.manualFulfillmentMethod.toUpperCase() === "LOCAL_DELIVERY"
+                  ? "LOCAL_DELIVERY"
+                  : metadata.manualFulfillmentMethod.toUpperCase() === "PICKUP"
+                    ? "PICKUP"
+                    : null)
+              : null,
+          manualFulfillmentNotes:
+            typeof metadata.manualFulfillmentNotes === "string" && metadata.manualFulfillmentNotes.trim()
+              ? metadata.manualFulfillmentNotes.trim()
+              : null,
         };
       }),
     });
