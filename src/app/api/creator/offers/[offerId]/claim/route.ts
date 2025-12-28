@@ -13,6 +13,7 @@ import { ipKey, rateLimit } from "@/lib/rate-limit";
 import { createDiscountForMatch } from "@/lib/shopify-discounts";
 import { ensureManualShipmentForMatch } from "@/lib/manual-shipments";
 import { ensureShopifyOrderForMatch } from "@/lib/shopify-orders";
+import { hasActiveSubscription } from "@/lib/billing";
 
 export const runtime = "nodejs";
 
@@ -82,6 +83,22 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
   try {
     const creatorCtx = await requireCreatorContext(request);
     if (creatorCtx instanceof Response) return creatorCtx;
+
+    const subscribed = await hasActiveSubscription({
+      subjectType: "CREATOR",
+      subjectId: creatorCtx.creator.id,
+    });
+    if (!subscribed) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Subscription required to claim offers",
+          code: "PAYWALL",
+          lane: "creator",
+        },
+        { status: 402 },
+      );
+    }
 
     const offerRows = await db.select().from(offers).where(eq(offers.id, offerId)).limit(1);
     const offer = offerRows[0];

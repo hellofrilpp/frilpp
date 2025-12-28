@@ -227,6 +227,9 @@ export default function BrandOffersPage() {
             <Link href="/brand/offers/new">
               <Button variant="secondary">New offer</Button>
             </Link>
+            <Link href="/brand/billing">
+              <Button variant="outline">Billing</Button>
+            </Link>
             <Link href="/brand/deliverables">
               <Button variant="outline">Deliverables</Button>
             </Link>

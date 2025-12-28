@@ -231,6 +231,16 @@ export const auditLogs = pgTable("audit_logs", {
 
 export const membershipRoleEnum = pgEnum("membership_role", ["OWNER", "ADMIN", "MEMBER"]);
 
+export const billingProviderEnum = pgEnum("billing_provider", ["STRIPE", "RAZORPAY"]);
+export const billingSubjectTypeEnum = pgEnum("billing_subject_type", ["BRAND", "CREATOR"]);
+export const billingSubscriptionStatusEnum = pgEnum("billing_subscription_status", [
+  "ACTIVE",
+  "TRIALING",
+  "PAST_DUE",
+  "CANCELED",
+  "INACTIVE",
+]);
+
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email").notNull(),
@@ -246,6 +256,33 @@ export const users = pgTable("users", {
     .notNull()
     .defaultNow(),
 });
+
+export const billingSubscriptions = pgTable(
+  "billing_subscriptions",
+  {
+    id: text("id").primaryKey(),
+    subjectType: billingSubjectTypeEnum("subject_type").notNull(),
+    subjectId: text("subject_id").notNull(),
+    provider: billingProviderEnum("provider").notNull(),
+    providerCustomerId: text("provider_customer_id"),
+    providerSubscriptionId: text("provider_subscription_id").notNull(),
+    status: billingSubscriptionStatusEnum("status").notNull().default("INACTIVE"),
+    market: text("market").notNull().default("US"),
+    planKey: text("plan_key").notNull(),
+    cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+    currentPeriodEnd: timestamp("current_period_end", { withTimezone: true }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({
+    providerSubscriptionUnique: uniqueIndex("billing_subscriptions_provider_sub_id_unique").on(
+      t.provider,
+      t.providerSubscriptionId,
+    ),
+    subjectUnique: uniqueIndex("billing_subscriptions_subject_unique").on(t.subjectType, t.subjectId),
+    statusIdx: index("billing_subscriptions_status_idx").on(t.status),
+  }),
+);
 
 export const rateLimitBuckets = pgTable(
   "rate_limit_buckets",

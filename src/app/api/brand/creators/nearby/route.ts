@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { brands, creators } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 import { getCreatorFollowerRange } from "@/lib/eligibility";
+import { hasActiveSubscription } from "@/lib/billing";
 
 export const runtime = "nodejs";
 
@@ -46,6 +47,7 @@ export async function GET(request: Request) {
 
   const ctx = await requireBrandContext(request);
   if (ctx instanceof Response) return ctx;
+  const subscribed = await hasActiveSubscription({ subjectType: "BRAND", subjectId: ctx.brandId });
 
   const radiusKm =
     parsed.data.radiusKm ?? (parsed.data.radiusMiles ? milesToKm(parsed.data.radiusMiles) : 40.2336);
@@ -131,6 +133,10 @@ export async function GET(request: Request) {
     radiusKm,
     countries,
     creatorCount: inRadius.length,
-    creators: top,
+    creators: top.map((c, idx) => ({
+      ...c,
+      username: subscribed ? c.username : `Creator #${idx + 1}`,
+    })),
+    preview: !subscribed,
   });
 }

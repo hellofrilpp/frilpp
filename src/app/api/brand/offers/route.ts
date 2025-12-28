@@ -5,6 +5,7 @@ import { offerProducts, offers, brands } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 import { templateToDeliverableType, type OfferTemplateId } from "@/lib/offer-template";
 import { USAGE_RIGHTS_SCOPES } from "@/lib/usage-rights";
+import { hasActiveSubscription } from "@/lib/billing";
 import {
   CAMPAIGN_CATEGORIES,
   CONTENT_TYPES,
@@ -254,6 +255,22 @@ export async function POST(request: Request) {
   try {
     const ctx = await requireBrandContext(request);
     if (ctx instanceof Response) return ctx;
+
+    const subscribed = await hasActiveSubscription({
+      subjectType: "BRAND",
+      subjectId: ctx.brandId,
+    });
+    if (!subscribed) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Subscription required to publish offers",
+          code: "PAYWALL",
+          lane: "brand",
+        },
+        { status: 402 },
+      );
+    }
 
     const id = crypto.randomUUID();
     const template = input.template as OfferTemplateId;

@@ -13,6 +13,7 @@ import {
 import { requireBrandContext } from "@/lib/auth";
 import { getCreatorFollowerRange } from "@/lib/eligibility";
 import { zaiChat } from "@/lib/zai";
+import { hasActiveSubscription } from "@/lib/billing";
 
 export const runtime = "nodejs";
 
@@ -99,6 +100,7 @@ export async function POST(request: Request) {
 
   const ctx = await requireBrandContext(request);
   if (ctx instanceof Response) return ctx;
+  const subscribed = await hasActiveSubscription({ subjectType: "BRAND", subjectId: ctx.brandId });
 
   const json = await request.json().catch(() => null);
   const parsed = bodySchema.safeParse(json);
@@ -282,7 +284,7 @@ export async function POST(request: Request) {
     .slice(0, limit)
     .map((c, index) => ({
       creatorId: c.creatorId,
-      username: c.username,
+      username: subscribed ? c.username : `Creator #${index + 1}`,
       score: Math.max(1, Math.min(100, Math.round(c.score))),
       reason: "Ranked by historical performance and audience fit.",
       distanceKm: c.distanceKm ?? null,
@@ -337,7 +339,7 @@ export async function POST(request: Request) {
     const cleaned = parsedJson
       .map((item, index) => ({
         creatorId: item.creatorId,
-        username: byId.get(item.creatorId)?.username ?? "Creator",
+        username: subscribed ? (byId.get(item.creatorId)?.username ?? "Creator") : `Creator #${index + 1}`,
         score: Math.max(1, Math.min(100, Math.round(item.score ?? 0))),
         reason: item.reason ?? "Recommended by AI match.",
         distanceKm: byId.get(item.creatorId)?.distanceKm ?? null,
@@ -351,8 +353,8 @@ export async function POST(request: Request) {
       return Response.json({ ok: true, creators: fallback, fallback: true });
     }
 
-    return Response.json({ ok: true, creators: cleaned, fallback: false });
+    return Response.json({ ok: true, creators: cleaned, fallback: false, preview: !subscribed });
   } catch {
-    return Response.json({ ok: true, creators: fallback, fallback: true });
+    return Response.json({ ok: true, creators: fallback, fallback: true, preview: !subscribed });
   }
 }

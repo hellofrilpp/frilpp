@@ -127,6 +127,7 @@ export default function NewOfferPage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [publishedOfferId, setPublishedOfferId] = useState<string | null>(null);
   const [publishError, setPublishError] = useState<string | null>(null);
+  const [publishPaywall, setPublishPaywall] = useState(false);
 
   const [shopifyConnected, setShopifyConnected] = useState(false);
   const [shopifyShopDomain, setShopifyShopDomain] = useState<string | null>(null);
@@ -317,6 +318,7 @@ export default function NewOfferPage() {
   async function publishOffer() {
     setIsPublishing(true);
     setPublishError(null);
+    setPublishPaywall(false);
     setPublishedOfferId(null);
     try {
       const res = await fetch("/api/brand/offers", {
@@ -352,12 +354,17 @@ export default function NewOfferPage() {
       });
       const data = (await res.json().catch(() => null)) as
         | { ok: true; offerId: string }
-        | { ok: false; error?: string };
+        | { ok: false; error?: string; code?: string };
       if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
         const message =
           data && "error" in data && typeof data.error === "string"
             ? data.error
             : "Failed to publish offer";
+        const code = data && "code" in data && typeof data.code === "string" ? data.code : null;
+        if (res.status === 402 && code === "PAYWALL") {
+          setPublishPaywall(true);
+          throw new Error("Subscription required to publish offers.");
+        }
         throw new Error(message);
       }
       setPublishedOfferId(data.offerId);
@@ -538,11 +545,6 @@ export default function NewOfferPage() {
                       Analytics
                     </Button>
                   </Link>
-                  <Link href="/influencer/feed">
-                    <Button variant="secondary" size="sm">
-                      Creator feed
-                    </Button>
-                  </Link>
                 </div>
               </CardContent>
             </Card>
@@ -554,6 +556,13 @@ export default function NewOfferPage() {
                 <CardTitle>Publish failed</CardTitle>
                 <CardDescription>{publishError}</CardDescription>
               </CardHeader>
+              {publishPaywall ? (
+                <CardContent className="flex flex-wrap gap-2">
+                  <Link href="/brand/billing">
+                    <Button variant="secondary">Subscribe</Button>
+                  </Link>
+                </CardContent>
+              ) : null}
             </Card>
           ) : null}
 

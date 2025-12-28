@@ -41,12 +41,36 @@ export default function InfluencerFeedPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [source, setSource] = useState<"db" | "demo">("db");
   const [claimMessage, setClaimMessage] = useState<string | null>(null);
+  const [isSubscribed, setIsSubscribed] = useState<boolean | null>(null);
   const [gate, setGate] = useState<
     | null
     | { type: "login"; message: string }
     | { type: "onboarding"; message: string }
     | { type: "blocked"; message: string }
   >(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/billing/status");
+        const data = (await res.json().catch(() => null)) as
+          | { ok: true; creator: { subscribed: boolean } | null }
+          | { ok: false };
+        if (cancelled) return;
+        if (res.ok && data && "ok" in data && data.ok === true) {
+          setIsSubscribed(Boolean(data.creator?.subscribed));
+        } else {
+          setIsSubscribed(null);
+        }
+      } catch {
+        if (!cancelled) setIsSubscribed(null);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,6 +154,10 @@ export default function InfluencerFeedPage() {
 
   function onAccept() {
     if (!current) return;
+    if (isSubscribed === false) {
+      setClaimMessage("Subscription required to claim offers. Go to Billing to subscribe.");
+      return;
+    }
     (async () => {
       try {
         setClaimMessage(null);
@@ -157,6 +185,9 @@ export default function InfluencerFeedPage() {
             data && "error" in data && typeof data.error === "string"
               ? data.error
               : "Claim failed";
+          if (res.status === 402 && code === "PAYWALL") {
+            throw new Error("Subscription required to claim offers. Go to Billing to subscribe.");
+          }
           if (code === "NEEDS_INSTAGRAM_SYNC" || code === "NEEDS_INSTAGRAM_RECONNECT") {
             throw new Error(`${msg}. Go to Profile → Sync now / Reconnect.`);
           }
@@ -207,6 +238,9 @@ export default function InfluencerFeedPage() {
           <div className="flex gap-2">
             <Link href="/influencer/settings">
               <Button variant="secondary">Profile</Button>
+            </Link>
+            <Link href="/influencer/billing">
+              <Button variant="outline">Billing</Button>
             </Link>
             <Link href="/influencer/deals">
               <Button variant="outline">Deals</Button>
@@ -278,7 +312,13 @@ export default function InfluencerFeedPage() {
                     <Button variant="outline" onClick={onSkip}>
                       Skip
                     </Button>
-                    <Button onClick={onAccept}>Claim</Button>
+                    {isSubscribed === false ? (
+                      <Link href="/influencer/billing">
+                        <Button variant="secondary">Subscribe to claim</Button>
+                      </Link>
+                    ) : (
+                      <Button onClick={onAccept}>Claim</Button>
+                    )}
                   </div>
                 </CardContent>
               </>

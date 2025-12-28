@@ -58,6 +58,7 @@ export default function OfferShareClient(props: { offerId: string }) {
     "idle",
   );
   const [claimMessage, setClaimMessage] = useState<string | null>(null);
+  const [needsSubscription, setNeedsSubscription] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -128,6 +129,7 @@ export default function OfferShareClient(props: { offerId: string }) {
     if (!offer) return;
     setClaimStatus("claiming");
     setClaimMessage(null);
+    setNeedsSubscription(false);
     try {
       const res = await fetch(`/api/creator/offers/${encodeURIComponent(offer.id)}/claim`, {
         method: "POST",
@@ -147,10 +149,15 @@ export default function OfferShareClient(props: { offerId: string }) {
               dueAt?: string | null;
             };
           }
-        | { ok: false; error?: string };
+        | { ok: false; error?: string; code?: string };
       if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
         const msg =
           data && "error" in data && typeof data.error === "string" ? data.error : "Claim failed";
+        const code = data && "code" in data && typeof data.code === "string" ? data.code : null;
+        if (res.status === 402 && code === "PAYWALL") {
+          setNeedsSubscription(true);
+          throw new Error("Subscription required to claim offers.");
+        }
         throw new Error(msg);
       }
 
@@ -258,6 +265,11 @@ export default function OfferShareClient(props: { offerId: string }) {
                   <Button onClick={claim} disabled={claimStatus === "claiming" || status !== "idle"}>
                     {claimStatus === "claiming" ? "Claiming..." : "Claim offer"}
                   </Button>
+                  {needsSubscription ? (
+                    <Link href="/influencer/billing">
+                      <Button variant="secondary">Subscribe</Button>
+                    </Link>
+                  ) : null}
                   <Link href="/influencer/settings">
                     <Button variant="outline">Update profile</Button>
                   </Link>

@@ -84,7 +84,7 @@ const Pricing = () => {
             <span className="text-foreground"> RESULTS</span>
           </h2>
           <p className="font-mono text-sm text-muted-foreground">
-            &gt; Simple monthly pricing that matches your market.
+            &gt; Simple monthly pricing that matches your market. Cancel anytime.
           </p>
         </div>
 
