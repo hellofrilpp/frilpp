@@ -9,15 +9,15 @@ import {
 const faqs = [
   {
     question: "How does the barter system work?",
-    answer: "Brands list products they want to give away in exchange for content. Influencers browse and swipe right on offers they like. When matched, the influencer receives the product and creates the agreed content. No money changes hands — pure product-for-content exchange.",
+    answer: "Businesses post an offer (usually product-for-content). Creators apply, then get accepted automatically by rules or manually by the business. After fulfillment, creators share to IG/TikTok from Frilpp so the post can be verified and tracked.",
   },
   {
     question: "What happens if an influencer doesn't post?",
-    answer: "We take this seriously. Influencers who don't fulfill get a strike. 3 strikes = permanent ban. We also verify content receipt before marking deals complete.",
+    answer: "Creators who don’t fulfill can receive strikes. Brands can see what’s due, what’s submitted, and what’s verified so they don’t have to chase.",
   },
   {
     question: "How are influencers verified?",
-    answer: "All creators connect via OAuth. We verify ownership, check for fake followers using AI, and analyze engagement. Only genuine creators get approved.",
+    answer: "Creators connect via Instagram or TikTok OAuth so brands can trust account ownership. We also use basic signals to reduce spam and low-quality accounts.",
   },
   {
     question: "Can I choose specific influencers?",
@@ -25,11 +25,11 @@ const faqs = [
   },
   {
     question: "How does shipping work?",
-    answer: "After match confirmation, creators provide addresses securely. Ship directly or use our integrated labels (Growth plan). Tracking stored in dashboard.",
+    answer: "Offers can be pickup, local delivery, or shipping. Shipping labels are optional — you can paste your carrier tracking link or use Shopify if connected.",
   },
   {
     question: "Minimum follower requirement?",
-    answer: "We focus on micro-influencers (1K-100K) for higher engagement. Minimum is 1K followers, but brands can set custom thresholds.",
+    answer: "Brands can set their own minimum follower thresholds. We’re built to work well for small creators and local communities.",
   },
   {
     question: "What products work best?",
@@ -37,7 +37,7 @@ const faqs = [
   },
   {
     question: "Can I cancel anytime?",
-    answer: "Yes! All plans are month-to-month. Cancel anytime from settings. Access continues until billing period ends.",
+    answer: "Yes. During beta, the product is free to use. If we introduce paid tiers later, you’ll be able to manage that from settings.",
   },
 ];
 

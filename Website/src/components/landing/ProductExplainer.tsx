@@ -1,12 +1,13 @@
 import { motion } from "framer-motion";
 import { Package, Heart, Truck, Camera, Star, ArrowRight, Sparkles } from "lucide-react";
+import { useMarket } from "@/components/landing/market";
 
 const steps = [
   {
     icon: Package,
     title: "BRAND POSTS OFFER",
-    description: "Skincare brand lists their new serum. No cash needed - just free product for content.",
-    visual: "SERUM_OFFER",
+    description: "Local business posts a deal and sets a local radius.",
+    visual: "LOCAL_OFFER",
     color: "neon-green",
   },
   {
@@ -18,16 +19,16 @@ const steps = [
   },
   {
     icon: Truck,
-    title: "PRODUCT SHIPS",
-    description: "Brand ships the product directly to the creator. No middlemen.",
-    visual: "SHIPPING...",
+    title: "FULFILLMENT",
+    description: "Pickup, local delivery, or shipping — whichever the brand chooses.",
+    visual: "PICKUP/DELIVER/SHIP",
     color: "neon-blue",
   },
   {
     icon: Camera,
     title: "CONTENT CREATED",
-    description: "Creator makes authentic content. Brand gets exposure. Everyone wins!",
-    visual: "POSTED!",
+    description: "Creator shares to IG/TikTok from the app so the post is verified + tracked.",
+    visual: "VERIFIED_POST",
     color: "neon-purple",
   },
 ];
@@ -62,6 +63,8 @@ const floatingParticles = Array.from({ length: 20 }, (_, index) => ({
 }));
 
 const ProductExplainer = () => {
+  const { market } = useMarket();
+  const unit = market === "IN" ? "km" : "mi";
   return (
     <section className="py-24 bg-card border-t-4 border-border relative overflow-hidden">
       {/* Animated background */}
@@ -113,7 +116,7 @@ const ProductExplainer = () => {
             <span className="text-neon-pink">IN 4 STEPS</span>
           </h2>
           <p className="font-mono text-sm text-muted-foreground max-w-md mx-auto">
-            &gt; Watch how a single swipe turns into authentic brand content
+            &gt; A simple local loop ({unit}): offer → match → fulfill → verified post
           </p>
         </motion.div>
 

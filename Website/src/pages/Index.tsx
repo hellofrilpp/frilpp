@@ -10,23 +10,26 @@ import Pricing from "@/components/landing/Pricing";
 import FAQ from "@/components/landing/FAQ";
 import CTA from "@/components/landing/CTA";
 import Footer from "@/components/landing/Footer";
+import { MarketProvider } from "@/components/landing/market";
 
 const Index = () => {
   return (
-    <div className="min-h-screen bg-background">
-      <Header />
-      <Hero />
-      <ProductExplainer />
-      <HowItWorks />
-      <ForBrands />
-      <Stats />
-      <ForInfluencers />
-      <Testimonials />
-      <Pricing />
-      <FAQ />
-      <CTA />
-      <Footer />
-    </div>
+    <MarketProvider>
+      <div className="min-h-screen bg-background">
+        <Header />
+        <Hero />
+        <ProductExplainer />
+        <HowItWorks />
+        <ForBrands />
+        <Stats />
+        <ForInfluencers />
+        <Testimonials />
+        <Pricing />
+        <FAQ />
+        <CTA />
+        <Footer />
+      </div>
+    </MarketProvider>
   );
 };
 

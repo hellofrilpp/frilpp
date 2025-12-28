@@ -38,9 +38,9 @@ const CTA = () => {
 
           {/* Subheadline */}
           <p className="text-sm font-mono text-background/70 mb-12 max-w-xl mx-auto leading-relaxed">
-            &gt; JOIN 10,000+ BRANDS & CREATORS<br />
+            &gt; BUILT FOR LOCAL BUSINESSES + CREATORS (US + INDIA)<br />
             &gt; START MATCHING TODAY<br />
-            <span className="text-background">&gt; IT&apos;S FREE TO PLAY_</span>
+            <span className="text-background">&gt; FREE_DURING_BETA: TRUE_</span>
           </p>
 
           {/* Dual CTAs */}
@@ -52,7 +52,7 @@ const CTA = () => {
             >
               <Link to="/brand/signup">
                 <Zap className="w-4 h-4 mr-2" />
-                BRAND MODE
+                BUSINESS MODE
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>

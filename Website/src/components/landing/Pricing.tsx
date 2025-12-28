@@ -4,52 +4,48 @@ import { Check, ArrowRight, Zap, Crown, Rocket } from "lucide-react";
 
 const plans = [
   {
-    name: "STARTER",
+    name: "BUSINESS",
     price: "FREE",
-    description: "Test the waters",
+    description: "Local offers for SMBs",
     icon: Zap,
     color: "neon-green",
     features: [
-      "1 trial order",
-      "1 active product listing",
-      "Basic analytics",
-      "Email support",
+      "Instagram/TikTok onboarding",
+      "Local radius + auto-accept threshold",
+      "Pickup / local delivery / shipping",
+      "Clicks + redemptions ROI",
+      "Verified posting + creator streaks",
     ],
-    cta: "START FREE",
+    cta: "POST AN OFFER",
     popular: false,
   },
   {
-    name: "GROWTH",
-    price: "$29",
-    period: "/MO",
-    description: "Scale your seeding",
+    name: "CREATOR",
+    price: "FREE",
+    description: "Claim local drops",
     icon: Rocket,
     color: "neon-pink",
     features: [
-      "Unlimited product listings",
-      "Unlimited matches",
-      "Advanced analytics + ROI",
-      "Priority matching",
-      "Auto shipping labels",
-      "Content approval flow",
-      "Priority support",
+      "IG/TikTok-only signup (email optional)",
+      "Local deals feed",
+      "One-tap claim + share-kit",
+      "Achievements + streaks",
+      "Performance stats",
     ],
-    cta: "START TRIAL",
+    cta: "JOIN AS CREATOR",
     popular: true,
   },
   {
-    name: "ENTERPRISE",
+    name: "TEAMS",
     price: "CUSTOM",
-    description: "Big ambitions",
+    description: "For multi-location brands",
     icon: Crown,
     color: "neon-yellow",
     features: [
-      "Everything in Growth",
-      "Dedicated manager",
-      "Custom integrations",
-      "White-label options",
-      "API access",
-      "SLA guarantee",
+      "Multiple locations",
+      "More roles + permissions",
+      "Custom reporting",
+      "Integrations (Shopify optional)",
     ],
     cta: "CONTACT",
     popular: false,
@@ -77,7 +73,7 @@ const Pricing = () => {
             <span className="text-foreground"> RESULTS</span>
           </h2>
           <p className="font-mono text-sm text-muted-foreground">
-            &gt; Start free, scale as you grow. No hidden fees.
+            &gt; Free during beta. Pricing will evolve with the product.
           </p>
         </div>
 
@@ -137,7 +133,7 @@ const Pricing = () => {
                 } pixel-btn`}
                 asChild
               >
-                <Link to="/brand/signup">
+                <Link to={plan.name === "CREATOR" ? "/influencer/signup" : "/brand/signup"}>
                   {plan.cta}
                   <ArrowRight className="w-3 h-3 ml-2" />
                 </Link>

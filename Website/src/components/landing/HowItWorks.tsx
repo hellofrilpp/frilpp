@@ -1,26 +1,27 @@
 import { motion } from "framer-motion";
 import { Package, Sparkles, Camera, ArrowRight, Gamepad2 } from "lucide-react";
+import { useMarket } from "@/components/landing/market";
 
 const steps = [
   {
     number: "01",
     icon: Package,
     title: "POST OFFER",
-    description: "Brands list products to seed. Set requirements, criteria, and let the game begin!",
+    description: "Local businesses post an offer, set a radius, and choose pickup/delivery/shipping.",
     color: "neon-green",
   },
   {
     number: "02",
     icon: Sparkles,
     title: "MATCH UP",
-    description: "Influencers swipe through offers. Mutual interest = instant match. No awkward DMs!",
+    description: "Nearby creators apply. Auto-accept by threshold or approve manually.",
     color: "neon-pink",
   },
   {
     number: "03",
     icon: Camera,
     title: "CREATE WIN",
-    description: "Products ship, content created, everyone levels up. GG!",
+    description: "Creators share to IG/TikTok from the app so brands can verify + track ROI.",
     color: "neon-yellow",
   },
 ];
@@ -55,6 +56,8 @@ const cardVariants = {
 };
 
 const HowItWorks = () => {
+  const { market } = useMarket();
+  const unit = market === "IN" ? "km" : "mi";
   return (
     <section id="how-it-works" className="py-24 border-t-4 border-border bg-background relative overflow-hidden">
       {/* Background decorations */}
@@ -139,8 +142,8 @@ const HowItWorks = () => {
             transition={{ delay: 0.5 }}
           >
             &gt; NO_COMPLEX_NEGOTIATIONS<br />
-            &gt; NO_PAYMENT_HASSLES<br />
-            <span className="text-neon-green">&gt; JUST_SWIPE_MATCH_CREATE</span>
+            &gt; LOCAL_DISCOVERY ({unit})<br />
+            <span className="text-neon-green">&gt; CLICKS + REDEMPTIONS ROI</span>
           </motion.p>
         </motion.div>
 

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Zap } from "lucide-react";
 import InteractiveSwipeDemo from "./InteractiveSwipeDemo";
+import { useMarket } from "@/components/landing/market";
 
 const floatingElements = [
   { delay: 0, x: "10%", y: "20%", rotate: 45 },
@@ -13,6 +14,11 @@ const floatingElements = [
 ];
 
 const Hero = () => {
+  const { market } = useMarket();
+  const unit = market === "IN" ? "km" : "mi";
+  const radiusExample = market === "IN" ? 8 : 5;
+  const moneyExample = market === "IN" ? "₹1,500" : "$50";
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-16 bg-grid">
       {/* Animated floating decorations */}
@@ -125,11 +131,13 @@ const Hero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
             >
-              &gt; Tinder-style platform for D2C brands + micro-influencers
+              &gt; Local businesses find nearby IG/TikTok creators — without DM chaos
               <br />
-              &gt; Swipe. Match. Create content.
+              &gt; Post an offer, set a local radius, and track clicks + redemptions.
               <br />
-              <span className="text-neon-green">&gt; TRY THE DEMO ON THE RIGHT! →</span>
+              <span className="text-neon-green">
+                &gt; Example: “Free {moneyExample} cake box” within {radiusExample}{unit}
+              </span>
             </motion.p>
 
             {/* Dual CTAs */}
@@ -146,7 +154,7 @@ const Hero = () => {
                   asChild
                 >
                   <Link to="/brand/signup">
-                    I&apos;M A BRAND
+                    I&apos;M A BUSINESS
                     <ArrowRight className="w-4 h-4 ml-2" />
                   </Link>
                 </Button>
@@ -173,9 +181,9 @@ const Hero = () => {
               transition={{ duration: 0.5, delay: 0.9 }}
             >
               {[
-                { value: "10K+", label: "PLAYERS", color: "text-neon-green" },
-                { value: "50K+", label: "MATCHES", color: "text-neon-pink" },
-                { value: "$2M+", label: "VALUE", color: "text-neon-yellow" },
+                { value: `IG/TikTok`, label: "SIGNUP", color: "text-neon-green" },
+                { value: `${radiusExample}${unit}`, label: "LOCAL_RADIUS", color: "text-neon-pink" },
+                { value: "CLICKS+REDEEM", label: "ROI", color: "text-neon-yellow" },
               ].map((stat, i) => (
                 <motion.div
                   key={i}

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import FrilppLogo from "@/components/FrilppLogo";
+import MarketToggle from "@/components/landing/MarketToggle";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -42,11 +43,22 @@ const Header = () => {
 
           {/* Desktop CTAs */}
           <div className="hidden md:flex items-center gap-3">
+            <MarketToggle />
             <Button variant="ghost" className="text-xs font-mono hover:text-neon-green" asChild>
-              <Link to="/brand/login">&gt; LOG_IN</Link>
+              <Link to="/brand/login">&gt; BRAND_LOG_IN</Link>
             </Button>
-            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-pixel px-6 pixel-btn" asChild>
-              <Link to="/brand/signup">START →</Link>
+            <Button
+              variant="outline"
+              className="border-2 border-neon-pink text-neon-pink hover:bg-neon-pink hover:text-background text-xs font-pixel px-5 pixel-btn"
+              asChild
+            >
+              <Link to="/influencer/signup">CREATOR →</Link>
+            </Button>
+            <Button
+              className="bg-primary text-primary-foreground hover:bg-primary/90 text-xs font-pixel px-6 pixel-btn"
+              asChild
+            >
+              <Link to="/brand/signup">BUSINESS →</Link>
             </Button>
           </div>
 
@@ -78,12 +90,22 @@ const Header = () => {
               <Link to="/leaderboard" className="text-xs font-mono text-muted-foreground hover:text-neon-green">
                 [LEADERBOARD]
               </Link>
+              <div className="pt-2">
+                <MarketToggle />
+              </div>
               <div className="flex flex-col gap-2 pt-4 border-t-2 border-border">
                 <Button variant="outline" asChild className="w-full border-2 border-primary text-primary font-mono text-xs">
-                  <Link to="/brand/login">&gt; LOG_IN</Link>
+                  <Link to="/brand/login">&gt; BRAND_LOG_IN</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  asChild
+                  className="w-full border-2 border-neon-pink text-neon-pink font-pixel text-xs pixel-btn"
+                >
+                  <Link to="/influencer/signup">CREATOR →</Link>
                 </Button>
                 <Button className="bg-primary text-primary-foreground w-full font-pixel text-xs pixel-btn" asChild>
-                  <Link to="/brand/signup">START GAME →</Link>
+                  <Link to="/brand/signup">BUSINESS →</Link>
                 </Button>
               </div>
             </nav>

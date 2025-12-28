@@ -9,44 +9,47 @@ import {
   Check,
   Terminal
 } from "lucide-react";
+import { useMarket } from "@/components/landing/market";
 
 const benefits = [
   {
     icon: Zap,
-    title: "10X FASTER",
-    description: "Stop DMing hundreds of influencers. Our system finds matches in minutes.",
+    title: "LOCAL, FAST",
+    description: "Post a local offer in minutes instead of DMing creators one-by-one.",
     color: "neon-green",
   },
   {
     icon: Users,
-    title: "VERIFIED CREATORS",
-    description: "50K+ vetted creators with real engagement. No bots allowed.",
+    title: "CREATOR FIT",
+    description: "Filter by country, niche, and followers — then auto-accept or approve.",
     color: "neon-pink",
   },
   {
     icon: BarChart3,
-    title: "TRACK ALL",
-    description: "Real-time analytics from match to content delivery.",
+    title: "SIMPLE ROI",
+    description: "Track clicks + in-store/online redemptions per creator.",
     color: "neon-purple",
   },
   {
     icon: ShieldCheck,
-    title: "NO-SHOW GUARD",
-    description: "Strike system ensures accountability. 3 strikes = banned.",
+    title: "PROOF OF POST",
+    description: "Creators share via the app so you can verify delivery and posting.",
     color: "neon-yellow",
   },
 ];
 
 const features = [
-  "Unlimited product listings",
-  "Automated shipping labels",
-  "Content approval workflow",
-  "Shopify integration",
-  "ROI tracking dashboard",
-  "Dedicated support",
+  "IG/TikTok-only signup (email optional)",
+  "Local radius + auto-accept threshold",
+  "Pickup / local delivery / shipping",
+  "Clicks + redemptions ROI",
+  "Verified posting + strike rules",
+  "Shopify optional",
 ];
 
 const ForBrands = () => {
+  const { market } = useMarket();
+  const unit = market === "IN" ? "km" : "mi";
   return (
     <section id="for-brands" className="py-24 bg-card border-t-4 border-border relative overflow-hidden">
       {/* Grid background */}
@@ -69,9 +72,9 @@ const ForBrands = () => {
             </h2>
             
             <p className="font-mono text-sm text-muted-foreground mb-10 leading-relaxed max-w-lg">
-              &gt; Stop wasting hours on DMs that never get replies<br />
-              &gt; Connect with creators actively looking for YOUR niche<br />
-              <span className="text-neon-green">&gt; EFFICIENCY_LEVEL: MAXIMUM</span>
+              &gt; Built for small businesses selling locally (US + India)<br />
+              &gt; Set a local radius ({unit}) so only nearby creators see the offer<br />
+              <span className="text-neon-green">&gt; NOT_A_DELIVERY_SERVICE: TRUE</span>
             </p>
 
             {/* Feature List */}
@@ -95,7 +98,7 @@ const ForBrands = () => {
               asChild
             >
               <Link to="/brand/signup">
-                START SEEDING
+                POST A LOCAL OFFER
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Link>
             </Button>

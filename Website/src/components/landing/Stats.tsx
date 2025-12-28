@@ -1,53 +1,37 @@
 import { motion } from "framer-motion";
-import { useEffect, useState, useRef } from "react";
-
-const stats = [
-  { value: 50000, suffix: "+", label: "PRODUCTS SEEDED" },
-  { value: 12000, suffix: "+", label: "ACTIVE CREATORS" },
-  { value: 2500, suffix: "+", label: "BRANDS TRUST US" },
-  { value: 94, suffix: "%", label: "MATCH SUCCESS" },
-];
-
-const AnimatedNumber = ({ target, suffix, inView }: { target: number; suffix: string; inView: boolean }) => {
-  const [count, setCount] = useState(0);
-  const hasAnimated = useRef(false);
-  
-  useEffect(() => {
-    if (!inView || hasAnimated.current) return;
-    hasAnimated.current = true;
-    
-    const duration = 2000;
-    const steps = 60;
-    const increment = target / steps;
-    let current = 0;
-    
-    const timer = setInterval(() => {
-      current += increment;
-      if (current >= target) {
-        setCount(target);
-        clearInterval(timer);
-      } else {
-        setCount(Math.floor(current));
-      }
-    }, duration / steps);
-    
-    return () => clearInterval(timer);
-  }, [target, inView]);
-  
-  return (
-    <span>
-      {count.toLocaleString()}{suffix}
-    </span>
-  );
-};
+import { ShieldCheck, Target, Zap, Lock } from "lucide-react";
+import { useMarket } from "@/components/landing/market";
 
 const Stats = () => {
-  const [inView, setInView] = useState(false);
+  const { market } = useMarket();
+  const unit = market === "IN" ? "km" : "mi";
+
+  const highlights = [
+    {
+      icon: Zap,
+      title: "FAST SETUP",
+      body: "Sign up with Instagram or TikTok. Add email later in settings.",
+    },
+    {
+      icon: Target,
+      title: "LOCAL ONLY",
+      body: `Set a local radius (${unit}) so offers stay nearby.`,
+    },
+    {
+      icon: ShieldCheck,
+      title: "VERIFIED POSTS",
+      body: "Creators share from the app so brands can verify delivery and posting.",
+    },
+    {
+      icon: Lock,
+      title: "PRIVACY FIRST",
+      body: "We don’t publicly rank or showcase brands without consent.",
+    },
+  ];
 
   return (
     <motion.section
       className="py-16 bg-primary text-primary-foreground border-y-4 border-primary relative overflow-hidden"
-      onViewportEnter={() => setInView(true)}
       viewport={{ once: true, margin: "-100px" }}
     >
       {/* Scanlines effect */}
@@ -85,38 +69,25 @@ const Stats = () => {
       </div>
       
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-8 md:gap-4">
-          {stats.map((stat, index) => (
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {highlights.map((item, index) => (
             <motion.div
-              key={index}
-              className="text-center p-4 border-l-4 first:border-l-0 border-background/20"
-              initial={{ opacity: 0, y: 30 }}
+              key={item.title}
+              className="border-2 border-background/20 bg-background/10 p-5"
+              initial={{ opacity: 0, y: 18 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: index * 0.1, duration: 0.5 }}
+              transition={{ delay: index * 0.08, duration: 0.4 }}
             >
-              <motion.div
-                className="text-2xl md:text-3xl lg:text-4xl font-pixel mb-2"
-                animate={{ 
-                  textShadow: [
-                    "0 0 10px hsl(0 0% 100% / 0.5)",
-                    "0 0 20px hsl(0 0% 100% / 0.8)",
-                    "0 0 10px hsl(0 0% 100% / 0.5)",
-                  ]
-                }}
-                transition={{ duration: 2, repeat: Infinity, delay: index * 0.2 }}
-              >
-                <AnimatedNumber target={stat.value} suffix={stat.suffix} inView={inView} />
-              </motion.div>
-              <motion.div
-                className="text-xs font-mono text-background/60"
-                initial={{ opacity: 0 }}
-                whileInView={{ opacity: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5 + index * 0.1 }}
-              >
-                {stat.label}
-              </motion.div>
+              <div className="flex items-center gap-3">
+                <div className="h-10 w-10 border-2 border-background/40 bg-background/10 flex items-center justify-center">
+                  <item.icon className="h-5 w-5 text-background" />
+                </div>
+                <div className="font-pixel text-xs">{item.title}</div>
+              </div>
+              <div className="mt-3 text-xs font-mono text-background/70 leading-relaxed">
+                {item.body}
+              </div>
             </motion.div>
           ))}
         </div>

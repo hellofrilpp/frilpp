@@ -9,35 +9,38 @@ import {
   Heart,
   Sparkles
 } from "lucide-react";
+import { useMarket } from "@/components/landing/market";
 
 const perks = [
   {
     icon: Gift,
-    title: "FREE PRODUCTS",
-    description: "Browse hundreds of barter offers from brands you'll love.",
+    title: "LOCAL DROPS",
+    description: "Find offers near you from small businesses in your area.",
     color: "neon-green",
   },
   {
     icon: Gamepad2,
-    title: "SWIPE TO WIN",
-    description: "Like a game, but you get real stuff. Swipe right = free loot.",
+    title: "CLAIM FAST",
+    description: "Apply in one click. Get auto-accepted or approved by the brand.",
     color: "neon-pink",
   },
   {
     icon: Trophy,
     title: "LEVEL UP",
-    description: "Complete deals to unlock achievements and premium brands.",
+    description: "Earn XP, keep a streak, and unlock better offers.",
     color: "neon-yellow",
   },
   {
     icon: Clock,
-    title: "NO HASSLE",
-    description: "Everything upfront — product value, requirements, deadlines.",
+    title: "EASY PROOF",
+    description: "Share to IG/TikTok from the app for verified posting + tracking.",
     color: "neon-purple",
   },
 ];
 
 const ForInfluencers = () => {
+  const { market } = useMarket();
+  const moneyExample = market === "IN" ? "₹1,500" : "$50";
   return (
     <section id="for-influencers" className="py-24 border-t-4 border-border overflow-hidden bg-background relative">
       {/* Grid background */}
@@ -80,10 +83,10 @@ const ForInfluencers = () => {
                       <div className="p-3 border-t-4 border-border">
                         <div className="flex items-center gap-2 mb-2">
                           <span className="px-2 py-1 text-xs font-mono border-2 border-neon-pink text-neon-pink">FASHION</span>
-                          <span className="text-xs font-mono text-neon-yellow">$75</span>
+                          <span className="text-xs font-mono text-neon-yellow">{moneyExample}</span>
                         </div>
                         <h4 className="font-pixel text-sm text-foreground">SUMMER DRESS</h4>
-                        <p className="text-xs font-mono text-muted-foreground mt-1">1 REEL + 3 STORIES</p>
+                        <p className="text-xs font-mono text-muted-foreground mt-1">1 REEL + 1 STORY</p>
                       </div>
                     </div>
                   </div>
@@ -140,8 +143,8 @@ const ForInfluencers = () => {
             
             <p className="font-mono text-sm text-muted-foreground mb-10 leading-relaxed max-w-lg">
               &gt; No more cold emails or awkward pitches<br />
-              &gt; Browse offers, swipe on what you like<br />
-              <span className="text-neon-pink">&gt; GET_PRODUCTS_DELIVERED: TRUE</span>
+              &gt; Claim nearby offers and build your creator status<br />
+              <span className="text-neon-pink">&gt; SHARE_TO_IG_TIKTOK: TRUE</span>
             </p>
 
             {/* Perks Grid */}
