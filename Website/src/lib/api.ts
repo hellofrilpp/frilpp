@@ -695,20 +695,16 @@ export type LeaderboardCreator = {
   trend: string;
 };
 
-export type LeaderboardBrand = {
-  rank: number;
-  name: string;
-  category: string;
-  xp: number;
-  creators: number;
-  avatar: string;
-  trend: string;
+export type LeaderboardStats = {
+  activeCreators: number;
+  activeBrands: number;
+  dealsCompleted: number;
 };
 
 export async function getLeaderboard() {
   return apiFetch<{
     ok: boolean;
     creators: LeaderboardCreator[];
-    brands: LeaderboardBrand[];
+    stats: LeaderboardStats;
   }>("/api/leaderboard");
 }

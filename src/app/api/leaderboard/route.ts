@@ -1,6 +1,6 @@
 import { and, eq, gte, isNotNull, lt, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, creators, deliverables, matches, offers } from "@/db/schema";
+import { creators, deliverables, matches, offers } from "@/db/schema";
 
 export const runtime = "nodejs";
 
@@ -32,6 +32,19 @@ export async function GET() {
       { status: 500 },
     );
   }
+
+  const activeCreatorCountRow = await db
+    .select({ count: sql<number>`count(distinct ${matches.creatorId})` })
+    .from(matches);
+
+  const activeBrandCountRow = await db
+    .select({ count: sql<number>`count(distinct ${offers.brandId})` })
+    .from(matches)
+    .innerJoin(offers, eq(offers.id, matches.offerId));
+
+  const dealCountRow = await db
+    .select({ count: sql<number>`count(distinct ${matches.id})` })
+    .from(matches);
 
   const now = new Date();
   const recentStart = new Date(now.getTime() - DAYS_30_MS);
@@ -129,119 +142,13 @@ export async function GET() {
     .slice(0, 10)
     .map((creator, index) => ({ ...creator, rank: index + 1 }));
 
-  const brandRows = await db
-    .select({
-      id: brands.id,
-      name: brands.name,
-      industry: brands.industry,
-    })
-    .from(brands);
-
-  const brandDealsRows = await db
-    .select({
-      brandId: offers.brandId,
-      count: sql<number>`count(distinct ${matches.id})`,
-    })
-    .from(matches)
-    .innerJoin(offers, eq(offers.id, matches.offerId))
-    .groupBy(offers.brandId);
-
-  const brandVerifiedRows = await db
-    .select({
-      brandId: offers.brandId,
-      count: sql<number>`count(distinct ${deliverables.id})`,
-    })
-    .from(deliverables)
-    .innerJoin(matches, eq(matches.id, deliverables.matchId))
-    .innerJoin(offers, eq(offers.id, matches.offerId))
-    .where(eq(deliverables.status, "VERIFIED"))
-    .groupBy(offers.brandId);
-
-  const brandCreatorRows = await db
-    .select({
-      brandId: offers.brandId,
-      count: sql<number>`count(distinct ${matches.creatorId})`,
-    })
-    .from(matches)
-    .innerJoin(offers, eq(offers.id, matches.offerId))
-    .groupBy(offers.brandId);
-
-  const brandRecentRows = await db
-    .select({
-      brandId: offers.brandId,
-      count: sql<number>`count(*)`,
-    })
-    .from(deliverables)
-    .innerJoin(matches, eq(matches.id, deliverables.matchId))
-    .innerJoin(offers, eq(offers.id, matches.offerId))
-    .where(
-      and(
-        eq(deliverables.status, "VERIFIED"),
-        isNotNull(deliverables.verifiedAt),
-        gte(deliverables.verifiedAt, recentStart),
-      ),
-    )
-    .groupBy(offers.brandId);
-
-  const brandPriorRows = await db
-    .select({
-      brandId: offers.brandId,
-      count: sql<number>`count(*)`,
-    })
-    .from(deliverables)
-    .innerJoin(matches, eq(matches.id, deliverables.matchId))
-    .innerJoin(offers, eq(offers.id, matches.offerId))
-    .where(
-      and(
-        eq(deliverables.status, "VERIFIED"),
-        isNotNull(deliverables.verifiedAt),
-        gte(deliverables.verifiedAt, priorStart),
-        lt(deliverables.verifiedAt, recentStart),
-      ),
-    )
-    .groupBy(offers.brandId);
-
-  const brandDealsMap = new Map(brandDealsRows.map((row) => [row.brandId, Number(row.count ?? 0)]));
-  const brandVerifiedMap = new Map(
-    brandVerifiedRows.map((row) => [row.brandId, Number(row.count ?? 0)]),
-  );
-  const brandCreatorMap = new Map(
-    brandCreatorRows.map((row) => [row.brandId, Number(row.count ?? 0)]),
-  );
-  const brandRecentMap = new Map(
-    brandRecentRows.map((row) => [row.brandId, Number(row.count ?? 0)]),
-  );
-  const brandPriorMap = new Map(
-    brandPriorRows.map((row) => [row.brandId, Number(row.count ?? 0)]),
-  );
-
-  const brandsLeaderboard = brandRows
-    .map((brand) => {
-      const deals = brandDealsMap.get(brand.id) ?? 0;
-      const verified = brandVerifiedMap.get(brand.id) ?? 0;
-      const creatorsCount = brandCreatorMap.get(brand.id) ?? 0;
-      const recent = brandRecentMap.get(brand.id) ?? 0;
-      const prior = brandPriorMap.get(brand.id) ?? 0;
-      const name = brand.name;
-      return {
-        id: brand.id,
-        name,
-        category: brand.industry ?? "D2C",
-        deals,
-        xp: verified * 100,
-        creators: creatorsCount,
-        avatar: initials(name),
-        trend: percentTrend(recent, prior),
-      };
-    })
-    .filter((brand) => brand.xp > 0 || brand.deals > 0 || brand.creators > 0)
-    .sort((a, b) => b.xp - a.xp || b.deals - a.deals || b.creators - a.creators)
-    .slice(0, 10)
-    .map((brand, index) => ({ ...brand, rank: index + 1 }));
-
   return Response.json({
     ok: true,
     creators: creatorsLeaderboard,
-    brands: brandsLeaderboard,
+    stats: {
+      activeCreators: Number(activeCreatorCountRow[0]?.count ?? 0),
+      activeBrands: Number(activeBrandCountRow[0]?.count ?? 0),
+      dealsCompleted: Number(dealCountRow[0]?.count ?? 0),
+    },
   });
 }
