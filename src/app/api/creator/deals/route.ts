@@ -1,6 +1,6 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, deliverables, matches, offers, shopifyOrders } from "@/db/schema";
+import { brands, deliverables, manualShipments, matches, offers, shopifyOrders } from "@/db/schema";
 import { requireCreatorContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -8,6 +8,7 @@ export const runtime = "nodejs";
 function mapDealStatus(params: {
   matchStatus: "PENDING_APPROVAL" | "ACCEPTED" | "REVOKED" | "CANCELED" | "CLAIMED";
   orderStatus: string | null;
+  manualStatus: string | null;
   deliverableStatus: "DUE" | "VERIFIED" | "FAILED" | null;
   submittedAt: Date | null;
 }) {
@@ -19,6 +20,7 @@ function mapDealStatus(params: {
 
   const shippedStatuses = new Set(["DRAFT_CREATED", "COMPLETED", "FULFILLED"]);
   if (params.orderStatus && shippedStatuses.has(params.orderStatus)) return "shipped";
+  if (params.manualStatus === "SHIPPED") return "shipped";
 
   return "approved";
 }
@@ -43,6 +45,8 @@ export async function GET(request: Request) {
       brandName: brands.name,
       orderStatus: shopifyOrders.status,
       trackingNumber: shopifyOrders.trackingNumber,
+      manualStatus: manualShipments.status,
+      manualTrackingNumber: manualShipments.trackingNumber,
       deliverableStatus: deliverables.status,
       deliverableDueAt: deliverables.dueAt,
       deliverableSubmittedAt: deliverables.submittedAt,
@@ -51,6 +55,7 @@ export async function GET(request: Request) {
     .innerJoin(offers, eq(offers.id, matches.offerId))
     .innerJoin(brands, eq(brands.id, offers.brandId))
     .leftJoin(shopifyOrders, eq(shopifyOrders.matchId, matches.id))
+    .leftJoin(manualShipments, eq(manualShipments.matchId, matches.id))
     .leftJoin(deliverables, eq(deliverables.matchId, matches.id))
     .where(
       and(
@@ -71,12 +76,13 @@ export async function GET(request: Request) {
       status: mapDealStatus({
         matchStatus: row.matchStatus,
         orderStatus: row.orderStatus ?? null,
+        manualStatus: row.manualStatus ?? null,
         deliverableStatus: row.deliverableStatus ?? null,
         submittedAt: row.deliverableSubmittedAt ?? null,
       }),
       matchDate: row.matchCreatedAt.toISOString(),
       deadline: row.deliverableDueAt ? row.deliverableDueAt.toISOString() : null,
-      trackingNumber: row.trackingNumber ?? null,
+      trackingNumber: row.trackingNumber ?? row.manualTrackingNumber ?? null,
     })),
   });
 }

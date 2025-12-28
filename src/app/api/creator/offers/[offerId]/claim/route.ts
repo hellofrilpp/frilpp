@@ -20,6 +20,27 @@ const bodySchema = z.object({
   // reserved for future (e.g., shipping address confirmation)
 });
 
+const toNumber = (value: unknown) => {
+  if (typeof value === "number") return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+};
+
+const haversineMiles = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const r = 3958.8;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return r * c;
+};
+
 function claimError(code: string, message: string, status: number): never {
   const err = new Error(message) as Error & { code: string; status: number };
   err.code = code;
@@ -109,6 +130,45 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
         { ok: false, error: "Not eligible for this offer country" },
         { status: 403 },
       );
+    }
+
+    const locationRadiusMiles = (() => {
+      if (!offer.metadata || typeof offer.metadata !== "object") return null;
+      const v = toNumber((offer.metadata as Record<string, unknown>).locationRadiusMiles);
+      return v && v > 0 ? v : null;
+    })();
+    if (locationRadiusMiles) {
+      const brandRows = await db
+        .select({ lat: brands.lat, lng: brands.lng })
+        .from(brands)
+        .where(eq(brands.id, offer.brandId))
+        .limit(1);
+      const brand = brandRows[0] ?? null;
+      if (brand?.lat === null || brand?.lng === null || brand?.lat === undefined || brand?.lng === undefined) {
+        return Response.json(
+          { ok: false, error: "Offer location not configured", code: "OFFER_LOCATION_MISSING" },
+          { status: 400 },
+        );
+      }
+      if (creator.lat === null || creator.lng === null) {
+        return Response.json(
+          { ok: false, error: "Set your location to claim local offers", code: "NEEDS_LOCATION" },
+          { status: 409 },
+        );
+      }
+      const distanceMiles = haversineMiles(creator.lat, creator.lng, brand.lat, brand.lng);
+      if (distanceMiles > locationRadiusMiles) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Not eligible for this local offer",
+            code: "OUT_OF_RANGE",
+            distanceMiles: Math.round(distanceMiles * 10) / 10,
+            radiusMiles: locationRadiusMiles,
+          },
+          { status: 403 },
+        );
+      }
     }
 
     const creatorFollowers = creator.followersCount ?? 0;

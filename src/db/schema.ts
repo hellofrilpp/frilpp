@@ -3,6 +3,7 @@ import {
   boolean,
   doublePrecision,
   integer,
+  index,
   jsonb,
   pgEnum,
   pgTable,
@@ -569,5 +570,31 @@ export const manualShipments = pgTable(
   },
   (t) => ({
     matchIdUnique: uniqueIndex("manual_shipments_match_id_unique").on(t.matchId),
+  }),
+);
+
+export const redemptionChannelEnum = pgEnum("redemption_channel", [
+  "IN_STORE",
+  "ONLINE",
+  "OTHER",
+]);
+
+export const redemptions = pgTable(
+  "redemptions",
+  {
+    id: text("id").primaryKey(),
+    matchId: text("match_id")
+      .notNull()
+      .references(() => matches.id, { onDelete: "cascade" }),
+    channel: redemptionChannelEnum("channel").notNull().default("IN_STORE"),
+    amountCents: integer("amount_cents").notNull(),
+    currency: text("currency").notNull().default("USD"),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    matchCreatedAtIdx: index("redemptions_match_id_created_at_idx").on(t.matchId, t.createdAt),
   }),
 );

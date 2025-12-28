@@ -23,6 +23,10 @@ type OfferDraft = {
   aboveThresholdAutoAccept: boolean;
   usageRightsRequired: boolean;
   usageRightsScope: "PAID_ADS_12MO" | "PAID_ADS_6MO" | "PAID_ADS_UNLIMITED" | "ORGANIC_ONLY";
+  fulfillmentType: "SHOPIFY" | "MANUAL";
+  locationRadiusMiles: number | null;
+  ctaUrl: string;
+  platforms: Array<"INSTAGRAM" | "TIKTOK">;
 };
 
 type ShopifyProduct = {
@@ -97,11 +101,15 @@ export default function NewOfferPage() {
 
   const [draft, setDraft] = useState<OfferDraft>(() => ({
     title: "Free $50 skincare set for 1 Reel",
-    countriesAllowed: ["US", "IN"],
+    countriesAllowed: ["US"],
     followersThreshold: 5000,
     aboveThresholdAutoAccept: true,
     usageRightsRequired: false,
     usageRightsScope: "PAID_ADS_12MO",
+    fulfillmentType: "MANUAL",
+    locationRadiusMiles: 25,
+    ctaUrl: "",
+    platforms: ["INSTAGRAM"],
     ...templatePresets.REEL,
   }));
 
@@ -136,9 +144,9 @@ export default function NewOfferPage() {
   const steps = useMemo(
     () =>
       [
-        { title: "Shopify + products", description: "Connect Shopify and pick what to ship." },
+        { title: "Products", description: "Connect Shopify (optional) and pick products." },
         { title: "Template", description: "Pick the deliverable type." },
-        { title: "Details", description: "Countries, limits, and due date." },
+        { title: "Details", description: "Local radius, tracking link, and acceptance rules." },
         { title: "Review + publish", description: "One-click publish and share." },
       ] as const,
     [],
@@ -253,6 +261,12 @@ export default function NewOfferPage() {
             shopifyVariantId: p.shopifyVariantId,
             quantity: p.quantity,
           })),
+          metadata: {
+            fulfillmentType: draft.fulfillmentType,
+            locationRadiusMiles: draft.locationRadiusMiles,
+            ctaUrl: draft.ctaUrl.trim() ? draft.ctaUrl.trim() : null,
+            platforms: draft.platforms,
+          },
         }),
       });
       const data = (await res.json().catch(() => null)) as
@@ -299,8 +313,8 @@ export default function NewOfferPage() {
       `Claim here: ${link}`,
       "",
       "Notes:",
-      "- Please keep your shipping info updated in the claim flow.",
-      "- If posting is required, you’ll receive a unique caption code after claiming.",
+      "- If the offer is local, make sure your location is set in settings before claiming.",
+      "- If posting is required, include the unique code in your caption.",
     ].join("\n");
   }, [origin, publishedOfferId]);
 
@@ -312,14 +326,14 @@ export default function NewOfferPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Brand</Badge>
               <Badge variant="secondary">Offer Builder</Badge>
-              <Badge variant="secondary">US + India</Badge>
+              <Badge variant="secondary">Local</Badge>
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">
               Create a barter offer
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Publish in ~2 minutes. Creators can claim via a link; Frilpp automates approvals,
-              shipping (Shopify), and ROI tracking.
+              tracking, and ROI reporting (Shopify optional).
             </p>
           </div>
           <Link href="/">
@@ -352,6 +366,11 @@ export default function NewOfferPage() {
             <Link href="/brand/analytics">
               <Button size="sm" variant="outline">
                 Analytics
+              </Button>
+            </Link>
+            <Link href="/brand/settings/profile">
+              <Button size="sm" variant="outline">
+                Profile
               </Button>
             </Link>
           </div>
@@ -453,9 +472,9 @@ export default function NewOfferPage() {
           {step === 0 ? (
             <Card>
               <CardHeader>
-                <CardTitle>1) Shopify + products</CardTitle>
+                <CardTitle>1) Products (optional)</CardTitle>
                 <CardDescription>
-                  Connect Shopify, register webhooks, then select the product variants to ship.
+                  If you have Shopify, connect it to auto-create discount codes and orders. Otherwise, skip this step.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
@@ -715,12 +734,19 @@ export default function NewOfferPage() {
                             size="sm"
                             type="button"
                             onClick={() =>
-                              setDraft((d) => ({
-                                ...d,
-                                countriesAllowed: active
+                              setDraft((d) => {
+                                const countriesAllowed = active
                                   ? d.countriesAllowed.filter((c) => c !== cc)
-                                  : [...d.countriesAllowed, cc],
-                              }))
+                                  : [...d.countriesAllowed, cc];
+                                const allowTikTok = countriesAllowed.includes("US");
+                                return {
+                                  ...d,
+                                  countriesAllowed,
+                                  platforms: allowTikTok
+                                    ? d.platforms
+                                    : d.platforms.filter((p) => p !== "TIKTOK"),
+                                };
+                              })
                             }
                           >
                             {cc === "US" ? "United States" : "India"}
@@ -788,6 +814,109 @@ export default function NewOfferPage() {
                     </div>
                     <div className="text-xs text-muted-foreground">
                       Below threshold always requires brand approval.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border bg-muted p-4">
+                  <div className="text-sm font-semibold text-foreground">
+                    Local targeting + tracking
+                  </div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    If you set a radius, creators must be within that distance when claiming.
+                  </div>
+
+                  <div className="mt-4 grid gap-4 sm:grid-cols-2">
+                    <div className="grid gap-2">
+                      <Label htmlFor="radiusMiles">Max distance (miles)</Label>
+                      <Input
+                        id="radiusMiles"
+                        type="number"
+                        min={1}
+                        placeholder="25"
+                        value={draft.locationRadiusMiles ?? ""}
+                        onChange={(e) => {
+                          const raw = e.target.value;
+                          const value = raw.trim() ? Number(raw) : null;
+                          setDraft((d) => ({
+                            ...d,
+                            locationRadiusMiles: value && Number.isFinite(value) ? value : null,
+                          }));
+                        }}
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        Leave blank to show to all eligible creators.
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2">
+                      <Label htmlFor="ctaUrl">Where should the link go?</Label>
+                      <Input
+                        id="ctaUrl"
+                        placeholder="https://your-site.com/order (optional)"
+                        value={draft.ctaUrl}
+                        onChange={(e) => setDraft((d) => ({ ...d, ctaUrl: e.target.value }))}
+                      />
+                      <div className="text-xs text-muted-foreground">
+                        If empty, we fall back to your brand website (or Maps search).
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div>
+                      <div className="text-xs font-semibold text-muted-foreground">Platforms</div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {(["INSTAGRAM", "TIKTOK"] as const).map((p) => {
+                          const active = draft.platforms.includes(p);
+                          const allowed = p === "TIKTOK" ? draft.countriesAllowed.includes("US") : true;
+                          return (
+                            <Button
+                              key={p}
+                              size="sm"
+                              type="button"
+                              variant={active ? "default" : "outline"}
+                              disabled={!allowed}
+                              onClick={() =>
+                                setDraft((d) => ({
+                                  ...d,
+                                  platforms: active
+                                    ? d.platforms.filter((x) => x !== p)
+                                    : [...d.platforms, p],
+                                }))
+                              }
+                            >
+                              {p}
+                            </Button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="text-xs font-semibold text-muted-foreground">Fulfillment</div>
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        <Button
+                          size="sm"
+                          type="button"
+                          variant={draft.fulfillmentType === "MANUAL" ? "default" : "outline"}
+                          onClick={() => setDraft((d) => ({ ...d, fulfillmentType: "MANUAL" }))}
+                        >
+                          Manual
+                        </Button>
+                        <Button
+                          size="sm"
+                          type="button"
+                          variant={draft.fulfillmentType === "SHOPIFY" ? "default" : "outline"}
+                          onClick={() => setDraft((d) => ({ ...d, fulfillmentType: "SHOPIFY" }))}
+                          disabled={!shopifyConnected}
+                        >
+                          Shopify
+                        </Button>
+                      </div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Manual works for local delivery/pickup. Shopify auto-creates orders (requires connect).
+                      </div>
                     </div>
                   </div>
                 </div>

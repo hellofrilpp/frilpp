@@ -21,12 +21,18 @@ type CreatorProfile = {
   city: string | null;
   province: string | null;
   zip: string | null;
+  lat?: number | null;
+  lng?: number | null;
 };
 
 export default function InfluencerSettingsPage() {
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "saving" | "saved" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
+  const [isLocating, setIsLocating] = useState(false);
+  const [socialAccounts, setSocialAccounts] = useState<
+    Array<{ provider: string; username: string | null; providerUserId: string }>
+  >([]);
   const [igStatus, setIgStatus] = useState<{
     connected: boolean;
     igUserId: string | null;
@@ -61,6 +67,26 @@ export default function InfluencerSettingsPage() {
         if (cancelled) return;
         setStatus("error");
         setError(err instanceof Error ? err.message : "Failed to load profile");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/auth/social/accounts", { method: "GET" });
+        const data = (await res.json().catch(() => null)) as
+          | { ok: true; accounts: Array<{ provider: string; username: string | null; providerUserId: string }> }
+          | { ok: false };
+        if (!res.ok || !data || !("ok" in data) || data.ok !== true) return;
+        if (cancelled) return;
+        setSocialAccounts(data.accounts);
+      } catch {
+        // ignore
       }
     })();
     return () => {
@@ -187,6 +213,34 @@ export default function InfluencerSettingsPage() {
 
   const shippingReady = Boolean(profile?.address1 && profile?.city && profile?.zip && profile?.country);
   const igConnected = Boolean(igStatus?.connected);
+  const locationReady = profile?.lat !== null && profile?.lat !== undefined && profile?.lng !== null && profile?.lng !== undefined;
+
+  async function useMyLocation() {
+    if (!profile) return;
+    setIsLocating(true);
+    setError(null);
+    try {
+      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+        navigator.geolocation.getCurrentPosition(resolve, reject, {
+          enableHighAccuracy: true,
+          timeout: 10_000,
+        });
+      });
+      setProfile((p) =>
+        p
+          ? {
+              ...p,
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            }
+          : p,
+      );
+    } catch {
+      setError("Failed to get location (check browser permissions).");
+    } finally {
+      setIsLocating(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-background">
@@ -201,7 +255,7 @@ export default function InfluencerSettingsPage() {
               Shipping + eligibility
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Used to determine country eligibility and to auto-create Shopify orders for product seeding.
+              Used for eligibility, local matching, and fulfillment coordination.
             </p>
           </div>
           <div className="flex gap-2">
@@ -235,8 +289,10 @@ export default function InfluencerSettingsPage() {
                   : status === "saved"
                     ? "Saved."
                     : shippingReady
-                      ? "Shipping is ready."
-                      : "Complete shipping fields to claim product offers."}
+                      ? locationReady
+                        ? "Ready to claim."
+                        : "Set location to claim local offers."
+                      : "Complete the basics so brands can fulfill offers."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -244,6 +300,36 @@ export default function InfluencerSettingsPage() {
               <div className="text-sm text-muted-foreground">No profile loaded.</div>
             ) : (
               <div className="grid gap-6">
+                <div className="rounded-lg border bg-muted p-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <div className="text-sm font-semibold">Location</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Required to claim local offers (distance-based).
+                      </div>
+                      {locationReady ? (
+                        <div className="mt-2 text-xs text-muted-foreground">
+                          Lat/Lng:{" "}
+                          <span className="font-mono">
+                            {profile.lat?.toFixed(5)}, {profile.lng?.toFixed(5)}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="mt-2 text-xs text-muted-foreground">Not set.</div>
+                      )}
+                    </div>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      type="button"
+                      onClick={useMyLocation}
+                      disabled={isLocating}
+                    >
+                      {isLocating ? "Locating..." : "Use my location"}
+                    </Button>
+                  </div>
+                </div>
+
                 <div className="rounded-lg border bg-muted p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -290,6 +376,37 @@ export default function InfluencerSettingsPage() {
                         </Button>
                       ) : null}
                     </div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border bg-muted p-4">
+                  <div className="text-sm font-semibold">Connected accounts</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    Connect Instagram or TikTok now, link the other later.
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {socialAccounts.length ? (
+                      socialAccounts.map((a) => (
+                        <Badge key={`${a.provider}:${a.providerUserId}`} variant="secondary">
+                          {a.provider}
+                          {a.username ? `: ${a.username}` : ""}
+                        </Badge>
+                      ))
+                    ) : (
+                      <Badge variant="warning">None connected</Badge>
+                    )}
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <a href="/api/auth/social/instagram/connect?next=%2Finfluencer%2Fsettings">
+                      <Button size="sm" variant="outline" type="button">
+                        Connect Instagram
+                      </Button>
+                    </a>
+                    <a href="/api/auth/social/tiktok/connect?next=%2Finfluencer%2Fsettings">
+                      <Button size="sm" variant="outline" type="button">
+                        Connect TikTok
+                      </Button>
+                    </a>
                   </div>
                 </div>
 

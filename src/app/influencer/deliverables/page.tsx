@@ -30,6 +30,7 @@ export default function CreatorDeliverablesPage() {
   const [rows, setRows] = useState<Row[]>([]);
   const [status, setStatus] = useState<"loading" | "idle" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
+  const [origin, setOrigin] = useState("");
   const [draftByMatchId, setDraftByMatchId] = useState<Record<string, string>>({});
   const [notesByMatchId, setNotesByMatchId] = useState<Record<string, string>>({});
   const [rightsByMatchId, setRightsByMatchId] = useState<Record<string, boolean>>({});
@@ -82,6 +83,10 @@ export default function CreatorDeliverablesPage() {
 
   useEffect(() => {
     void load();
+  }, []);
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
   }, []);
 
   const dueCount = useMemo(() => rows.filter((r) => r.status === "DUE").length, [rows]);
@@ -170,6 +175,51 @@ export default function CreatorDeliverablesPage() {
                           </Badge>
                           <Badge variant="secondary">Type: {r.expectedType}</Badge>
                           <Badge variant="secondary">Code: {r.match.campaignCode}</Badge>
+                        </div>
+                        <div className="mt-3 rounded-lg border bg-muted p-3 text-xs text-muted-foreground">
+                          Share link:{" "}
+                          <a
+                            className="break-all underline"
+                            href={`/r/${encodeURIComponent(r.match.campaignCode)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {origin ? `${origin}/r/${r.match.campaignCode}` : `/r/${r.match.campaignCode}`}
+                          </a>
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(
+                                    origin ? `${origin}/r/${r.match.campaignCode}` : `/r/${r.match.campaignCode}`,
+                                  );
+                                  setMessage("Link copied.");
+                                } catch {
+                                  setMessage("Failed to copy link.");
+                                }
+                              }}
+                            >
+                              Copy link
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              type="button"
+                              onClick={async () => {
+                                try {
+                                  await navigator.clipboard.writeText(r.match.campaignCode);
+                                  setMessage("Code copied.");
+                                } catch {
+                                  setMessage("Failed to copy code.");
+                                }
+                              }}
+                            >
+                              Copy code
+                            </Button>
+                          </div>
                         </div>
                         {r.failureReason ? (
                           <div className="mt-3 text-sm text-danger">{r.failureReason}</div>

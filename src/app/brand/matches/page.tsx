@@ -123,7 +123,7 @@ export default function BrandMatchesPage() {
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">{title}</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Approve creators that fall below your auto-accept threshold. On approve, Frilpp
-              creates the discount + Shopify order (or queues it for retry via cron).
+              activates tracking and (optionally) Shopify automation if you’ve connected a store.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -149,6 +149,11 @@ export default function BrandMatchesPage() {
             <Link href="/brand/shipments">
               <Button size="sm" variant="outline">
                 Shipments
+              </Button>
+            </Link>
+            <Link href="/brand/redemptions">
+              <Button size="sm" variant="outline">
+                Redemptions
               </Button>
             </Link>
             <Button size="sm" variant="secondary" onClick={load}>

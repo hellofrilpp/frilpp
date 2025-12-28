@@ -13,7 +13,11 @@ type AnalyticsOfferRow = {
   matchCount: number;
   clickCount: number;
   orderCount: number;
+  redemptionCount: number;
   revenueCents: number;
+  refundCents?: number;
+  redemptionRevenueCents: number;
+  totalRevenueCents: number;
 };
 
 export default function BrandAnalyticsPage() {
@@ -63,7 +67,7 @@ export default function BrandAnalyticsPage() {
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Tracks clicks via `r/FRILP-XXXXXX` and attributed purchases via Shopify discount codes
-              matching the caption code.
+              matching the code, plus manual redemptions recorded by your team.
             </p>
           </div>
           <div className="flex gap-2">
@@ -72,6 +76,9 @@ export default function BrandAnalyticsPage() {
             </Link>
             <Link href="/brand/shipments">
               <Button variant="outline">Shipments</Button>
+            </Link>
+            <Link href="/brand/redemptions">
+              <Button variant="outline">Redemptions</Button>
             </Link>
             <Link href="/brand/offers/new">
               <Button variant="secondary">New offer</Button>
@@ -113,19 +120,20 @@ export default function BrandAnalyticsPage() {
                         <Badge>Accepted: {r.matchCount}</Badge>
                         <Badge>Clicks: {r.clickCount}</Badge>
                         <Badge>Orders: {r.orderCount}</Badge>
+                        <Badge>Redemptions: {r.redemptionCount}</Badge>
                         <Badge variant={r.clickCount > 0 ? "secondary" : "outline"}>
                           CVR:{" "}
                           {r.clickCount > 0
                             ? `${Math.round((r.orderCount / r.clickCount) * 10_000) / 100}%`
                             : "—"}
                         </Badge>
-                        <Badge variant={r.revenueCents > 0 ? "success" : "outline"}>
-                          Revenue: ${(r.revenueCents / 100).toFixed(2)}
+                        <Badge variant={r.totalRevenueCents > 0 ? "success" : "outline"}>
+                          Revenue: ${(r.totalRevenueCents / 100).toFixed(2)}
                         </Badge>
                         <Badge variant={r.clickCount > 0 ? "secondary" : "outline"}>
                           EPC:{" "}
                           {r.clickCount > 0
-                            ? `$${((r.revenueCents / 100) / r.clickCount).toFixed(2)}`
+                            ? `$${((r.totalRevenueCents / 100) / r.clickCount).toFixed(2)}`
                             : "—"}
                         </Badge>
                       </div>

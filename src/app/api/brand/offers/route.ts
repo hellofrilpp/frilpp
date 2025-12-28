@@ -34,6 +34,7 @@ const metadataSchema = z
     campaignName: z.string().trim().max(160).nullable().optional(),
     fulfillmentType: z.enum(["SHOPIFY", "MANUAL"]).nullable().optional(),
     locationRadiusMiles: z.number().min(1).max(5000).nullable().optional(),
+    ctaUrl: z.string().trim().max(800).url().nullable().optional(),
     presetId: z.string().trim().max(40).nullable().optional(),
   })
   .passthrough()

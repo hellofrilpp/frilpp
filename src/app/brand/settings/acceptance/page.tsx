@@ -73,12 +73,17 @@ export default function AcceptancePolicyPage() {
               Configure whether claims get auto-accepted or require approval.
             </p>
           </div>
-          <Link href="/">
-            <Button variant="outline">Home</Button>
-          </Link>
-          <Link href="/brand/settings/instagram">
-            <Button variant="secondary">Instagram</Button>
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/brand/settings/profile">
+              <Button variant="outline">Profile</Button>
+            </Link>
+            <Link href="/brand/settings/instagram">
+              <Button variant="secondary">Instagram</Button>
+            </Link>
+            <Link href="/">
+              <Button variant="outline">Home</Button>
+            </Link>
+          </div>
         </div>
 
         <Card className="mt-8">

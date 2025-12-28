@@ -10,33 +10,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { sanitizeNextPath } from "@/lib/redirects";
 
-export default function LoginClient() {
+export default function VerifyEmailClient() {
+  const search = useSearchParams();
+  const nextPath = sanitizeNextPath(search.get("next"), "/onboarding");
+  const provider = search.get("provider");
+
   const [email, setEmail] = useState("");
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
-  const search = useSearchParams();
-  const nextPath = sanitizeNextPath(search.get("next"), "/onboarding");
+  const [status, setStatus] = useState<"idle" | "saving" | "error">("idle");
+  const [error, setError] = useState<string | null>(null);
 
   async function submit() {
-    setStatus("sending");
+    setStatus("saving");
+    setError(null);
     try {
-      const res = await fetch("/api/auth/request", {
+      const res = await fetch("/api/auth/social/verify-email", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, next: nextPath, acceptTerms, acceptPrivacy }),
+        body: JSON.stringify({ email, acceptTerms, acceptPrivacy }),
       });
-      const data = (await res.json().catch(() => null)) as
-        | { ok: true; sent: boolean }
-        | { ok: false; error?: string };
+      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
       if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
         throw new Error(
-          data && "error" in data && typeof data.error === "string" ? data.error : "Failed",
+          data && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Failed to finish signup",
         );
       }
-      setStatus("sent");
-    } catch {
+      window.location.assign(nextPath);
+    } catch (err) {
       setStatus("error");
+      setError(err instanceof Error ? err.message : "Failed to finish signup");
     }
   }
 
@@ -47,13 +52,12 @@ export default function LoginClient() {
           <div>
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Frilpp</Badge>
-              <Badge variant="secondary">Sign in</Badge>
+              <Badge variant="secondary">Finish signup</Badge>
+              {provider ? <Badge variant="secondary">{provider.toUpperCase()}</Badge> : null}
             </div>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">
-              Magic link login
-            </h1>
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">One last step</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Enter your email and we’ll send a sign-in link (valid for 10 minutes).
+              Add an email for receipts and notifications. Social login stays your primary sign-in.
             </p>
           </div>
           <Link href="/">
@@ -61,32 +65,18 @@ export default function LoginClient() {
           </Link>
         </div>
 
+        {error ? (
+          <div className="mt-6 rounded-lg border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
+            {error}
+          </div>
+        ) : null}
+
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Sign in</CardTitle>
-            <CardDescription>
-              {status === "sent"
-                ? "Check your email for the link."
-                : status === "error"
-                  ? "Something went wrong. Try again."
-                  : "No password required."}
-            </CardDescription>
+            <CardTitle>Contact email</CardTitle>
+            <CardDescription>Used for important updates and receipts.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <a href={`/api/auth/social/instagram/connect?next=${encodeURIComponent(nextPath)}`}>
-                <Button className="w-full" variant="secondary" type="button">
-                  Continue with Instagram
-                </Button>
-              </a>
-              <a href={`/api/auth/social/tiktok/connect?next=${encodeURIComponent(nextPath)}`}>
-                <Button className="w-full" variant="secondary" type="button">
-                  Continue with TikTok
-                </Button>
-              </a>
-              <div className="text-center text-xs text-muted-foreground">Or sign in with email</div>
-            </div>
-
             <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -137,13 +127,18 @@ export default function LoginClient() {
 
             <Button
               onClick={submit}
-              disabled={status === "sending" || !email.trim() || !acceptTerms || !acceptPrivacy}
+              disabled={status === "saving" || !email.trim() || !acceptTerms || !acceptPrivacy}
             >
-              {status === "sending" ? "Sending..." : "Send sign-in link"}
+              {status === "saving" ? "Saving..." : "Continue"}
             </Button>
+
+            <div className="text-center text-xs text-muted-foreground">
+              After this, continue to <span className="font-mono">{nextPath}</span>.
+            </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
+

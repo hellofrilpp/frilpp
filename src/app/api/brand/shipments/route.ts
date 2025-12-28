@@ -8,9 +8,34 @@ export const runtime = "nodejs";
 
 const querySchema = z.object({
   status: z
-    .enum(["PENDING", "DRAFT_CREATED", "COMPLETED", "FULFILLED", "CANCELED", "ERROR"])
+    .enum(["PENDING", "SHIPPED", "DRAFT_CREATED", "COMPLETED", "FULFILLED", "CANCELED", "ERROR"])
     .optional(),
 });
+
+type ShopifyShipmentStatus =
+  | "PENDING"
+  | "DRAFT_CREATED"
+  | "COMPLETED"
+  | "FULFILLED"
+  | "CANCELED"
+  | "ERROR";
+
+type ManualShipmentStatus = "PENDING" | "SHIPPED";
+
+function isShopifyShipmentStatus(value: string): value is ShopifyShipmentStatus {
+  return (
+    value === "PENDING" ||
+    value === "DRAFT_CREATED" ||
+    value === "COMPLETED" ||
+    value === "FULFILLED" ||
+    value === "CANCELED" ||
+    value === "ERROR"
+  );
+}
+
+function isManualShipmentStatus(value: string): value is ManualShipmentStatus {
+  return value === "PENDING" || value === "SHIPPED";
+}
 
 export async function GET(request: Request) {
   if (!process.env.DATABASE_URL) {
@@ -29,60 +54,75 @@ export async function GET(request: Request) {
     return Response.json({ ok: false, error: "Invalid query" }, { status: 400 });
   }
 
-  const where = parsed.data.status
-    ? and(eq(offers.brandId, ctx.brandId), eq(shopifyOrders.status, parsed.data.status))
-    : eq(offers.brandId, ctx.brandId);
+  const statusFilter = parsed.data.status ?? null;
+  const shopifyStatus = statusFilter && isShopifyShipmentStatus(statusFilter) ? statusFilter : null;
+  const manualStatus = statusFilter && isManualShipmentStatus(statusFilter) ? statusFilter : null;
+  const shopifyWhere =
+    shopifyStatus
+      ? and(eq(offers.brandId, ctx.brandId), eq(shopifyOrders.status, shopifyStatus))
+      : eq(offers.brandId, ctx.brandId);
 
-  const shopifyRows = await db
-    .select({
-      shopifyOrderRowId: shopifyOrders.id,
-      status: shopifyOrders.status,
-      shopDomain: shopifyOrders.shopDomain,
-      shopifyOrderId: shopifyOrders.shopifyOrderId,
-      shopifyOrderName: shopifyOrders.shopifyOrderName,
-      trackingNumber: shopifyOrders.trackingNumber,
-      trackingUrl: shopifyOrders.trackingUrl,
-      error: shopifyOrders.error,
-      updatedAt: shopifyOrders.updatedAt,
-      matchId: matches.id,
-      campaignCode: matches.campaignCode,
-      offerTitle: offers.title,
-      creatorId: creators.id,
-      creatorUsername: creators.username,
-      creatorEmail: creators.email,
-      creatorCountry: creators.country,
-    })
-    .from(shopifyOrders)
-    .innerJoin(matches, eq(matches.id, shopifyOrders.matchId))
-    .innerJoin(offers, eq(offers.id, matches.offerId))
-    .innerJoin(creators, eq(creators.id, matches.creatorId))
-    .where(where)
-    .orderBy(desc(shopifyOrders.updatedAt))
-    .limit(200);
+  const shopifyRows =
+    statusFilter && !shopifyStatus
+      ? []
+      : await db
+          .select({
+            shopifyOrderRowId: shopifyOrders.id,
+            status: shopifyOrders.status,
+            shopDomain: shopifyOrders.shopDomain,
+            shopifyOrderId: shopifyOrders.shopifyOrderId,
+            shopifyOrderName: shopifyOrders.shopifyOrderName,
+            trackingNumber: shopifyOrders.trackingNumber,
+            trackingUrl: shopifyOrders.trackingUrl,
+            error: shopifyOrders.error,
+            updatedAt: shopifyOrders.updatedAt,
+            matchId: matches.id,
+            campaignCode: matches.campaignCode,
+            offerTitle: offers.title,
+            creatorId: creators.id,
+            creatorUsername: creators.username,
+            creatorEmail: creators.email,
+            creatorCountry: creators.country,
+          })
+          .from(shopifyOrders)
+          .innerJoin(matches, eq(matches.id, shopifyOrders.matchId))
+          .innerJoin(offers, eq(offers.id, matches.offerId))
+          .innerJoin(creators, eq(creators.id, matches.creatorId))
+          .where(shopifyWhere)
+          .orderBy(desc(shopifyOrders.updatedAt))
+          .limit(200);
 
-  const manualRows = await db
-    .select({
-      shipmentId: manualShipments.id,
-      status: manualShipments.status,
-      carrier: manualShipments.carrier,
-      trackingNumber: manualShipments.trackingNumber,
-      trackingUrl: manualShipments.trackingUrl,
-      updatedAt: manualShipments.updatedAt,
-      matchId: matches.id,
-      campaignCode: matches.campaignCode,
-      offerTitle: offers.title,
-      creatorId: creators.id,
-      creatorUsername: creators.username,
-      creatorEmail: creators.email,
-      creatorCountry: creators.country,
-    })
-    .from(manualShipments)
-    .innerJoin(matches, eq(matches.id, manualShipments.matchId))
-    .innerJoin(offers, eq(offers.id, matches.offerId))
-    .innerJoin(creators, eq(creators.id, matches.creatorId))
-    .where(eq(offers.brandId, ctx.brandId))
-    .orderBy(desc(manualShipments.updatedAt))
-    .limit(200);
+  const manualWhere =
+    manualStatus
+      ? and(eq(offers.brandId, ctx.brandId), eq(manualShipments.status, manualStatus))
+      : eq(offers.brandId, ctx.brandId);
+
+  const manualRows =
+    statusFilter && !manualStatus
+      ? []
+      : await db
+          .select({
+            shipmentId: manualShipments.id,
+            status: manualShipments.status,
+            carrier: manualShipments.carrier,
+            trackingNumber: manualShipments.trackingNumber,
+            trackingUrl: manualShipments.trackingUrl,
+            updatedAt: manualShipments.updatedAt,
+            matchId: matches.id,
+            campaignCode: matches.campaignCode,
+            offerTitle: offers.title,
+            creatorId: creators.id,
+            creatorUsername: creators.username,
+            creatorEmail: creators.email,
+            creatorCountry: creators.country,
+          })
+          .from(manualShipments)
+          .innerJoin(matches, eq(matches.id, manualShipments.matchId))
+          .innerJoin(offers, eq(offers.id, matches.offerId))
+          .innerJoin(creators, eq(creators.id, matches.creatorId))
+          .where(manualWhere)
+          .orderBy(desc(manualShipments.updatedAt))
+          .limit(200);
 
   const shipments = [
     ...shopifyRows.map((r) => ({

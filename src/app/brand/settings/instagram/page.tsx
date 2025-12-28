@@ -68,6 +68,9 @@ export default function InstagramSettingsPage() {
             </p>
           </div>
           <div className="flex gap-2">
+            <Link href="/brand/settings/profile">
+              <Button variant="outline">Profile</Button>
+            </Link>
             <Link href="/brand/settings/acceptance">
               <Button variant="outline">Acceptance</Button>
             </Link>
@@ -111,4 +114,3 @@ export default function InstagramSettingsPage() {
     </div>
   );
 }
-

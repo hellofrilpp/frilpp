@@ -1,6 +1,6 @@
 import { and, count, eq, inArray, sum } from "drizzle-orm";
 import { db } from "@/db";
-import { attributedOrders, attributedRefunds, deliverables, linkClicks, matches, offers, creators } from "@/db/schema";
+import { attributedOrders, attributedRefunds, deliverables, linkClicks, matches, offers, creators, redemptions } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -97,11 +97,27 @@ export async function GET(request: Request) {
     .where(and(inArray(deliverables.matchId, matchIds), eq(deliverables.status, "VERIFIED")))
     .groupBy(deliverables.matchId);
 
+  const redemptionRows = await db
+    .select({
+      matchId: redemptions.matchId,
+      redemptionCount: count(redemptions.id),
+      redemptionRevenueCents: sum(redemptions.amountCents),
+    })
+    .from(redemptions)
+    .where(inArray(redemptions.matchId, matchIds))
+    .groupBy(redemptions.matchId);
+
   const clickByMatch = new Map(clickRows.map((r) => [r.matchId, Number(r.clickCount ?? 0)]));
   const ordersByMatch = new Map(orderRows.map((r) => [r.matchId, Number(r.orderCount ?? 0)]));
   const revenueByMatch = new Map(orderRows.map((r) => [r.matchId, Number(r.revenueCents ?? 0)]));
   const refundsByMatch = new Map(refundRows.map((r) => [r.matchId, Number(r.refundCents ?? 0)]));
   const verifiedByMatch = new Map(verifiedRows.map((r) => [r.matchId, Number(r.verifiedCount ?? 0)]));
+  const redemptionsByMatch = new Map(
+    redemptionRows.map((r) => [r.matchId, Number(r.redemptionCount ?? 0)]),
+  );
+  const redemptionRevenueByMatch = new Map(
+    redemptionRows.map((r) => [r.matchId, Number(r.redemptionRevenueCents ?? 0)]),
+  );
   const refundByOrder = new Map(
     refundOrderRows.map((row) => [
       `${row.matchId}:${row.orderId}`,
@@ -136,8 +152,10 @@ export async function GET(request: Request) {
       verifiedCount: number;
       clickCount: number;
       orderCount: number;
+      redemptionCount: number;
       revenueCents: number;
       refundCents: number;
+      redemptionRevenueCents: number;
       seedCostCents: number;
     }
   >();
@@ -155,8 +173,10 @@ export async function GET(request: Request) {
         verifiedCount: 0,
         clickCount: 0,
         orderCount: 0,
+        redemptionCount: 0,
         revenueCents: 0,
         refundCents: 0,
+        redemptionRevenueCents: 0,
         seedCostCents: 0,
       };
 
@@ -164,15 +184,17 @@ export async function GET(request: Request) {
     entry.verifiedCount += verifiedByMatch.get(row.matchId) ?? 0;
     entry.clickCount += clickByMatch.get(row.matchId) ?? 0;
     entry.orderCount += ordersByMatch.get(row.matchId) ?? 0;
+    entry.redemptionCount += redemptionsByMatch.get(row.matchId) ?? 0;
     entry.revenueCents += revenueByMatch.get(row.matchId) ?? 0;
     entry.refundCents += refundsByMatch.get(row.matchId) ?? 0;
+    entry.redemptionRevenueCents += redemptionRevenueByMatch.get(row.matchId) ?? 0;
     entry.seedCostCents += moneyFromMetadata(row.offerMetadata as Record<string, unknown> | null);
 
     perCreator.set(row.creatorId, entry);
   }
 
   const creatorsList = Array.from(perCreator.values()).map((entry) => {
-    const netRevenueCents = entry.revenueCents - entry.refundCents;
+    const netRevenueCents = entry.revenueCents - entry.refundCents + entry.redemptionRevenueCents;
     const repeatBuyerCount = (() => {
       const customerCounts = ordersByCreatorCustomer.get(entry.creatorId);
       if (!customerCounts) return 0;
@@ -196,8 +218,10 @@ export async function GET(request: Request) {
       verifiedCount: entry.verifiedCount,
       clickCount: entry.clickCount,
       orderCount: entry.orderCount,
+      redemptionCount: entry.redemptionCount,
       revenueCents: entry.revenueCents,
       refundCents: entry.refundCents,
+      redemptionRevenueCents: entry.redemptionRevenueCents,
       netRevenueCents,
       seedCostCents: entry.seedCostCents,
       earningsCents: entry.seedCostCents,

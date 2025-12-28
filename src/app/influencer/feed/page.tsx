@@ -132,6 +132,9 @@ export default function InfluencerFeedPage() {
           if (code === "NEEDS_INSTAGRAM_SYNC" || code === "NEEDS_INSTAGRAM_RECONNECT") {
             throw new Error(`${msg}. Go to Profile → Sync now / Reconnect.`);
           }
+          if (code === "NEEDS_LOCATION") {
+            throw new Error(`${msg}. Go to Profile → set your location and try again.`);
+          }
           throw new Error(msg);
         }
         setClaimMessage(
@@ -217,8 +220,8 @@ export default function InfluencerFeedPage() {
                   </div>
 
                   <div className="mt-5 rounded-lg border bg-muted p-4 text-sm text-muted-foreground">
-                    Verification is enforced via a unique caption code on Reels/Feed. Stories are
-                    treated as bonus (best-effort).
+                    You’ll get a unique code + share link after claiming. Put the code in your caption
+                    so brands can verify the post and track redemptions.
                   </div>
 
                   <div className="mt-6 flex gap-3">

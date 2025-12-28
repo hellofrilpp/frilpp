@@ -9,20 +9,22 @@ import { Input } from "@/components/ui/input";
 
 type ShipmentRow = {
   id: string;
-  status: "PENDING" | "DRAFT_CREATED" | "COMPLETED" | "FULFILLED" | "CANCELED" | "ERROR";
-  shopDomain: string;
+  fulfillmentType: "SHOPIFY" | "MANUAL";
+  status: string;
+  shopDomain: string | null;
   shopifyOrderId: string | null;
   shopifyOrderName: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
   error: string | null;
+  carrier?: string | null;
   updatedAt: string;
   match: { id: string; campaignCode: string };
   offer: { title: string };
   creator: { id: string; username: string | null; email: string | null; country: string | null };
 };
 
-type Filter = "ALL" | ShipmentRow["status"];
+type Filter = "ALL" | "PENDING" | "SHIPPED" | "ERROR" | "FULFILLED" | "COMPLETED" | "CANCELED" | "DRAFT_CREATED";
 
 export default function BrandShipmentsPage() {
   const [rows, setRows] = useState<ShipmentRow[]>([]);
@@ -30,6 +32,10 @@ export default function BrandShipmentsPage() {
   const [filter, setFilter] = useState<Filter>("ALL");
   const [query, setQuery] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [carrierDraft, setCarrierDraft] = useState<Record<string, string>>({});
+  const [trackingNumberDraft, setTrackingNumberDraft] = useState<Record<string, string>>({});
+  const [trackingUrlDraft, setTrackingUrlDraft] = useState<Record<string, string>>({});
+  const [savingById, setSavingById] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async (nextFilter: Filter) => {
     setStatus("loading");
@@ -47,6 +53,28 @@ export default function BrandShipmentsPage() {
         );
       }
       setRows(data.shipments);
+      setCarrierDraft((prev) => {
+        const next = { ...prev };
+        for (const r of data.shipments) {
+          if (r.fulfillmentType !== "MANUAL") continue;
+          if (typeof next[r.id] !== "string") next[r.id] = (r.carrier ?? "") as string;
+        }
+        return next;
+      });
+      setTrackingNumberDraft((prev) => {
+        const next = { ...prev };
+        for (const r of data.shipments) {
+          if (typeof next[r.id] !== "string") next[r.id] = (r.trackingNumber ?? "") as string;
+        }
+        return next;
+      });
+      setTrackingUrlDraft((prev) => {
+        const next = { ...prev };
+        for (const r of data.shipments) {
+          if (typeof next[r.id] !== "string") next[r.id] = (r.trackingUrl ?? "") as string;
+        }
+        return next;
+      });
       setStatus("idle");
     } catch (err) {
       setStatus("error");
@@ -72,6 +100,35 @@ export default function BrandShipmentsPage() {
     });
   }, [query, rows]);
 
+  async function saveManualShipment(shipmentId: string, status?: "PENDING" | "SHIPPED") {
+    setSavingById((prev) => ({ ...prev, [shipmentId]: true }));
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/brand/shipments/manual/${encodeURIComponent(shipmentId)}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          status,
+          carrier: (carrierDraft[shipmentId] ?? "").trim() || undefined,
+          trackingNumber: (trackingNumberDraft[shipmentId] ?? "").trim() || undefined,
+          trackingUrl: (trackingUrlDraft[shipmentId] ?? "").trim() || undefined,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
+      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
+        throw new Error(
+          data && "error" in data && typeof data.error === "string" ? data.error : "Save failed",
+        );
+      }
+      setMessage("Saved.");
+      await load(filter);
+    } catch (err) {
+      setMessage(err instanceof Error ? err.message : "Save failed");
+    } finally {
+      setSavingById((prev) => ({ ...prev, [shipmentId]: false }));
+    }
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-10 md:px-8">
@@ -80,11 +137,11 @@ export default function BrandShipmentsPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Brand</Badge>
               <Badge variant="secondary">Shipments</Badge>
-              <Badge variant="secondary">Shopify</Badge>
+              <Badge variant="secondary">Fulfillment</Badge>
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Shipments</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Track order creation status, fulfillment, and tracking links.
+              Track Shopify orders and manual fulfillment (local delivery / pickup).
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -129,15 +186,7 @@ export default function BrandShipmentsPage() {
               />
               <div className="flex flex-wrap gap-2">
                 {(
-                  [
-                    "ALL",
-                    "PENDING",
-                    "DRAFT_CREATED",
-                    "COMPLETED",
-                    "FULFILLED",
-                    "ERROR",
-                    "CANCELED",
-                  ] as const
+                  ["ALL", "PENDING", "SHIPPED", "DRAFT_CREATED", "COMPLETED", "FULFILLED", "ERROR", "CANCELED"] as const
                 ).map((f) => (
                   <Button
                     key={f}
@@ -172,6 +221,7 @@ export default function BrandShipmentsPage() {
                           <span className="font-mono text-foreground">{r.match.campaignCode}</span>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
+                          <Badge variant="secondary">{r.fulfillmentType}</Badge>
                           <Badge
                             variant={
                               r.status === "FULFILLED"
@@ -204,6 +254,53 @@ export default function BrandShipmentsPage() {
                           >
                             {r.trackingUrl}
                           </a>
+                        ) : null}
+
+                        {r.fulfillmentType === "MANUAL" ? (
+                          <div className="mt-4 grid gap-2 rounded-lg border bg-muted p-3 text-xs">
+                            <div className="font-semibold text-muted-foreground">Manual fulfillment</div>
+                            <div className="grid gap-2 sm:grid-cols-3">
+                              <Input
+                                placeholder="Carrier"
+                                value={carrierDraft[r.id] ?? ""}
+                                onChange={(e) =>
+                                  setCarrierDraft((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                }
+                              />
+                              <Input
+                                placeholder="Tracking #"
+                                value={trackingNumberDraft[r.id] ?? ""}
+                                onChange={(e) =>
+                                  setTrackingNumberDraft((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                }
+                              />
+                              <Input
+                                placeholder="Tracking URL"
+                                value={trackingUrlDraft[r.id] ?? ""}
+                                onChange={(e) =>
+                                  setTrackingUrlDraft((prev) => ({ ...prev, [r.id]: e.target.value }))
+                                }
+                              />
+                            </div>
+                            <div className="flex flex-wrap justify-end gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => saveManualShipment(r.id, "PENDING")}
+                                disabled={Boolean(savingById[r.id])}
+                              >
+                                Save
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="success"
+                                onClick={() => saveManualShipment(r.id, "SHIPPED")}
+                                disabled={Boolean(savingById[r.id])}
+                              >
+                                Mark shipped
+                              </Button>
+                            </div>
+                          </div>
                         ) : null}
                       </div>
 
