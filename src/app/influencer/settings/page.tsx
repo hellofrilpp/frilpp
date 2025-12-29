@@ -410,6 +410,11 @@ export default function InfluencerSettingsPage() {
                         Connect TikTok
                       </Button>
                     </a>
+                    <a href="/api/auth/social/youtube/connect?next=%2Finfluencer%2Fsettings&role=creator">
+                      <Button size="sm" variant="outline" type="button">
+                        Connect YouTube
+                      </Button>
+                    </a>
                   </div>
                 </div>
 

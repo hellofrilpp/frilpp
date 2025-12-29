@@ -12,7 +12,7 @@ type ShareKit = {
     id: string;
     title: string;
     deliverableType: string;
-    platforms: Array<"INSTAGRAM" | "TIKTOK">;
+    platforms: Array<"INSTAGRAM" | "TIKTOK" | "YOUTUBE">;
     fulfillmentType: "SHOPIFY" | "MANUAL" | null;
     manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY" | null;
     manualFulfillmentNotes: string | null;
@@ -97,6 +97,7 @@ export default function ShareKitClient(props: { matchId: string }) {
 
   const canShareInstagram = kit?.offer.platforms.includes("INSTAGRAM") ?? true;
   const canShareTikTok = kit?.offer.platforms.includes("TIKTOK") ?? true;
+  const canShareYouTube = kit?.offer.platforms.includes("YOUTUBE") ?? true;
 
   return (
     <div className="min-h-screen bg-background">
@@ -243,6 +244,11 @@ export default function ShareKitClient(props: { matchId: string }) {
                       <a href="https://www.tiktok.com/" target="_blank" rel="noreferrer">
                         <Button size="sm" variant="outline" type="button" disabled={!canShareTikTok}>
                           Open TikTok
+                        </Button>
+                      </a>
+                      <a href="https://www.youtube.com/upload" target="_blank" rel="noreferrer">
+                        <Button size="sm" variant="outline" type="button" disabled={!canShareYouTube}>
+                          Upload YouTube Short
                         </Button>
                       </a>
                       <Link href="/influencer/performance">

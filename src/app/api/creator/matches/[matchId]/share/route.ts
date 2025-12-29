@@ -66,7 +66,7 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
   const platformsRaw = Array.isArray(metadata.platforms) ? metadata.platforms : [];
   const platforms = platformsRaw
     .map((p) => String(p).toUpperCase())
-    .filter((p): p is "INSTAGRAM" | "TIKTOK" => p === "INSTAGRAM" || p === "TIKTOK");
+    .filter((p): p is "INSTAGRAM" | "TIKTOK" | "YOUTUBE" => p === "INSTAGRAM" || p === "TIKTOK" || p === "YOUTUBE");
 
   const fulfillmentType =
     typeof metadata.fulfillmentType === "string" ? metadata.fulfillmentType.toUpperCase() : null;

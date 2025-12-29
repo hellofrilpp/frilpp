@@ -7,10 +7,11 @@ import { getSessionUser, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sanitizeNextPath } from "@/lib/redirects";
 import { discoverInstagramAccount, exchangeMetaCode, fetchInstagramProfile } from "@/lib/meta";
 import { exchangeTikTokCode, fetchTikTokProfile } from "@/lib/tiktok";
+import { exchangeYouTubeCode, fetchYouTubeChannel } from "@/lib/youtube";
 
 export const runtime = "nodejs";
 
-const providerSchema = z.enum(["instagram", "tiktok"]);
+const providerSchema = z.enum(["instagram", "tiktok", "youtube"]);
 const callbackSchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
@@ -65,7 +66,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   }
 
   const provider = providerParsed.data;
-  const providerId = provider === "instagram" ? "INSTAGRAM" : "TIKTOK";
+  const providerId = provider === "instagram" ? "INSTAGRAM" : provider === "tiktok" ? "TIKTOK" : "YOUTUBE";
   const url = new URL(request.url);
   const parsed = callbackSchema.safeParse({
     code: url.searchParams.get("code"),
@@ -91,7 +92,9 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const redirectUri =
     provider === "tiktok" && process.env.TIKTOK_REDIRECT_URL
       ? process.env.TIKTOK_REDIRECT_URL
-      : defaultRedirectUri;
+      : provider === "youtube" && process.env.YOUTUBE_REDIRECT_URL
+        ? process.env.YOUTUBE_REDIRECT_URL
+        : defaultRedirectUri;
 
   let providerUserId: string | null = null;
   let username: string | null = null;
@@ -116,7 +119,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
       igUserId: ig.igUserId,
     }).catch(() => null);
     username = profile?.username ?? ig.igUsername ?? null;
-  } else {
+  } else if (provider === "tiktok") {
     const exchanged = await exchangeTikTokCode({ code: parsed.data.code, redirectUri });
     accessTokenEncrypted = exchanged.accessTokenEncrypted;
     refreshTokenEncrypted = exchanged.refreshTokenEncrypted;
@@ -126,6 +129,16 @@ export async function GET(request: Request, context: { params: Promise<{ provide
 
     const profile = await fetchTikTokProfile({ accessToken: exchanged.accessToken }).catch(() => null);
     username = profile?.displayName ?? null;
+  } else {
+    const exchanged = await exchangeYouTubeCode({ code: parsed.data.code, redirectUri });
+    accessTokenEncrypted = exchanged.accessTokenEncrypted;
+    refreshTokenEncrypted = exchanged.refreshTokenEncrypted;
+    expiresAt = exchanged.expiresAt;
+    scopes = exchanged.scopes;
+
+    const channel = await fetchYouTubeChannel({ accessToken: exchanged.accessToken });
+    providerUserId = channel.channelId;
+    username = channel.username;
   }
 
   if (!providerUserId) {
@@ -133,6 +146,16 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   }
 
   const session = await getSessionUser(request);
+  if (!session && provider === "youtube") {
+    jar.delete("social_oauth_state");
+    jar.delete("social_oauth_provider");
+    jar.delete("social_oauth_next");
+    jar.delete("social_oauth_role");
+    return Response.json(
+      { ok: false, error: "YouTube connect requires an existing account (settings-only)" },
+      { status: 401 },
+    );
+  }
   const existingSocial = await db
     .select()
     .from(userSocialAccounts)

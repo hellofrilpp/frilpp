@@ -1,12 +1,14 @@
 import { cookies } from "next/headers";
 import { z } from "zod";
+import { getSessionUser } from "@/lib/auth";
 import { sanitizeNextPath } from "@/lib/redirects";
 import { buildInstagramOAuthUrl } from "@/lib/meta";
 import { buildTikTokOAuthUrl } from "@/lib/tiktok";
+import { buildYouTubeOAuthUrl } from "@/lib/youtube";
 
 export const runtime = "nodejs";
 
-const providerSchema = z.enum(["instagram", "tiktok"]);
+const providerSchema = z.enum(["instagram", "tiktok", "youtube"]);
 const roleSchema = z.enum(["brand", "creator"]);
 
 function isUsCountry(request: Request) {
@@ -37,6 +39,16 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const roleParsed = roleSchema.safeParse(url.searchParams.get("role"));
   const role = roleParsed.success ? roleParsed.data : null;
 
+  if (provider === "youtube") {
+    const session = await getSessionUser(request);
+    if (!session) {
+      return Response.json(
+        { ok: false, error: "YouTube connect is only available from settings after sign-in" },
+        { status: 401 },
+      );
+    }
+  }
+
   if (provider === "tiktok" && !isUsCountry(request)) {
     return Response.json(
       { ok: false, error: "TikTok login is only available in the US" },
@@ -49,7 +61,9 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const redirectUri =
     provider === "tiktok" && process.env.TIKTOK_REDIRECT_URL
       ? process.env.TIKTOK_REDIRECT_URL
-      : defaultRedirectUri;
+      : provider === "youtube" && process.env.YOUTUBE_REDIRECT_URL
+        ? process.env.YOUTUBE_REDIRECT_URL
+        : defaultRedirectUri;
 
   const state = crypto.randomUUID();
   const jar = await cookies();
@@ -104,10 +118,17 @@ export async function GET(request: Request, context: { params: Promise<{ provide
         ],
       });
     }
-    return buildTikTokOAuthUrl({
+    if (provider === "tiktok") {
+      return buildTikTokOAuthUrl({
+        redirectUri,
+        state,
+        scopes: ["user.info.basic", "video.list"],
+      });
+    }
+    return buildYouTubeOAuthUrl({
       redirectUri,
       state,
-      scopes: ["user.info.basic", "video.list"],
+      scopes: ["https://www.googleapis.com/auth/youtube.readonly"],
     });
   })();
 

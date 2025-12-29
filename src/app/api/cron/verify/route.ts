@@ -18,6 +18,8 @@ export async function GET(request: Request) {
     const { and, eq, gt, inArray, isNotNull, isNull, lt } = await import("drizzle-orm");
     const { fetchRecentMedia } = await import("@/lib/meta");
     const { fetchRecentTikTokVideos } = await import("@/lib/tiktok");
+    const { fetchRecentYouTubeVideos, refreshYouTubeAccessToken } = await import("@/lib/youtube");
+    const { decryptSecret } = await import("@/lib/crypto");
 
     if (!process.env.DATABASE_URL) {
       return Response.json(
@@ -338,6 +340,158 @@ export async function GET(request: Request) {
         verified: false,
         strikeIssued: false,
         note: err instanceof Error ? err.message : "TikTok verification error",
+      });
+    }
+  }
+
+  // 1c) Attempt automated verification for YouTube uploads/Shorts when creators connected YouTube.
+  const youtubeCandidates = await db
+    .select({
+      deliverableId: deliverables.id,
+      matchId: deliverables.matchId,
+      expectedType: deliverables.expectedType,
+      campaignCode: matches.campaignCode,
+      acceptedAt: matches.acceptedAt,
+      metadata: offers.metadata,
+      socialAccountId: userSocialAccounts.id,
+      channelId: userSocialAccounts.providerUserId,
+      accessTokenEncrypted: userSocialAccounts.accessTokenEncrypted,
+      refreshTokenEncrypted: userSocialAccounts.refreshTokenEncrypted,
+      expiresAt: userSocialAccounts.expiresAt,
+    })
+    .from(deliverables)
+    .innerJoin(matches, eq(matches.id, deliverables.matchId))
+    .innerJoin(offers, eq(offers.id, matches.offerId))
+    .innerJoin(creators, eq(creators.id, matches.creatorId))
+    .innerJoin(
+      userSocialAccounts,
+      and(eq(userSocialAccounts.userId, creators.id), eq(userSocialAccounts.provider, "YOUTUBE")),
+    )
+    .where(
+      and(
+        eq(deliverables.status, "DUE"),
+        inArray(deliverables.expectedType, ["REELS", "FEED"]),
+      ),
+    )
+    .limit(20);
+
+  for (const row of youtubeCandidates) {
+    try {
+      const platforms = Array.isArray((row.metadata as { platforms?: string[] } | null)?.platforms)
+        ? ((row.metadata as { platforms?: string[] }).platforms ?? []).map((p) => String(p).toUpperCase())
+        : [];
+      if (platforms.length && !platforms.includes("YOUTUBE")) {
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: true,
+          verified: false,
+          strikeIssued: false,
+          note: "YouTube not required for this offer",
+        });
+        continue;
+      }
+
+      let accessToken: string | null = null;
+      const shouldRefresh =
+        !row.accessTokenEncrypted ||
+        (row.expiresAt ? row.expiresAt.getTime() < Date.now() + 60_000 : false);
+
+      if (shouldRefresh) {
+        if (!row.refreshTokenEncrypted) {
+          results.push({
+            deliverableId: row.deliverableId,
+            matchId: row.matchId,
+            ok: false,
+            verified: false,
+            strikeIssued: false,
+            note: "YouTube token expired (reconnect in Settings)",
+        });
+        continue;
+      }
+        const refreshed = await refreshYouTubeAccessToken({
+          refreshTokenEncrypted: row.refreshTokenEncrypted,
+        });
+        accessToken = refreshed.accessToken;
+        await db
+          .update(userSocialAccounts)
+          .set({
+            accessTokenEncrypted: refreshed.accessTokenEncrypted,
+            expiresAt: refreshed.expiresAt,
+            scopes: refreshed.scopes ?? null,
+            updatedAt: now,
+          })
+          .where(eq(userSocialAccounts.id, row.socialAccountId));
+      } else if (row.accessTokenEncrypted) {
+        accessToken = decryptSecret(row.accessTokenEncrypted);
+      }
+
+      if (!accessToken) {
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: false,
+          verified: false,
+          strikeIssued: false,
+          note: "YouTube token missing",
+        });
+        continue;
+      }
+
+      const videos = await fetchRecentYouTubeVideos({
+        accessToken,
+        channelId: row.channelId,
+        limit: 25,
+      });
+
+      const acceptedAt = row.acceptedAt ? new Date(row.acceptedAt) : null;
+      const found = videos.find((video) => {
+        const haystack = `${video.title}\n${video.description}`.toLowerCase();
+        if (!haystack.includes(row.campaignCode.toLowerCase())) return false;
+        if (acceptedAt && video.publishedAt) {
+          const ts = new Date(video.publishedAt);
+          if (Number.isFinite(ts.getTime()) && ts.getTime() < acceptedAt.getTime()) return false;
+        }
+        return true;
+      });
+
+      if (found?.id) {
+        await db
+          .update(deliverables)
+          .set({
+            status: "VERIFIED",
+            verifiedMediaId: found.id,
+            verifiedPermalink: `https://www.youtube.com/shorts/${found.id}`,
+            verifiedAt: now,
+            failureReason: null,
+          })
+          .where(and(eq(deliverables.id, row.deliverableId), eq(deliverables.status, "DUE")));
+
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: true,
+          verified: true,
+          strikeIssued: false,
+        });
+      } else {
+        results.push({
+          deliverableId: row.deliverableId,
+          matchId: row.matchId,
+          ok: true,
+          verified: false,
+          strikeIssued: false,
+          note: "No matching YouTube video found",
+        });
+      }
+    } catch (err) {
+      results.push({
+        deliverableId: row.deliverableId,
+        matchId: row.matchId,
+        ok: false,
+        verified: false,
+        strikeIssued: false,
+        note: err instanceof Error ? err.message : "YouTube verification error",
       });
     }
   }
