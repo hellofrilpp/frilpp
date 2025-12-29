@@ -23,7 +23,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
+          <nav className="hidden lg:flex items-center gap-6">
             <a href="#how-it-works" className="text-xs font-mono text-muted-foreground hover:text-neon-green transition-colors hover-shake">
               [HOW_IT_WORKS]
             </a>
@@ -42,7 +42,7 @@ const Header = () => {
           </nav>
 
           {/* Desktop CTAs */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden lg:flex items-center gap-3">
             <MarketToggle />
             <Button variant="ghost" className="text-xs font-mono hover:text-neon-green" asChild>
               <Link to="/brand/login">&gt; BRAND_LOG_IN</Link>
@@ -64,7 +64,7 @@ const Header = () => {
 
           {/* Mobile Menu Toggle */}
           <button
-            className="md:hidden p-2 border-2 border-primary pixel-btn"
+            className="lg:hidden p-2 border-2 border-primary pixel-btn"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="w-5 h-5 text-primary" /> : <Menu className="w-5 h-5 text-primary" />}
@@ -73,7 +73,7 @@ const Header = () => {
 
         {/* Mobile Menu */}
         {isMenuOpen && (
-          <div className="md:hidden py-6 border-t-2 border-border animate-fade-in bg-card">
+          <div className="lg:hidden py-6 border-t-2 border-border animate-fade-in bg-card">
             <nav className="flex flex-col gap-4">
               <a href="#how-it-works" className="text-xs font-mono text-muted-foreground hover:text-neon-green">
                 [HOW_IT_WORKS]
