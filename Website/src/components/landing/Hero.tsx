@@ -20,7 +20,7 @@ const Hero = () => {
   const moneyExample = market === "IN" ? "₹1,500" : "$50";
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-x-hidden pt-20 pb-16 bg-grid">
+    <section className="relative min-h-screen flex items-center overflow-x-hidden pt-20 pb-16 bg-grid">
       {/* Animated floating decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {floatingElements.map((el, i) => (
@@ -56,10 +56,10 @@ const Hero = () => {
         />
       </div>
 
-      <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16 items-center">
+      <div className="container relative z-10 w-full min-w-0 px-4">
+        <div className="grid min-w-0 gap-12 items-center lg:grid-cols-2 lg:gap-16">
           {/* Left Content */}
-          <div className="text-center lg:text-left">
+          <div className="min-w-0 text-center lg:text-left">
             {/* Badge */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -177,7 +177,7 @@ const Hero = () => {
 
             {/* Stats ticker with counting animation */}
             <motion.div
-              className="flex items-center gap-6 mt-10 justify-center lg:justify-start"
+              className="flex flex-wrap items-center justify-center gap-4 mt-10 lg:justify-start lg:gap-6"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ duration: 0.5, delay: 0.9 }}
@@ -195,7 +195,7 @@ const Hero = () => {
                   transition={{ delay: 1 + i * 0.1, type: "spring" }}
                 >
                   <motion.div
-                    className={`text-2xl font-pixel ${stat.color}`}
+                    className={`text-xl sm:text-2xl font-pixel ${stat.color}`}
                     animate={{ scale: [1, 1.1, 1] }}
                     transition={{ duration: 2, delay: i * 0.3, repeat: Infinity }}
                   >
@@ -209,7 +209,7 @@ const Hero = () => {
 
           {/* Right - Interactive Swipe Demo */}
           <motion.div
-            className="relative pt-8"
+            className="relative min-w-0 pt-8"
             initial={{ opacity: 0, scale: 0.8, rotateY: -15 }}
             animate={{ opacity: 1, scale: 1, rotateY: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
