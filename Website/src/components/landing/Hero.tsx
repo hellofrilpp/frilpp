@@ -20,7 +20,7 @@ const Hero = () => {
   const moneyExample = market === "IN" ? "₹1,500" : "$50";
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20 pb-16 bg-grid">
+    <section className="relative min-h-screen flex items-center justify-center overflow-x-hidden pt-20 pb-16 bg-grid">
       {/* Animated floating decorations */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         {floatingElements.map((el, i) => (

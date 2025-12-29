@@ -216,7 +216,7 @@ const InteractiveSwipeDemo = () => {
   }, [cards, fireMatch]);
 
   return (
-    <div className="relative w-full max-w-sm mx-auto">
+    <div className="relative w-full max-w-sm mx-auto overflow-x-hidden">
       {/* Match counter */}
       <motion.div
         className="absolute -top-12 left-0 right-0 flex justify-center z-20"
@@ -292,7 +292,7 @@ const InteractiveSwipeDemo = () => {
 
       {/* Floating labels */}
       <motion.div
-        className="absolute -bottom-4 right-0 px-3 py-2 bg-neon-pink text-background text-xs font-pixel z-20 sm:-right-4"
+        className="absolute bottom-2 right-2 px-3 py-2 bg-neon-pink text-background text-xs font-pixel z-20"
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 1.5, repeat: Infinity }}
       >
