@@ -65,7 +65,7 @@ const Hero = () => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex max-w-[calc(100vw-2rem)] items-center gap-2 px-3 py-2 border-2 border-neon-yellow bg-card mb-8 pixel-btn"
+              className="flex w-fit max-w-[calc(100vw-2rem)] items-center gap-2 px-3 py-2 border-2 border-neon-yellow bg-card mb-8 pixel-btn mx-auto lg:mx-0"
             >
               <motion.div
                 animate={{ rotate: [0, 360] }}
@@ -74,8 +74,7 @@ const Hero = () => {
                 <Sparkles className="w-4 h-4 text-neon-yellow" />
               </motion.div>
               <span className="text-[10px] sm:text-xs font-mono text-neon-yellow whitespace-normal break-words leading-tight text-left">
-                <span className="sm:hidden">INTERACTIVE DEMO</span>
-                <span className="hidden sm:inline">INTERACTIVE_DEMO...</span>
+                INTERACTIVE DEMO
               </span>
             </motion.div>
 

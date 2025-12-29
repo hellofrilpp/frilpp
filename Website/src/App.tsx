@@ -38,39 +38,41 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <ThemeAccessibilityControls />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          
-          {/* Brand Routes */}
-          <Route path="/brand/auth" element={<BrandAuth />} />
-          <Route path="/brand/login" element={<BrandAuth />} />
-          <Route path="/brand/signup" element={<BrandAuth />} />
-          <Route path="/brand/dashboard" element={<BrandDashboard />} />
-          <Route path="/brand/campaigns" element={<BrandCampaigns />} />
-          <Route path="/brand/campaigns/new" element={<BrandCampaignCreator />} />
-          <Route path="/brand/pipeline" element={<BrandPipeline />} />
-          <Route path="/brand/analytics" element={<BrandAnalytics />} />
-          <Route path="/brand/settings" element={<BrandSettings />} />
-          
-          {/* Influencer Routes */}
-          <Route path="/influencer/auth" element={<InfluencerAuth />} />
-          <Route path="/influencer/login" element={<InfluencerAuth />} />
-          <Route path="/influencer/signup" element={<InfluencerAuth />} />
-          <Route path="/influencer/onboarding" element={<InfluencerOnboarding />} />
-          <Route path="/influencer/discover" element={<InfluencerDiscover />} />
-          <Route path="/influencer/deals" element={<InfluencerDeals />} />
-          <Route path="/influencer/profile" element={<InfluencerProfile />} />
-          
-          {/* Other Routes */}
-          <Route path="/leaderboard" element={<Leaderboard />} />
-          <Route path="/achievements" element={<Achievements />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/legal/terms" element={<LegalTerms />} />
-          <Route path="/legal/privacy" element={<LegalPrivacy />} />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
+        <div className="min-h-screen overflow-x-hidden">
+          <ThemeAccessibilityControls />
+          <Routes>
+            <Route path="/" element={<Index />} />
+
+            {/* Brand Routes */}
+            <Route path="/brand/auth" element={<BrandAuth />} />
+            <Route path="/brand/login" element={<BrandAuth />} />
+            <Route path="/brand/signup" element={<BrandAuth />} />
+            <Route path="/brand/dashboard" element={<BrandDashboard />} />
+            <Route path="/brand/campaigns" element={<BrandCampaigns />} />
+            <Route path="/brand/campaigns/new" element={<BrandCampaignCreator />} />
+            <Route path="/brand/pipeline" element={<BrandPipeline />} />
+            <Route path="/brand/analytics" element={<BrandAnalytics />} />
+            <Route path="/brand/settings" element={<BrandSettings />} />
+
+            {/* Influencer Routes */}
+            <Route path="/influencer/auth" element={<InfluencerAuth />} />
+            <Route path="/influencer/login" element={<InfluencerAuth />} />
+            <Route path="/influencer/signup" element={<InfluencerAuth />} />
+            <Route path="/influencer/onboarding" element={<InfluencerOnboarding />} />
+            <Route path="/influencer/discover" element={<InfluencerDiscover />} />
+            <Route path="/influencer/deals" element={<InfluencerDeals />} />
+            <Route path="/influencer/profile" element={<InfluencerProfile />} />
+
+            {/* Other Routes */}
+            <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/achievements" element={<Achievements />} />
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/legal/terms" element={<LegalTerms />} />
+            <Route path="/legal/privacy" element={<LegalPrivacy />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>

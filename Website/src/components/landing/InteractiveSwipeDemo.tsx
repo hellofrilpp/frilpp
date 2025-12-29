@@ -292,7 +292,7 @@ const InteractiveSwipeDemo = () => {
 
       {/* Floating labels */}
       <motion.div
-        className="absolute -bottom-4 -right-4 px-3 py-2 bg-neon-pink text-background text-xs font-pixel z-20"
+        className="absolute -bottom-4 right-0 px-3 py-2 bg-neon-pink text-background text-xs font-pixel z-20 sm:-right-4"
         animate={{ scale: [1, 1.05, 1] }}
         transition={{ duration: 1.5, repeat: Infinity }}
       >
