@@ -64,6 +64,33 @@ const Pricing = () => {
     },
   ] as const;
 
+  const colorClasses = {
+    "neon-green": {
+      border: "border-neon-green",
+      bgSoft: "bg-neon-green/10",
+      bgIcon: "bg-neon-green/20",
+      bgSolid: "bg-neon-green",
+      text: "text-neon-green",
+      glow: "glow-green",
+    },
+    "neon-pink": {
+      border: "border-neon-pink",
+      bgSoft: "bg-neon-pink/10",
+      bgIcon: "bg-neon-pink/20",
+      bgSolid: "bg-neon-pink",
+      text: "text-neon-pink",
+      glow: "glow-pink",
+    },
+    "neon-yellow": {
+      border: "border-neon-yellow",
+      bgSoft: "bg-neon-yellow/10",
+      bgIcon: "bg-neon-yellow/20",
+      bgSolid: "bg-neon-yellow",
+      text: "text-neon-yellow",
+      glow: "glow-yellow",
+    },
+  } as const;
+
   return (
     <section id="pricing" className="py-24 bg-card border-t-4 border-border relative">
       {/* Grid background */}
@@ -89,20 +116,23 @@ const Pricing = () => {
         </div>
 
         {/* Pricing Cards */}
-        <div className="grid md:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-3 max-w-5xl mx-auto">
           {plans.map((plan, index) => (
+            (() => {
+              const c = colorClasses[plan.color];
+              return (
             <div 
               key={index} 
               className={`relative p-6 border-4 ${
                 plan.popular 
-                  ? `border-${plan.color} bg-${plan.color}/10` 
+                  ? `${c.border} ${c.bgSoft}` 
                   : 'border-border bg-background'
               } transition-all hover:translate-x-1 hover:translate-y-1`}
             >
               {/* Popular Badge */}
               {plan.popular && (
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                  <div className={`px-4 py-1 bg-${plan.color} text-background text-xs font-pixel`}>
+                  <div className={`px-4 py-1 ${c.bgSolid} text-background text-xs font-pixel`}>
                     POPULAR
                   </div>
                 </div>
@@ -110,10 +140,10 @@ const Pricing = () => {
 
               {/* Plan Header */}
               <div className="text-center mb-6 pt-2">
-                <div className={`w-12 h-12 border-4 border-${plan.color} bg-${plan.color}/20 flex items-center justify-center mx-auto mb-4`}>
-                  <plan.icon className={`w-6 h-6 text-${plan.color}`} />
+                <div className={`w-12 h-12 border-4 ${c.border} ${c.bgIcon} flex items-center justify-center mx-auto mb-4`}>
+                  <plan.icon className={`w-6 h-6 ${c.text}`} />
                 </div>
-                <h3 className={`text-sm font-pixel mb-2 text-${plan.color}`}>{plan.name}</h3>
+                <h3 className={`text-sm font-pixel mb-2 ${c.text}`}>{plan.name}</h3>
                 <div className="flex items-baseline justify-center gap-1 mb-2">
                   <span className="text-2xl font-pixel text-foreground">{plan.price}</span>
                   {plan.period && (
@@ -127,8 +157,8 @@ const Pricing = () => {
               <ul className="space-y-3 mb-6">
                 {plan.features.map((feature, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <div className={`w-4 h-4 border-2 border-${plan.color} bg-${plan.color}/10 flex items-center justify-center flex-shrink-0 mt-0.5`}>
-                      <Check className={`w-2 h-2 text-${plan.color}`} />
+                    <div className={`w-4 h-4 border-2 ${c.border} ${c.bgSoft} flex items-center justify-center flex-shrink-0 mt-0.5`}>
+                      <Check className={`w-2 h-2 ${c.text}`} />
                     </div>
                     <span className="text-xs font-mono text-muted-foreground">{feature}</span>
                   </li>
@@ -139,7 +169,7 @@ const Pricing = () => {
               <Button 
                 className={`w-full py-5 text-xs font-pixel ${
                   plan.popular 
-                    ? `bg-${plan.color} text-background hover:bg-${plan.color}/90 glow-pink` 
+                    ? `${c.bgSolid} text-background hover:opacity-90 ${c.glow}` 
                     : 'bg-foreground text-background hover:bg-foreground/90'
                 } pixel-btn`}
                 asChild
@@ -150,6 +180,8 @@ const Pricing = () => {
                 </Link>
               </Button>
             </div>
+              );
+            })()
           ))}
         </div>
 

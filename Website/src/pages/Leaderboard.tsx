@@ -44,7 +44,7 @@ const Leaderboard = () => {
       {/* Header */}
       <header className="border-b-4 border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <Link to="/" className="flex items-center gap-3">
               <ArrowLeft className="w-5 h-5 text-muted-foreground" />
               <div className="flex items-center gap-2">
@@ -101,9 +101,9 @@ const Leaderboard = () => {
           </div>
 
           {/* Top 3 Podium */}
-          <div className="grid grid-cols-3 gap-4 mb-8">
+          <div className="grid grid-cols-1 gap-4 mb-8 sm:grid-cols-3">
             {/* 2nd Place */}
-            <div className="order-1 pt-8">
+            <div className="order-2 sm:order-1 sm:pt-8">
               <div className="border-4 border-muted-foreground bg-card p-4 text-center relative">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-muted-foreground flex items-center justify-center">
                   <span className="font-pixel text-background">2</span>
@@ -119,7 +119,7 @@ const Leaderboard = () => {
             </div>
 
             {/* 1st Place */}
-            <div className="order-2">
+            <div className="order-1 sm:order-2">
               <div className="border-4 border-neon-yellow bg-card p-4 text-center relative glow-yellow">
                 <div className="absolute -top-5 left-1/2 -translate-x-1/2">
                   <Crown className="w-8 h-8 text-neon-yellow animate-pulse-neon" />
@@ -139,7 +139,7 @@ const Leaderboard = () => {
             </div>
 
             {/* 3rd Place */}
-            <div className="order-3 pt-12">
+            <div className="order-3 sm:pt-12">
               <div className="border-4 border-neon-pink bg-card p-4 text-center relative">
                 <div className="absolute -top-4 left-1/2 -translate-x-1/2 w-8 h-8 bg-neon-pink flex items-center justify-center">
                   <span className="font-pixel text-background">3</span>
@@ -158,9 +158,9 @@ const Leaderboard = () => {
           {/* Full List */}
           <div className="border-4 border-border bg-card">
             <div className="border-b-4 border-border p-3 flex items-center gap-4">
-              <span className="font-pixel text-xs text-muted-foreground w-12">RANK</span>
+              <span className="font-pixel text-xs text-muted-foreground w-10 sm:w-12">RANK</span>
               <span className="font-pixel text-xs text-muted-foreground flex-1">CREATOR</span>
-              <span className="font-pixel text-xs text-muted-foreground w-20 text-right">XP</span>
+              <span className="font-pixel text-xs text-muted-foreground w-16 sm:w-20 text-right">XP</span>
               <span className="font-pixel text-xs text-muted-foreground w-16 text-right hidden sm:block">DEALS</span>
               <span className="font-pixel text-xs text-muted-foreground w-16 text-right hidden sm:block">TREND</span>
             </div>
@@ -172,7 +172,11 @@ const Leaderboard = () => {
                 }`}
                 style={{ animationDelay: `${index * 50}ms` }}
               >
-                <div className={`w-10 h-10 flex items-center justify-center border-2 ${getRankStyle(creator.rank)}`}>
+                <div
+                  className={`w-9 h-9 sm:w-10 sm:h-10 flex items-center justify-center border-2 ${getRankStyle(
+                    creator.rank,
+                  )}`}
+                >
                   {getRankIcon(creator.rank)}
                 </div>
                 <div className="flex items-center gap-3 flex-1 min-w-0">
@@ -180,11 +184,11 @@ const Leaderboard = () => {
                     {creator.avatar}
                   </div>
                   <div className="min-w-0">
-                    <p className="font-pixel text-sm text-foreground truncate">{creator.name}</p>
+                    <p className="font-pixel text-xs sm:text-sm text-foreground truncate">{creator.name}</p>
                     <p className="font-mono text-xs text-muted-foreground">{creator.handle ?? "@creator"}</p>
                   </div>
                 </div>
-                <div className="w-20 text-right">
+                <div className="w-16 sm:w-20 text-right">
                   <p className="font-mono text-sm text-neon-green">{creator.xp.toLocaleString()}</p>
                 </div>
                 <div className="w-16 text-right hidden sm:block">
