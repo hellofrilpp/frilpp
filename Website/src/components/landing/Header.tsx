@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import FrilppLogo from "@/components/FrilppLogo";
 import MarketToggle from "@/components/landing/MarketToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { AccessibilityToggle } from "@/components/AccessibilityToggle";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -91,7 +93,11 @@ const Header = () => {
                 [LEADERBOARD]
               </Link>
               <div className="pt-2">
-                <MarketToggle />
+                <div className="flex flex-wrap items-center gap-2">
+                  <MarketToggle />
+                  <ThemeToggle />
+                  <AccessibilityToggle />
+                </div>
               </div>
               <div className="flex flex-col gap-2 pt-4 border-t-2 border-border">
                 <Button variant="outline" asChild className="w-full border-2 border-primary text-primary font-mono text-xs">
