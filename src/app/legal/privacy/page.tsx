@@ -89,7 +89,7 @@ export default function PrivacyPage() {
             <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
               <li>Update or correct your profile information in your account settings.</li>
               <li>Opt out of marketing messages; transactional messages are still required.</li>
-              <li>Request account deletion by emailing hello@frilpp.com.</li>
+              <li>Delete your account from settings or email hello@frilpp.com.</li>
             </ul>
 
             <div className="text-sm font-semibold">Contact</div>

@@ -299,6 +299,15 @@ export const rateLimitBuckets = pgTable(
   }),
 );
 
+export const cronLocks = pgTable("cron_locks", {
+  job: text("job").primaryKey(),
+  lockedUntil: timestamp("locked_until", { withTimezone: true }).notNull(),
+  lockedBy: text("locked_by"),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const sessions = pgTable("sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id")

@@ -28,6 +28,14 @@ export default function BrandProfileSettingsPage() {
   const [status, setStatus] = useState<"loading" | "idle" | "saving" | "saved" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleteStatus, setDeleteStatus] = useState<"idle" | "deleting" | "done" | "error">("idle");
+  const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
+  const [brandDeleteConfirm, setBrandDeleteConfirm] = useState("");
+  const [brandDeleteStatus, setBrandDeleteStatus] = useState<"idle" | "deleting" | "done" | "error">(
+    "idle",
+  );
+  const [brandDeleteMessage, setBrandDeleteMessage] = useState<string | null>(null);
 
   async function load() {
     setStatus("loading");
@@ -108,6 +116,63 @@ export default function BrandProfileSettingsPage() {
       setMessage("Failed to get location (check browser permissions).");
     } finally {
       setIsLocating(false);
+    }
+  }
+
+  async function deleteAccount() {
+    if (deleteConfirm.trim() !== "DELETE") return;
+    setDeleteStatus("deleting");
+    setDeleteMessage(null);
+    try {
+      const res = await fetch("/api/account/delete", { method: "POST" });
+      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
+      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
+        throw new Error(
+          data && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Account deletion failed",
+        );
+      }
+      setDeleteStatus("done");
+      setDeleteMessage("Account deleted. Redirecting...");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 800);
+    } catch (err) {
+      setDeleteStatus("error");
+      setDeleteMessage(err instanceof Error ? err.message : "Account deletion failed");
+    }
+  }
+
+  async function deleteBrandWorkspace() {
+    if (!profile) return;
+    const target = `DELETE ${profile.name}`;
+    if (brandDeleteConfirm.trim().toLowerCase() !== target.toLowerCase()) return;
+
+    setBrandDeleteStatus("deleting");
+    setBrandDeleteMessage(null);
+    try {
+      const res = await fetch("/api/brand/delete", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ confirm: brandDeleteConfirm }),
+      });
+      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
+      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
+        throw new Error(
+          data && "error" in data && typeof data.error === "string"
+            ? data.error
+            : "Workspace deletion failed",
+        );
+      }
+      setBrandDeleteStatus("done");
+      setBrandDeleteMessage("Brand workspace deleted. Redirecting...");
+      setTimeout(() => {
+        window.location.href = "/onboarding";
+      }, 900);
+    } catch (err) {
+      setBrandDeleteStatus("error");
+      setBrandDeleteMessage(err instanceof Error ? err.message : "Workspace deletion failed");
     }
   }
 
@@ -301,6 +366,89 @@ export default function BrandProfileSettingsPage() {
                 </div>
               </>
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="mt-8 border-danger/40">
+          <CardHeader>
+            <CardTitle>Delete account</CardTitle>
+            <CardDescription>
+              Permanently deletes your account and removes your access to brand workspaces. Shared brand data
+              stays available to other team members.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {deleteMessage ? (
+              <div
+                className={`rounded-md border px-3 py-2 text-sm ${
+                  deleteStatus === "error"
+                    ? "border-danger/40 bg-danger/10 text-danger"
+                    : "border-border bg-muted text-muted-foreground"
+                }`}
+              >
+                {deleteMessage}
+              </div>
+            ) : null}
+            <div className="grid gap-2">
+              <Label htmlFor="deleteConfirm">Type DELETE to confirm</Label>
+              <Input
+                id="deleteConfirm"
+                value={deleteConfirm}
+                onChange={(e) => setDeleteConfirm(e.target.value)}
+                placeholder="DELETE"
+              />
+            </div>
+            <Button
+              variant="danger"
+              onClick={deleteAccount}
+              disabled={deleteStatus === "deleting" || deleteConfirm.trim() !== "DELETE"}
+            >
+              {deleteStatus === "deleting" ? "Deleting..." : "Delete account"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="mt-8 border-danger/60">
+          <CardHeader>
+            <CardTitle>Delete brand workspace</CardTitle>
+            <CardDescription>
+              Permanently removes this brand, its offers, matches, and analytics for all team members.
+              This cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            {brandDeleteMessage ? (
+              <div
+                className={`rounded-md border px-3 py-2 text-sm ${
+                  brandDeleteStatus === "error"
+                    ? "border-danger/40 bg-danger/10 text-danger"
+                    : "border-border bg-muted text-muted-foreground"
+                }`}
+              >
+                {brandDeleteMessage}
+              </div>
+            ) : null}
+            <div className="grid gap-2">
+              <Label htmlFor="brandDeleteConfirm">Type DELETE {profile?.name ?? "brand"} to confirm</Label>
+              <Input
+                id="brandDeleteConfirm"
+                value={brandDeleteConfirm}
+                onChange={(e) => setBrandDeleteConfirm(e.target.value)}
+                placeholder={profile ? `DELETE ${profile.name}` : "DELETE"}
+                disabled={!profile}
+              />
+            </div>
+            <Button
+              variant="danger"
+              onClick={deleteBrandWorkspace}
+              disabled={
+                brandDeleteStatus === "deleting" ||
+                !profile ||
+                brandDeleteConfirm.trim().toLowerCase() !== `DELETE ${profile?.name ?? ""}`.toLowerCase()
+              }
+            >
+              {brandDeleteStatus === "deleting" ? "Deleting..." : "Delete brand workspace"}
+            </Button>
           </CardContent>
         </Card>
       </div>

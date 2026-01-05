@@ -1,4 +1,5 @@
 import { sendEmail } from "@/lib/email";
+import { fetchWithTimeout } from "@/lib/http";
 
 async function sendTwilioMessage(params: { to: string; from: string; body: string }) {
   const accountSid = process.env.TWILIO_ACCOUNT_SID;
@@ -13,13 +14,14 @@ async function sendTwilioMessage(params: { to: string; from: string; body: strin
   body.set("From", params.from);
   body.set("Body", params.body);
 
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method: "POST",
     headers: {
       authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString("base64")}`,
       "content-type": "application/x-www-form-urlencoded",
     },
     body,
+    timeoutMs: 10_000,
   });
 
   if (!res.ok) {
@@ -66,4 +68,3 @@ export async function sendByChannel(params: {
   if (res.ok) return { ok: true as const };
   return { ok: false as const, error: res.error, skipped: res.skipped };
 }
-

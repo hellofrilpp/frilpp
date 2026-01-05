@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/http";
+
 const DEFAULT_BASE = "https://api.z.ai/api/coding/paas/v4";
 
 export type ZaiMessage = {
@@ -18,7 +20,7 @@ export async function zaiChat(params: {
   const base = (process.env.ZAI_API_BASE_URL ?? DEFAULT_BASE).replace(/\/$/, "");
   const model = process.env.ZAI_MODEL ?? "glm-4.6";
 
-  const res = await fetch(`${base}/chat/completions`, {
+  const res = await fetchWithTimeout(`${base}/chat/completions`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -31,6 +33,7 @@ export async function zaiChat(params: {
       max_tokens: params.maxTokens ?? 800,
       stream: false,
     }),
+    timeoutMs: 15_000,
   });
 
   if (!res.ok) {

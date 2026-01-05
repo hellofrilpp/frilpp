@@ -5,6 +5,7 @@ import { brands } from "@/db/schema";
 import { requireBrandContext, requireCreatorContext, getSessionUser } from "@/lib/auth";
 import { marketFromRequest, planKeyFor, type BillingLane } from "@/lib/billing";
 import { upsertBillingSubscriptionBySubject } from "@/lib/billing-store";
+import { fetchWithTimeout } from "@/lib/http";
 import { eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
@@ -48,7 +49,7 @@ async function createRazorpaySubscription(params: {
   }
 
   const auth = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
-  const res = await fetch("https://api.razorpay.com/v1/subscriptions", {
+  const res = await fetchWithTimeout("https://api.razorpay.com/v1/subscriptions", {
     method: "POST",
     headers: {
       authorization: `Basic ${auth}`,
@@ -67,6 +68,7 @@ async function createRazorpaySubscription(params: {
         customerEmail: params.customerEmail,
       },
     }),
+    timeoutMs: 10_000,
   });
 
   const json = (await res.json().catch(() => null)) as unknown;

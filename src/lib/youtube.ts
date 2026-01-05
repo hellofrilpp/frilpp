@@ -1,4 +1,5 @@
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
+import { fetchWithTimeout } from "@/lib/http";
 
 export function getYouTubeAppConfig() {
   const clientId = process.env.YOUTUBE_CLIENT_ID;
@@ -44,10 +45,11 @@ export async function exchangeYouTubeCode(params: { code: string; redirectUri: s
   body.set("grant_type", "authorization_code");
   body.set("redirect_uri", params.redirectUri);
 
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await fetchWithTimeout("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
+    timeoutMs: 10_000,
   });
   const json = (await res.json().catch(() => null)) as YouTubeTokenResponse | null;
   if (!res.ok || !json?.access_token) {
@@ -76,10 +78,11 @@ export async function refreshYouTubeAccessToken(params: { refreshTokenEncrypted:
   body.set("refresh_token", refreshToken);
   body.set("grant_type", "refresh_token");
 
-  const res = await fetch("https://oauth2.googleapis.com/token", {
+  const res = await fetchWithTimeout("https://oauth2.googleapis.com/token", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
+    timeoutMs: 10_000,
   });
   const json = (await res.json().catch(() => null)) as YouTubeTokenResponse | null;
   if (!res.ok || !json?.access_token) {
@@ -109,8 +112,9 @@ export async function fetchYouTubeChannel(params: { accessToken: string }) {
   url.searchParams.set("part", "snippet");
   url.searchParams.set("mine", "true");
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url.toString(), {
     headers: { authorization: `Bearer ${params.accessToken}` },
+    timeoutMs: 10_000,
   });
   const json = (await res.json().catch(() => null)) as YouTubeChannelsResponse | null;
   const item = json?.items?.[0];
@@ -147,8 +151,9 @@ export async function fetchRecentYouTubeVideos(params: {
   url.searchParams.set("order", "date");
   url.searchParams.set("maxResults", String(Math.min(Math.max(params.limit, 1), 50)));
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url.toString(), {
     headers: { authorization: `Bearer ${params.accessToken}` },
+    timeoutMs: 10_000,
   });
   const json = (await res.json().catch(() => null)) as YouTubeSearchResponse | null;
   if (!res.ok || !json?.items) {
@@ -165,4 +170,3 @@ export async function fetchRecentYouTubeVideos(params: {
     }))
     .filter((v) => Boolean(v.id));
 }
-

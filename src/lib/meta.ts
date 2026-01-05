@@ -1,4 +1,5 @@
 import { encryptSecret, decryptSecret } from "@/lib/crypto";
+import { fetchWithTimeout } from "@/lib/http";
 
 export function getMetaApiVersion() {
   return process.env.META_API_VERSION ?? "v20.0";
@@ -56,7 +57,7 @@ export async function exchangeMetaCode(params: {
   tokenUrl.searchParams.set("redirect_uri", params.redirectUri);
   tokenUrl.searchParams.set("code", params.code);
 
-  const shortRes = await fetch(tokenUrl.toString(), { method: "GET" });
+  const shortRes = await fetchWithTimeout(tokenUrl.toString(), { method: "GET", timeoutMs: 10_000 });
   const shortJson = (await shortRes.json().catch(() => null)) as OAuthTokenResponse | null;
   if (!shortRes.ok || !shortJson?.access_token) {
     throw new Error("Meta token exchange failed");
@@ -68,7 +69,7 @@ export async function exchangeMetaCode(params: {
   longUrl.searchParams.set("client_secret", cfg.appSecret);
   longUrl.searchParams.set("fb_exchange_token", shortJson.access_token);
 
-  const longRes = await fetch(longUrl.toString(), { method: "GET" });
+  const longRes = await fetchWithTimeout(longUrl.toString(), { method: "GET", timeoutMs: 10_000 });
   const longJson = (await longRes.json().catch(() => null)) as OAuthTokenResponse | null;
   if (!longRes.ok || !longJson?.access_token) {
     throw new Error("Meta long-lived token exchange failed");
@@ -86,14 +87,18 @@ export async function exchangeMetaCode(params: {
 
 export async function discoverInstagramAccount(params: { accessToken: string }) {
   const base = `https://graph.facebook.com/${getMetaApiVersion()}`;
-  const pagesRes = await fetch(`${base}/me/accounts?access_token=${encodeURIComponent(params.accessToken)}`);
+  const pagesRes = await fetchWithTimeout(
+    `${base}/me/accounts?access_token=${encodeURIComponent(params.accessToken)}`,
+    { timeoutMs: 10_000 },
+  );
   const pagesJson = (await pagesRes.json().catch(() => null)) as PagesListResponse | null;
   const pages = pagesJson?.data ?? [];
   if (!pages.length) return null;
 
   for (const page of pages) {
-    const pageRes = await fetch(
+    const pageRes = await fetchWithTimeout(
       `${base}/${page.id}?fields=instagram_business_account{id,username}&access_token=${encodeURIComponent(page.access_token)}`,
+      { timeoutMs: 10_000 },
     );
     const pageJson = (await pageRes.json().catch(() => null)) as PageIgAccountResponse | null;
     const ig = pageJson?.instagram_business_account;
@@ -119,7 +124,7 @@ export async function fetchInstagramProfile(params: { accessToken: string; igUse
   url.searchParams.set("fields", "id,username,followers_count,media_count,account_type");
   url.searchParams.set("access_token", params.accessToken);
 
-  const res = await fetch(url.toString(), { method: "GET" });
+  const res = await fetchWithTimeout(url.toString(), { method: "GET", timeoutMs: 10_000 });
   const json = (await res.json().catch(() => null)) as IgProfileResponse | { error?: { message?: string } } | null;
   if (!res.ok || !json || !("id" in json)) {
     const msg = json && "error" in json ? json.error?.message : null;
@@ -155,7 +160,7 @@ export async function fetchRecentMedia(params: {
   url.searchParams.set("limit", String(params.limit));
   url.searchParams.set("access_token", accessToken);
 
-  const res = await fetch(url.toString(), { method: "GET" });
+  const res = await fetchWithTimeout(url.toString(), { method: "GET", timeoutMs: 10_000 });
   const json = (await res.json().catch(() => null)) as
     | { data: Array<{ id: string; caption?: string; media_type?: string; permalink?: string; timestamp?: string }> }
     | { error?: { message?: string } }

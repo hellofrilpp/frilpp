@@ -3,6 +3,7 @@ import { GET as verifyCron } from "@/app/api/cron/verify/route";
 import { GET as fulfillmentCron } from "@/app/api/cron/fulfillment/route";
 import { GET as notifyCron } from "@/app/api/cron/notify/route";
 import { GET as metaSyncCron } from "@/app/api/cron/meta-sync/route";
+import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 
 export const runtime = "nodejs";
 
@@ -47,6 +48,7 @@ async function runJob(name: string, fn: (req: Request) => Promise<Response>) {
 }
 
 export async function GET(request: Request) {
+  let lockHolder: string | null = null;
   const auth = requireCronAuth(request);
   if (auth) return auth;
 
@@ -60,13 +62,29 @@ export async function GET(request: Request) {
     });
   }
 
-  const results = {
-    verify: await runJob("verify", verifyCron),
-    fulfillment: await runJob("fulfillment", fulfillmentCron),
-    notify: await runJob("notify", notifyCron),
-    "meta-sync": await runJob("meta-sync", metaSyncCron),
-  };
+  const lock = await acquireCronLock({ job: "daily", ttlSeconds: 30 * 60 });
+  if (!lock.ok) {
+    return Response.json({ ok: true, skipped: true, reason: "locked", now: now.toISOString() });
+  }
+  lockHolder = lock.holder;
 
-  const ok = Object.values(results).every((r) => r.ok);
-  return Response.json({ ok, results });
+  try {
+    const results = {
+      verify: await runJob("verify", verifyCron),
+      fulfillment: await runJob("fulfillment", fulfillmentCron),
+      notify: await runJob("notify", notifyCron),
+      "meta-sync": await runJob("meta-sync", metaSyncCron),
+    };
+
+    const ok = Object.values(results).every((r) => r.ok);
+    return Response.json({ ok, results });
+  } finally {
+    try {
+      if (lockHolder) {
+        await releaseCronLock({ job: "daily", holder: lockHolder });
+      }
+    } catch {
+      // ignore
+    }
+  }
 }

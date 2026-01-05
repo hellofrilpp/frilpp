@@ -6,10 +6,12 @@ import { sendAlert } from "@/lib/alerts";
 import { log } from "@/lib/logger";
 import { captureException } from "@/lib/telemetry";
 import { requireCronAuth } from "@/lib/cron-auth";
+import { acquireCronLock, releaseCronLock } from "@/lib/cron-lock";
 
 export const runtime = "nodejs";
 
 export async function GET(request: Request) {
+  let lockHolder: string | null = null;
   try {
     const auth = requireCronAuth(request);
     if (auth) return auth;
@@ -20,6 +22,12 @@ export async function GET(request: Request) {
         { status: 500 },
       );
     }
+
+    const lock = await acquireCronLock({ job: "fulfillment", ttlSeconds: 10 * 60 });
+    if (!lock.ok) {
+      return Response.json({ ok: true, skipped: true, reason: "locked" });
+    }
+    lockHolder = lock.holder;
 
     const candidates = await db
       .select({ matchId: matches.id })
@@ -64,5 +72,13 @@ export async function GET(request: Request) {
       text: err instanceof Error ? err.stack ?? err.message : "Unknown error",
     });
     return Response.json({ ok: false, error: "Cron failed" }, { status: 500 });
+  } finally {
+    try {
+      if (lockHolder) {
+        await releaseCronLock({ job: "fulfillment", holder: lockHolder });
+      }
+    } catch {
+      // ignore
+    }
   }
 }

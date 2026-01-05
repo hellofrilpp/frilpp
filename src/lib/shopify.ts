@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { fetchWithTimeout } from "@/lib/http";
 
 function requiredEnv(name: string) {
   const value = process.env[name];
@@ -53,7 +54,7 @@ export function verifyShopifyHmac(params: URLSearchParams) {
 export async function exchangeAccessToken(shopDomain: string, code: string) {
   const apiKey = requiredEnv("SHOPIFY_API_KEY");
   const apiSecret = requiredEnv("SHOPIFY_API_SECRET");
-  const res = await fetch(`https://${shopDomain}/admin/oauth/access_token`, {
+  const res = await fetchWithTimeout(`https://${shopDomain}/admin/oauth/access_token`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
@@ -61,6 +62,7 @@ export async function exchangeAccessToken(shopDomain: string, code: string) {
       client_secret: apiSecret,
       code,
     }),
+    timeoutMs: 10_000,
   });
   const json = (await res.json().catch(() => null)) as null | { access_token?: string; scope?: string };
   if (!res.ok || !json?.access_token) {
@@ -77,13 +79,14 @@ export async function shopifyRest<T>(
 ) {
   const version = getShopifyApiVersion();
   const url = `https://${shopDomain}/admin/api/${version}${path}`;
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     ...init,
     headers: {
       ...(init?.headers ?? {}),
       "X-Shopify-Access-Token": accessToken,
       "content-type": "application/json",
     },
+    timeoutMs: 12_000,
   });
   const json = (await res.json().catch(() => null)) as T | null;
   if (!res.ok || !json) {

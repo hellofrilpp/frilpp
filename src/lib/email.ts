@@ -1,3 +1,5 @@
+import { fetchWithTimeout } from "@/lib/http";
+
 type ResendSendResponse = { id: string };
 
 export async function sendEmail(params: {
@@ -13,7 +15,7 @@ export async function sendEmail(params: {
     return { ok: false as const, skipped: true as const, error: "Email not configured" };
   }
 
-  const res = await fetch("https://api.resend.com/emails", {
+  const res = await fetchWithTimeout("https://api.resend.com/emails", {
     method: "POST",
     headers: {
       authorization: `Bearer ${apiKey}`,
@@ -26,6 +28,7 @@ export async function sendEmail(params: {
       html: params.html,
       text: params.text,
     }),
+    timeoutMs: 10_000,
   });
 
   if (!res.ok) {
@@ -36,4 +39,3 @@ export async function sendEmail(params: {
   const json = (await res.json().catch(() => null)) as ResendSendResponse | null;
   return { ok: true as const, id: json?.id ?? null };
 }
-

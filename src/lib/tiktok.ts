@@ -1,4 +1,5 @@
 import { decryptSecret, encryptSecret } from "@/lib/crypto";
+import { fetchWithTimeout } from "@/lib/http";
 
 export function getTikTokAppConfig() {
   const clientId = process.env.TIKTOK_CLIENT_ID;
@@ -45,10 +46,11 @@ export async function exchangeTikTokCode(params: { code: string; redirectUri: st
   body.set("grant_type", "authorization_code");
   body.set("redirect_uri", params.redirectUri);
 
-  const res = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
+  const res = await fetchWithTimeout("https://open.tiktokapis.com/v2/oauth/token/", {
     method: "POST",
     headers: { "content-type": "application/x-www-form-urlencoded" },
     body,
+    timeoutMs: 10_000,
   });
   const json = (await res.json().catch(() => null)) as TikTokTokenResponse | null;
   if (!res.ok || !json?.access_token || !json?.open_id) {
@@ -82,8 +84,9 @@ export async function fetchTikTokProfile(params: { accessToken: string }) {
   const url = new URL("https://open.tiktokapis.com/v2/user/info/");
   url.searchParams.set("fields", "open_id,display_name");
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url.toString(), {
     headers: { authorization: `Bearer ${params.accessToken}` },
+    timeoutMs: 10_000,
   });
   const json = (await res.json().catch(() => null)) as TikTokProfileResponse | null;
   if (!res.ok || !json?.data?.user?.open_id) {
@@ -119,13 +122,14 @@ export async function fetchRecentTikTokVideos(params: {
 
   const body = JSON.stringify({ max_count: Math.min(Math.max(params.limit, 1), 50) });
 
-  const res = await fetch(url.toString(), {
+  const res = await fetchWithTimeout(url.toString(), {
     method: "POST",
     headers: {
       authorization: `Bearer ${accessToken}`,
       "content-type": "application/json",
     },
     body,
+    timeoutMs: 10_000,
   });
   const json = (await res.json().catch(() => null)) as TikTokVideoListResponse | null;
   if (!res.ok || !json?.data?.videos) {
