@@ -2,13 +2,12 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
-type PageProps = {
-  searchParams?: { code?: string; status?: string };
-};
-
-export default function DataDeletionPage({ searchParams }: PageProps) {
-  const code = typeof searchParams?.code === "string" ? searchParams.code : "unknown";
-  const status = typeof searchParams?.status === "string" ? searchParams.status : "deleted";
+export default async function DataDeletionPage(props: {
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const sp = (await props.searchParams) ?? {};
+  const code = typeof sp.code === "string" ? sp.code : "unknown";
+  const status = typeof sp.status === "string" ? sp.status : "deleted";
   const statusMessage =
     status === "deleted"
       ? "We have processed your data deletion request."
