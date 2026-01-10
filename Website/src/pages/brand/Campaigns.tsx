@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery } from "@tanstack/react-query";
-import { ApiError, BrandOffer, duplicateBrandOffer, getBrandDeliverables, getBrandMatches, getBrandOffers, updateBrandOffer } from "@/lib/api";
+import { ApiError, BrandOffer, deleteBrandOffer, duplicateBrandOffer, getBrandDeliverables, getBrandMatches, getBrandOffers, updateBrandOffer } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const BrandCampaigns = () => {
@@ -264,14 +264,35 @@ const BrandCampaigns = () => {
                         className="font-mono text-xs text-destructive"
                         onSelect={(event) => {
                           event.preventDefault();
-                          const confirmed = window.confirm("Delete campaign? This will archive it.");
+                          const confirmed = window.confirm("Archive campaign?");
                           if (!confirmed) return;
                           handleStatusChange(campaign.id, "ARCHIVED");
                         }}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
-                        DELETE
+                        ARCHIVE
                       </DropdownMenuItem>
+                      {campaign.rawStatus === "DRAFT" && (
+                        <DropdownMenuItem
+                          className="font-mono text-xs text-destructive"
+                          onSelect={async (event) => {
+                            event.preventDefault();
+                            const confirm = window.prompt('Type DELETE to permanently delete this draft campaign.', '');
+                            if (confirm?.trim() !== "DELETE") return;
+                            try {
+                              await deleteBrandOffer(campaign.id);
+                              await refetch();
+                              toast({ title: "DELETED", description: "Draft campaign permanently deleted." });
+                            } catch (err) {
+                              const message = err instanceof ApiError ? err.message : "Delete failed";
+                              toast({ title: "DELETE FAILED", description: message });
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          DELETE PERMANENTLY
+                        </DropdownMenuItem>
+                      )}
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>

@@ -212,6 +212,12 @@ export async function updateBrandOffer(
   });
 }
 
+export async function deleteBrandOffer(offerId: string) {
+  return apiFetch<{ ok: boolean }>(`/api/brand/offers/${offerId}`, {
+    method: "DELETE",
+  });
+}
+
 export async function duplicateBrandOffer(offerId: string) {
   return apiFetch<{ ok: boolean; offerId: string }>(
     `/api/brand/offers/${offerId}/duplicate`,

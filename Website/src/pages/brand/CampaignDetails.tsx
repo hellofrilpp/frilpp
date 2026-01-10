@@ -5,7 +5,7 @@ import { ArrowLeft, Copy, Pause, Play, Trash2 } from "lucide-react";
 
 import BrandLayout from "@/components/brand/BrandLayout";
 import { Button } from "@/components/ui/button";
-import { ApiError, duplicateBrandOffer, getBrandOffer, updateBrandOffer } from "@/lib/api";
+import { ApiError, deleteBrandOffer, duplicateBrandOffer, getBrandOffer, updateBrandOffer } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const BrandCampaignDetails = () => {
@@ -62,13 +62,27 @@ const BrandCampaignDetails = () => {
     }
   };
 
-  const handleDelete = async () => {
+  const handleArchive = async () => {
     if (!offerId) return;
-    const confirmed = window.confirm("Delete campaign? This will archive it.");
+    const confirmed = window.confirm("Archive campaign?");
     if (!confirmed) return;
     try {
       await updateBrandOffer(offerId, { status: "ARCHIVED" });
-      toast({ title: "DELETED", description: "Campaign archived." });
+      toast({ title: "ARCHIVED", description: "Campaign archived." });
+      navigate("/brand/campaigns");
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Archive failed";
+      toast({ title: "ARCHIVE FAILED", description: message });
+    }
+  };
+
+  const handlePermanentDelete = async () => {
+    if (!offerId) return;
+    const confirm = window.prompt('Type DELETE to permanently delete this draft campaign.', '');
+    if (confirm?.trim() !== "DELETE") return;
+    try {
+      await deleteBrandOffer(offerId);
+      toast({ title: "DELETED", description: "Draft campaign permanently deleted." });
       navigate("/brand/campaigns");
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Delete failed";
@@ -122,12 +136,23 @@ const BrandCampaignDetails = () => {
             <Button
               variant="outline"
               className="border-2 font-mono text-xs text-destructive"
-              onClick={handleDelete}
+              onClick={handleArchive}
               disabled={isLoading}
             >
               <Trash2 className="w-4 h-4 mr-2" />
-              DELETE
+              ARCHIVE
             </Button>
+            {offer?.status === "DRAFT" && (
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs text-destructive"
+                onClick={handlePermanentDelete}
+                disabled={isLoading}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                DELETE PERMANENTLY
+              </Button>
+            )}
           </div>
         </div>
 
@@ -191,4 +216,3 @@ const BrandCampaignDetails = () => {
 };
 
 export default BrandCampaignDetails;
-

@@ -1,7 +1,7 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { offerProducts, offers } from "@/db/schema";
+import { deliverables, manualShipments, matches, offerProducts, offers, shopifyOrders } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -124,5 +124,96 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
 
   if (!updated.length) return Response.json({ ok: false, error: "Offer not found" }, { status: 404 });
 
+  return Response.json({ ok: true });
+}
+
+export async function DELETE(request: Request, context: { params: Promise<{ offerId: string }> }) {
+  if (!process.env.DATABASE_URL) {
+    return Response.json(
+      { ok: false, error: "DATABASE_URL is not configured" },
+      { status: 500 },
+    );
+  }
+
+  const ctx = await requireBrandContext(request);
+  if (ctx instanceof Response) return ctx;
+  const { offerId } = await context.params;
+
+  const offerRows = await db
+    .select({ id: offers.id, status: offers.status })
+    .from(offers)
+    .where(and(eq(offers.id, offerId), eq(offers.brandId, ctx.brandId)))
+    .limit(1);
+  const offer = offerRows[0];
+  if (!offer) return Response.json({ ok: false, error: "Offer not found" }, { status: 404 });
+
+  if (offer.status !== "DRAFT") {
+    return Response.json(
+      { ok: false, error: "Only draft campaigns can be permanently deleted", code: "ONLY_DRAFT_CAN_DELETE" },
+      { status: 409 },
+    );
+  }
+
+  const [matchRow] = await db
+    .select({ id: matches.id })
+    .from(matches)
+    .where(eq(matches.offerId, offerId))
+    .limit(1);
+  if (matchRow) {
+    return Response.json(
+      { ok: false, error: "Campaign has matches and cannot be deleted", code: "OFFER_HAS_ACTIVITY" },
+      { status: 409 },
+    );
+  }
+
+  const [deliverableRow] = await db
+    .select({ id: deliverables.id })
+    .from(deliverables)
+    .innerJoin(matches, eq(deliverables.matchId, matches.id))
+    .where(eq(matches.offerId, offerId))
+    .limit(1);
+  if (deliverableRow) {
+    return Response.json(
+      { ok: false, error: "Campaign has deliverables and cannot be deleted", code: "OFFER_HAS_ACTIVITY" },
+      { status: 409 },
+    );
+  }
+
+  const [manualShipmentRow] = await db
+    .select({ id: manualShipments.id })
+    .from(manualShipments)
+    .innerJoin(matches, eq(manualShipments.matchId, matches.id))
+    .where(eq(matches.offerId, offerId))
+    .limit(1);
+  if (manualShipmentRow) {
+    return Response.json(
+      { ok: false, error: "Campaign has shipments and cannot be deleted", code: "OFFER_HAS_ACTIVITY" },
+      { status: 409 },
+    );
+  }
+
+  const [shopifyOrderRow] = await db
+    .select({ id: shopifyOrders.id })
+    .from(shopifyOrders)
+    .innerJoin(matches, eq(shopifyOrders.matchId, matches.id))
+    .where(eq(matches.offerId, offerId))
+    .limit(1);
+  if (shopifyOrderRow) {
+    return Response.json(
+      { ok: false, error: "Campaign has shipments and cannot be deleted", code: "OFFER_HAS_ACTIVITY" },
+      { status: 409 },
+    );
+  }
+
+  const deleted = await db.transaction(async (tx) => {
+    await tx.delete(offerProducts).where(eq(offerProducts.offerId, offerId));
+    return tx
+      .delete(offers)
+      .where(and(eq(offers.id, offerId), eq(offers.brandId, ctx.brandId)))
+      .returning({ id: offers.id })
+      .catch(() => []);
+  });
+
+  if (!deleted.length) return Response.json({ ok: false, error: "Offer not found" }, { status: 404 });
   return Response.json({ ok: true });
 }
