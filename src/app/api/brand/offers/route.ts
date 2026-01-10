@@ -24,6 +24,7 @@ import {
 export const runtime = "nodejs";
 
 const milesToKm = (miles: number) => miles * 1.609344;
+const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 const metadataSchema = z
   .object({
@@ -209,75 +210,85 @@ export async function POST(request: Request) {
     );
   }
 
-  const json = await request.json().catch(() => null);
-  const parsed = createOfferSchema.safeParse(json);
-  if (!parsed.success) {
-    return Response.json(
-      { ok: false, error: "Invalid request", issues: parsed.error.issues },
-      { status: 400 },
+  const errorId = crypto.randomUUID();
+  const timeoutMs = 15_000;
+
+  const main = async () => {
+    const json = await request.json().catch(() => null);
+    const parsed = createOfferSchema.safeParse(json);
+    if (!parsed.success) {
+      return Response.json(
+        { ok: false, error: "Invalid request", issues: parsed.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const metadataParsed = metadataSchema.safeParse(parsed.data.metadata ?? {});
+    if (!metadataParsed.success) {
+      return Response.json(
+        { ok: false, error: "Invalid metadata", issues: metadataParsed.error.issues },
+        { status: 400 },
+      );
+    }
+
+    const input = parsed.data;
+    const metadata = metadataParsed.data;
+    const radiusKm = (() => {
+      const km = metadata.locationRadiusKm;
+      if (typeof km === "number" && Number.isFinite(km) && km > 0) return km;
+      const miles = metadata.locationRadiusMiles;
+      if (typeof miles === "number" && Number.isFinite(miles) && miles > 0) return milesToKm(miles);
+      return null;
+    })();
+
+    const allowedPlatforms = platformsForCountries(input.countriesAllowed);
+    const invalidPlatforms = (metadata.platforms ?? []).filter(
+      (platform) => !allowedPlatforms.includes(platform),
     );
-  }
-
-  const metadataParsed = metadataSchema.safeParse(parsed.data.metadata ?? {});
-  if (!metadataParsed.success) {
-    return Response.json(
-      { ok: false, error: "Invalid metadata", issues: metadataParsed.error.issues },
-      { status: 400 },
-    );
-  }
-
-  const input = parsed.data;
-  const metadata = metadataParsed.data;
-  const radiusKm = (() => {
-    const km = metadata.locationRadiusKm;
-    if (typeof km === "number" && Number.isFinite(km) && km > 0) return km;
-    const miles = metadata.locationRadiusMiles;
-    if (typeof miles === "number" && Number.isFinite(miles) && miles > 0) return milesToKm(miles);
-    return null;
-  })();
-
-  const allowedPlatforms = platformsForCountries(input.countriesAllowed);
-  const invalidPlatforms = (metadata.platforms ?? []).filter(
-    (platform) => !allowedPlatforms.includes(platform),
-  );
-  if (invalidPlatforms.length) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Platforms not allowed for selected countries",
-        issues: invalidPlatforms.map((platform) => ({ platform })),
-      },
-      { status: 400 },
-    );
-  }
-
-  if (metadata.region) {
-    const expectedRegion =
-      input.countriesAllowed.length === 2
-        ? "US_IN"
-        : input.countriesAllowed[0] === "IN"
-          ? "IN"
-          : "US";
-    if (metadata.region !== expectedRegion) {
+    if (invalidPlatforms.length) {
       return Response.json(
         {
           ok: false,
-          error: "Region does not match countriesAllowed",
-          issues: [{ region: metadata.region, expected: expectedRegion }],
+          error: "Platforms not allowed for selected countries",
+          issues: invalidPlatforms.map((platform) => ({ platform })),
         },
         { status: 400 },
       );
     }
-  }
 
-  try {
+    if (metadata.region) {
+      const expectedRegion =
+        input.countriesAllowed.length === 2
+          ? "US_IN"
+          : input.countriesAllowed[0] === "IN"
+            ? "IN"
+            : "US";
+      if (metadata.region !== expectedRegion) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Region does not match countriesAllowed",
+            issues: [{ region: metadata.region, expected: expectedRegion }],
+          },
+          { status: 400 },
+        );
+      }
+    }
+
+    const t0 = Date.now();
+    log("debug", "brand offer create start", { errorId });
+
     const ctx = await requireBrandContext(request);
     if (ctx instanceof Response) return ctx;
+
+    log("debug", "brand offer create authed", { errorId, ms: Date.now() - t0 });
 
     const subscribed = await hasActiveSubscription({
       subjectType: "BRAND",
       subjectId: ctx.brandId,
     });
+    log("debug", "brand offer create subscription checked", { errorId, ms: Date.now() - t0 });
+
     if (!subscribed) {
       return Response.json(
         {
@@ -340,7 +351,8 @@ export async function POST(request: Request) {
       await runInsert();
     } catch (err) {
       if (!isMigrationSchemaError(err)) throw err;
-      const mig = await ensureRuntimeMigrations();
+
+      const mig = await ensureRuntimeMigrations({ maxWaitMs: 2_000 });
       if (!mig.ok && mig.code === "NO_DIRECT_CONNECTION") {
         return Response.json(
           {
@@ -348,22 +360,52 @@ export async function POST(request: Request) {
             error:
               "Database migrations need a direct Postgres connection. Set POSTGRES_URL_NON_POOLING on Vercel and run pnpm db:migrate.",
             code: "DB_MIGRATION_NO_DIRECT",
+            errorId,
+          },
+          { status: 500 },
+        );
+      }
+      if (!mig.ok && mig.code === "LOCK_UNAVAILABLE") {
+        return Response.json(
+          {
+            ok: false,
+            error: "Deploy migrations are still running; retry in a moment.",
+            code: "DB_MIGRATION_BUSY",
+            errorId,
+          },
+          { status: 503 },
+        );
+      }
+      if (!mig.ok && mig.code === "MIGRATE_FAILED") {
+        return Response.json(
+          {
+            ok: false,
+            error: "Database migration failed; run pnpm db:migrate and retry.",
+            code: "DB_MIGRATION_FAILED",
+            errorId,
           },
           { status: 500 },
         );
       }
 
-      // If another deploy/instance is migrating, wait briefly then retry.
-      if (!mig.ok && mig.code === "LOCK_UNAVAILABLE") {
-        await new Promise((r) => setTimeout(r, 750));
-      }
-
       await runInsert();
     }
 
+    log("debug", "brand offer create inserted", { errorId, ms: Date.now() - t0 });
     return Response.json({ ok: true, offerId: id });
+  };
+
+  try {
+    return await Promise.race([
+      main(),
+      sleep(timeoutMs).then(() =>
+        Response.json(
+          { ok: false, error: "Request timed out", code: "REQUEST_TIMEOUT", errorId },
+          { status: 504 },
+        ),
+      ),
+    ]);
   } catch (err) {
-    const errorId = crypto.randomUUID();
     log("error", "brand offer create failed", { errorId, error: getDbErrorText(err) });
     const causeMessage =
       err && typeof err === "object" && "cause" in err && err.cause instanceof Error
@@ -372,9 +414,6 @@ export async function POST(request: Request) {
     const message = isMigrationSchemaError(err)
       ? "Database schema is out of date; run pnpm db:migrate and retry."
       : causeMessage ?? "Failed to launch campaign";
-    return Response.json(
-      { ok: false, error: message, errorId },
-      { status: 500 },
-    );
+    return Response.json({ ok: false, error: message, errorId }, { status: 500 });
   }
 }
