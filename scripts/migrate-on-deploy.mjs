@@ -30,6 +30,12 @@ async function main() {
     hasPooled: Boolean(pooledConnectionString),
   });
 
+  const HARD_TIMEOUT_MS = Number(process.env.MIGRATE_HARD_TIMEOUT_MS ?? 15_000);
+  const hardTimeout = setTimeout(() => {
+    console.log("[migrate] timed out; skipping (build will continue)");
+    process.exit(0);
+  }, HARD_TIMEOUT_MS);
+
   const { createClient, createPool } = await import("@vercel/postgres");
   const { drizzle } = await import("drizzle-orm/vercel-postgres");
   const { migrate } = await import("drizzle-orm/vercel-postgres/migrator");
@@ -68,6 +74,7 @@ async function main() {
     console.error(err);
     return { ok: false, exitCode: 1 };
   } finally {
+    clearTimeout(hardTimeout);
     try {
       if (locked) await sql`select pg_advisory_unlock(${LOCK_KEY})`;
     } catch {

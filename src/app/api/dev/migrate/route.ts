@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ensureRuntimeMigrations } from "@/lib/runtime-migrations";
 
 export const runtime = "nodejs";
+export const maxDuration = 300;
 
 const querySchema = z.object({
   secret: z.string().min(1),
