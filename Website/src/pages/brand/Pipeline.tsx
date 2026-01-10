@@ -343,12 +343,12 @@ const BrandPipeline = () => {
         </div>
 
         {/* Kanban Board */}
-        <div className="overflow-x-auto pb-6">
-          <div className="flex gap-4 min-w-max">
+        <div className="pb-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
             {stages.map((stage) => (
               <div
                 key={stage.key}
-                className="w-72 flex-shrink-0"
+                className="min-w-0"
                 onDragOver={handleDragOver}
                 onDrop={() => handleDrop(stage.key)}
               >

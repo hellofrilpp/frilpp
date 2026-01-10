@@ -12,6 +12,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import FrilppLogo from "@/components/FrilppLogo";
+import { AccessibilityToggle } from "@/components/AccessibilityToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { logout } from "@/lib/api";
 import { useAchievements } from "@/hooks/useAchievements";
 
@@ -71,6 +73,10 @@ const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
             <Trophy className="w-4 h-4 text-neon-yellow" />
             <span className="text-xs font-pixel text-neon-yellow">LV.{level}</span>
             <span className="text-xs font-mono text-foreground">{getTotalXP().toLocaleString()} XP</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle />
+            <AccessibilityToggle />
           </div>
           <Button
             variant="ghost"

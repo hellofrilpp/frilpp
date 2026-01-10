@@ -27,6 +27,8 @@ import {
 } from "@/components/ui/alert-dialog";
 import { cn } from "@/lib/utils";
 import FrilppLogo from "@/components/FrilppLogo";
+import { AccessibilityToggle } from "@/components/AccessibilityToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { ApiError, apiFetch, apiUrl, getAuthMe, logout } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -392,6 +394,10 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
             FRI<span className="text-neon-pink">L</span>PP
           </span>
         </div>
+        <div className="ml-auto flex items-center gap-2">
+          <ThemeToggle />
+          <AccessibilityToggle />
+        </div>
       </div>
 
       {/* Mobile Menu Overlay */}
@@ -438,6 +444,10 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
 
       {/* Main Content */}
       <main className="flex-1 md:pt-0 pt-16 overflow-auto bg-background">
+        <div className="hidden md:flex items-center justify-end gap-2 px-6 py-3">
+          <ThemeToggle />
+          <AccessibilityToggle />
+        </div>
         {children}
       </main>
     </div>
