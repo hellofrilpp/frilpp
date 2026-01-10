@@ -69,5 +69,11 @@ async function main() {
   }
 }
 
-const result = await main();
-process.exit(result.exitCode);
+main()
+  .then((result) => {
+    process.exit(result.exitCode);
+  })
+  .catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
