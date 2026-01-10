@@ -58,6 +58,14 @@ export async function ensureRuntimeMigrations(options?: {
     let locked = false;
 
     try {
+      // Avoid hanging indefinitely on locks/long statements in serverless environments.
+      try {
+        await sql`set lock_timeout = '3s'`;
+        await sql`set statement_timeout = '55s'`;
+      } catch {
+        // ignore; best-effort
+      }
+
       while (!locked && Date.now() < deadline) {
         const res = await sql`select pg_try_advisory_lock(${LOCK_KEY}) as locked`;
         locked = Boolean(res.rows?.[0]?.locked);

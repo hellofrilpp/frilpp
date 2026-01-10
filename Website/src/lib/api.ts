@@ -172,6 +172,7 @@ export async function createBrandOffer(payload: {
   return apiFetch<{ ok: boolean; offerId: string }>("/api/brand/offers", {
     method: "POST",
     body: JSON.stringify(payload),
+    timeoutMs: 60_000,
   });
 }
 

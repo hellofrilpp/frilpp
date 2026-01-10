@@ -22,6 +22,7 @@ import {
 } from "@/lib/picklists";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 const milesToKm = (miles: number) => miles * 1.609344;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -211,7 +212,7 @@ export async function POST(request: Request) {
   }
 
   const errorId = crypto.randomUUID();
-  const timeoutMs = 15_000;
+  const timeoutMs = 55_000;
   const startedAt = Date.now();
   let phase:
     | "parse"
