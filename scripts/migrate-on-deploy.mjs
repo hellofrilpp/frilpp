@@ -1,7 +1,7 @@
 async function main() {
   const migrateFlag = process.env.MIGRATE_ON_DEPLOY;
   const shouldRun =
-    migrateFlag !== "false" && process.env.VERCEL === "1" && process.env.VERCEL_ENV === "production";
+    migrateFlag !== "false" && process.env.VERCEL === "1";
 
   if (!shouldRun) {
     return { ok: true, exitCode: 0 };
