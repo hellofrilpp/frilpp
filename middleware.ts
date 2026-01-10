@@ -46,13 +46,13 @@ export function middleware(request: NextRequest) {
   const lane = request.cookies.get(LANE_COOKIE_NAME)?.value;
   if (lane === "brand" && request.nextUrl.pathname.startsWith("/influencer")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/brand/offers";
+    url.pathname = "/brand/dashboard";
     url.search = "";
     return NextResponse.redirect(url);
   }
   if (lane === "creator" && request.nextUrl.pathname.startsWith("/brand")) {
     const url = request.nextUrl.clone();
-    url.pathname = "/influencer/feed";
+    url.pathname = "/influencer/discover";
     url.search = "";
     return NextResponse.redirect(url);
   }

@@ -1,12 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { sanitizeNextPath } from "@/lib/redirects";
 
 type Me = {
   id: string;
@@ -21,6 +23,7 @@ type Me = {
 };
 
 export default function OnboardingPage() {
+  const search = useSearchParams();
   const [me, setMe] = useState<Me | null>(null);
   const [status, setStatus] = useState<"loading" | "idle" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
@@ -46,11 +49,24 @@ export default function OnboardingPage() {
   const showBrandOnboarding = lane === null || lane === "brand";
   const showCreatorOnboarding = lane === null || lane === "creator";
 
+  const requestedNextPath = useMemo(() => {
+    const raw = search.get("next");
+    if (!raw) return null;
+    return sanitizeNextPath(raw, "/");
+  }, [search]);
+
   const primaryNextLink = useMemo(() => {
-    if (hasBrand) return "/brand/offers";
-    if (hasCreator) return "/influencer/feed";
+    const laneAllows = (path: string) => {
+      if (lane === "brand") return path.startsWith("/brand/");
+      if (lane === "creator") return path.startsWith("/influencer/");
+      return true;
+    };
+
+    if (requestedNextPath && laneAllows(requestedNextPath)) return requestedNextPath;
+    if (hasBrand) return "/brand/dashboard";
+    if (hasCreator) return "/influencer/discover";
     return "/";
-  }, [hasBrand, hasCreator]);
+  }, [hasBrand, hasCreator, lane, requestedNextPath]);
 
   async function loadMe() {
     setStatus("loading");
