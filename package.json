@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "node scripts/migrate-on-deploy.mjs && npm --prefix Website ci --include=dev && npm --prefix Website run build && next build --webpack",
+    "vercel-build": "pnpm build",
     "start": "next start",
     "lint": "eslint",
     "db:generate": "drizzle-kit generate",

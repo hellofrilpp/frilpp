@@ -6,7 +6,12 @@ import { requireBrandContext } from "@/lib/auth";
 import { templateToDeliverableType, type OfferTemplateId } from "@/lib/offer-template";
 import { USAGE_RIGHTS_SCOPES } from "@/lib/usage-rights";
 import { hasActiveSubscription } from "@/lib/billing";
-import { ensureRuntimeMigrations, isMissingRelation } from "@/lib/runtime-migrations";
+import { log } from "@/lib/logger";
+import {
+  ensureRuntimeMigrations,
+  getDbErrorText,
+  isMigrationSchemaError,
+} from "@/lib/runtime-migrations";
 import {
   CAMPAIGN_CATEGORIES,
   CONTENT_TYPES,
@@ -172,7 +177,7 @@ export async function GET(request: Request) {
     try {
       rows = await run();
     } catch (err) {
-      if (!isMissingRelation(err)) throw err;
+      if (!isMigrationSchemaError(err)) throw err;
       await ensureRuntimeMigrations();
       rows = await run();
     }
@@ -187,8 +192,9 @@ export async function GET(request: Request) {
       })),
     });
   } catch (err) {
+    log("error", "brand offers GET failed", { error: getDbErrorText(err) });
     return Response.json(
-      { ok: false, error: err instanceof Error ? err.message : "DB error" },
+      { ok: false, error: "Failed to load offers" },
       { status: 500 },
     );
   }
@@ -299,41 +305,59 @@ export async function POST(request: Request) {
     };
     delete storedMetadata.locationRadiusMiles;
 
-    await db.insert(offers).values({
-      id,
-      brandId: ctx.brandId,
-      title: input.title,
-      template,
-      status: "PUBLISHED",
-      countriesAllowed: input.countriesAllowed,
-      maxClaims: input.maxClaims,
-      deadlineDaysAfterDelivery: input.deadlineDaysAfterDelivery,
-      deliverableType,
-      requiresCaptionCode: deliverableType !== "UGC_ONLY",
-      usageRightsRequired: Boolean(input.usageRightsRequired),
-      usageRightsScope: usageRightsScope ?? null,
-      acceptanceFollowersThreshold: input.followersThreshold,
-      acceptanceAboveThresholdAutoAccept: input.aboveThresholdAutoAccept,
-      metadata: storedMetadata,
-      publishedAt: new Date(),
-    });
+    const runInsert = async () => {
+      await db.insert(offers).values({
+        id,
+        brandId: ctx.brandId,
+        title: input.title,
+        template,
+        status: "PUBLISHED",
+        countriesAllowed: input.countriesAllowed,
+        maxClaims: input.maxClaims,
+        deadlineDaysAfterDelivery: input.deadlineDaysAfterDelivery,
+        deliverableType,
+        requiresCaptionCode: deliverableType !== "UGC_ONLY",
+        usageRightsRequired: Boolean(input.usageRightsRequired),
+        usageRightsScope: usageRightsScope ?? null,
+        acceptanceFollowersThreshold: input.followersThreshold,
+        acceptanceAboveThresholdAutoAccept: input.aboveThresholdAutoAccept,
+        metadata: storedMetadata,
+        publishedAt: new Date(),
+      });
 
-    if (input.products.length) {
-      await db.insert(offerProducts).values(
-        input.products.map((p) => ({
-          id: crypto.randomUUID(),
-          offerId: id,
-          shopifyProductId: p.shopifyProductId,
-          shopifyVariantId: p.shopifyVariantId,
-          quantity: p.quantity,
-        })),
-      );
+      if (input.products.length) {
+        await db.insert(offerProducts).values(
+          input.products.map((p) => ({
+            id: crypto.randomUUID(),
+            offerId: id,
+            shopifyProductId: p.shopifyProductId,
+            shopifyVariantId: p.shopifyVariantId,
+            quantity: p.quantity,
+          })),
+        );
+      }
+    };
+
+    try {
+      await runInsert();
+    } catch (err) {
+      if (!isMigrationSchemaError(err)) throw err;
+      await ensureRuntimeMigrations();
+      await runInsert();
     }
 
     return Response.json({ ok: true, offerId: id });
   } catch (err) {
+    log("error", "brand offer create failed", { error: getDbErrorText(err) });
+    const causeMessage =
+      err && typeof err === "object" && "cause" in err && err.cause instanceof Error
+        ? err.cause.message
+        : null;
+    const message = isMigrationSchemaError(err)
+      ? "Database schema is out of date; run pnpm db:migrate and retry."
+      : causeMessage ?? "Failed to launch campaign";
     return Response.json(
-      { ok: false, error: err instanceof Error ? err.message : "DB error" },
+      { ok: false, error: message },
       { status: 500 },
     );
   }
