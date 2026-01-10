@@ -1,6 +1,7 @@
 import { z } from "zod";
+import { sql } from "drizzle-orm";
 import { db } from "@/db";
-import { brandMemberships, brands, creators, users } from "@/db/schema";
+import { brandMemberships, creators, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
@@ -57,18 +58,13 @@ export async function GET(request: Request) {
 
   const creatorRows = await db.select({ id: creators.id }).from(creators).where(eq(creators.id, creatorUserId)).limit(1);
   if (!creatorRows[0]) {
-    await db.insert(creators).values({
-      id: creatorUserId,
-      igUserId: null,
-      username: "dev_creator",
-      followersCount: 10_000,
-      country: "US",
-      fullName: "Dev Creator",
-      email: "dev-creator@frilpp.test",
-      phone: null,
-      createdAt: now,
-      updatedAt: now,
-    });
+    await db.execute(sql`
+      insert into "creators"
+        ("id", "ig_user_id", "username", "followers_count", "country", "created_at", "updated_at")
+      values
+        (${creatorUserId}, ${null}, ${"dev_creator"}, ${2500}, ${"US"}, ${now}, ${now})
+      on conflict ("id") do nothing
+    `);
   }
 
   const membershipRows = await db
@@ -78,16 +74,24 @@ export async function GET(request: Request) {
     .limit(1);
   if (!membershipRows[0]) {
     const brandId = crypto.randomUUID();
-    await db.insert(brands).values({
-      id: brandId,
-      name: "Dev Brand",
-      countriesDefault: ["US"],
-      instagramHandle: "devbrand",
-      acceptanceFollowersThreshold: 5000,
-      acceptanceAboveThresholdAutoAccept: true,
-      createdAt: now,
-      updatedAt: now,
-    });
+    await db.execute(sql`
+      insert into "brands"
+        ("id", "name", "countries_default", "instagram_handle",
+         "acceptance_followers_threshold", "acceptance_above_threshold_auto_accept",
+         "created_at", "updated_at")
+      values
+        (
+          ${brandId},
+          ${"Dev Brand"},
+          ARRAY[${"US"}]::text[],
+          ${"devbrand"},
+          ${5000},
+          ${true},
+          ${now},
+          ${now}
+        )
+      on conflict ("id") do nothing
+    `);
     await db.insert(brandMemberships).values({
       id: crypto.randomUUID(),
       brandId,

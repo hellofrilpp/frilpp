@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import { z } from "zod";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { brandMemberships, brands, creators, sessions, users } from "@/db/schema";
+import { brandMemberships, creators, sessions, users } from "@/db/schema";
 import { SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sanitizeNextPath } from "@/lib/redirects";
 
@@ -120,18 +120,13 @@ export async function GET(request: Request) {
           .where(eq(creators.id, userId))
           .limit(1);
         if (!creatorRows[0]) {
-          await tx.insert(creators).values({
-            id: userId,
-            igUserId: null,
-            username: "dev_creator",
-            followersCount: 10_000,
-            country: "US",
-            fullName: "Dev Creator",
-            email,
-            phone: null,
-            createdAt: now,
-            updatedAt: now,
-          });
+          await tx.execute(sql`
+            insert into "creators"
+              ("id", "ig_user_id", "username", "followers_count", "country", "created_at", "updated_at")
+            values
+              (${userId}, ${null}, ${"dev_creator"}, ${2500}, ${"US"}, ${now}, ${now})
+            on conflict ("id") do nothing
+          `);
         }
       }
 
@@ -146,16 +141,24 @@ export async function GET(request: Request) {
         const brandId = existingBrandId ?? crypto.randomUUID();
 
         if (!existingBrandId) {
-          await tx.insert(brands).values({
-            id: brandId,
-            name: "Dev Brand",
-            countriesDefault: ["US"],
-            instagramHandle: "devbrand",
-            acceptanceFollowersThreshold: 5000,
-            acceptanceAboveThresholdAutoAccept: true,
-            createdAt: now,
-            updatedAt: now,
-          });
+          await tx.execute(sql`
+            insert into "brands"
+              ("id", "name", "countries_default", "instagram_handle",
+               "acceptance_followers_threshold", "acceptance_above_threshold_auto_accept",
+               "created_at", "updated_at")
+            values
+              (
+                ${brandId},
+                ${"Dev Brand"},
+                ARRAY[${"US"}]::text[],
+                ${"devbrand"},
+                ${5000},
+                ${true},
+                ${now},
+                ${now}
+              )
+            on conflict ("id") do nothing
+          `);
 
           await tx.insert(brandMemberships).values({
             id: crypto.randomUUID(),

@@ -43,7 +43,6 @@ function hexToRgb(hex) {
 function makePixelArtF(gridSize) {
   const cells = new Set();
   const add = (x, y) => cells.add(`${x},${y}`);
-  const has = (x, y) => cells.has(`${x},${y}`);
 
   // Chunky retro "F" in a 16x16 grid.
   for (let y = 3; y <= 12; y += 1) {
@@ -229,4 +228,3 @@ const ico = makeIco([
 
 writeFileSync(outPath, ico);
 console.log(`Wrote ${outPath} (${ico.length} bytes)`);
-
