@@ -48,6 +48,8 @@ export default function OnboardingPage() {
 
   const showBrandOnboarding = lane === null || lane === "brand";
   const showCreatorOnboarding = lane === null || lane === "creator";
+  const showBrandCreate = showBrandOnboarding && !hasBrand;
+  const showCreatorCreate = showCreatorOnboarding && !hasCreator;
 
   const requestedNextPath = useMemo(() => {
     const raw = search.get("next");
@@ -313,7 +315,7 @@ export default function OnboardingPage() {
 
         {me && legalOk ? (
           <div className="mt-8 grid gap-6 lg:grid-cols-2">
-            {showBrandOnboarding ? (
+            {showBrandCreate ? (
               <Card>
               <CardHeader>
                 <CardTitle>Create a brand workspace</CardTitle>
@@ -357,7 +359,7 @@ export default function OnboardingPage() {
               </Card>
             ) : null}
 
-            {showCreatorOnboarding ? (
+            {showCreatorCreate ? (
               <Card>
               <CardHeader>
                 <CardTitle>Create a creator profile</CardTitle>
