@@ -7,11 +7,7 @@ import { templateToDeliverableType, type OfferTemplateId } from "@/lib/offer-tem
 import { USAGE_RIGHTS_SCOPES } from "@/lib/usage-rights";
 import { hasActiveSubscription } from "@/lib/billing";
 import { log } from "@/lib/logger";
-import {
-  ensureRuntimeMigrations,
-  getDbErrorText,
-  isMigrationSchemaError,
-} from "@/lib/runtime-migrations";
+import { getDbErrorText, isMigrationSchemaError } from "@/lib/runtime-migrations";
 import {
   CAMPAIGN_CATEGORIES,
   CONTENT_TYPES,
@@ -22,7 +18,7 @@ import {
 } from "@/lib/picklists";
 
 export const runtime = "nodejs";
-export const maxDuration = 60;
+export const maxDuration = 30;
 
 const milesToKm = (miles: number) => miles * 1.609344;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -180,8 +176,7 @@ export async function GET(request: Request) {
       rows = await run();
     } catch (err) {
       if (!isMigrationSchemaError(err)) throw err;
-      await ensureRuntimeMigrations();
-      rows = await run();
+      throw new Error("Database schema is out of date");
     }
 
     return Response.json({
@@ -212,7 +207,7 @@ export async function POST(request: Request) {
   }
 
   const errorId = crypto.randomUUID();
-  const timeoutMs = 55_000;
+  const timeoutMs = 25_000;
   const startedAt = Date.now();
   let phase:
     | "parse"
@@ -220,8 +215,6 @@ export async function POST(request: Request) {
     | "billing"
     | "insert:start"
     | "insert:done"
-    | "migrate"
-    | "insert:retry"
     | "done" = "parse";
 
   const main = async () => {
@@ -373,46 +366,15 @@ export async function POST(request: Request) {
       await runInsert();
     } catch (err) {
       if (!isMigrationSchemaError(err)) throw err;
-
-      phase = "migrate";
-      const mig = await ensureRuntimeMigrations({ maxWaitMs: 5_000 });
-      if (!mig.ok && mig.code === "NO_DIRECT_CONNECTION") {
-        return Response.json(
-          {
-            ok: false,
-            error:
-              "Database migrations need a direct Postgres connection. Set POSTGRES_URL_NON_POOLING on Vercel and run pnpm db:migrate.",
-            code: "DB_MIGRATION_NO_DIRECT",
-            errorId,
-          },
-          { status: 500 },
-        );
-      }
-      if (!mig.ok && mig.code === "LOCK_UNAVAILABLE") {
-        return Response.json(
-          {
-            ok: false,
-            error: "Deploy migrations are still running; retry in a moment.",
-            code: "DB_MIGRATION_BUSY",
-            errorId,
-          },
-          { status: 503 },
-        );
-      }
-      if (!mig.ok && mig.code === "MIGRATE_FAILED") {
-        return Response.json(
-          {
-            ok: false,
-            error: "Database migration failed; run pnpm db:migrate and retry.",
-            code: "DB_MIGRATION_FAILED",
-            errorId,
-          },
-          { status: 500 },
-        );
-      }
-
-      phase = "insert:retry";
-      await runInsert();
+      return Response.json(
+        {
+          ok: false,
+          error: "Database schema is out of date; migrations must be applied out-of-band.",
+          code: "DB_SCHEMA_OUT_OF_DATE",
+          errorId,
+        },
+        { status: 500 },
+      );
     }
 
     log("debug", "brand offer create inserted", { errorId, ms: Date.now() - t0 });
