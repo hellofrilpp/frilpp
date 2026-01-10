@@ -35,15 +35,40 @@ async function parseJsonSafely(response: Response) {
   }
 }
 
-export async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(apiUrl(path), {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      ...(init?.headers ?? {}),
-    },
-    credentials: "include",
-  });
+export async function apiFetch<T>(
+  path: string,
+  init?: (RequestInit & { timeoutMs?: number }) | undefined,
+): Promise<T> {
+  const timeoutMs = init?.timeoutMs ?? 20_000;
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  const mergedSignal =
+    init?.signal &&
+    typeof AbortSignal !== "undefined" &&
+    typeof AbortSignal.any === "function"
+      ? AbortSignal.any([init.signal, controller.signal])
+      : controller.signal;
+
+  let response: Response;
+  try {
+    response = await fetch(apiUrl(path), {
+      ...init,
+      signal: mergedSignal,
+      headers: {
+        "Content-Type": "application/json",
+        ...(init?.headers ?? {}),
+      },
+      credentials: "include",
+    });
+  } catch (err) {
+    if (err && typeof err === "object" && "name" in err && err.name === "AbortError") {
+      throw new ApiError("Request timed out", 408);
+    }
+    throw new ApiError("Network error", 0);
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (response.ok) {
     return (await response.json()) as T;

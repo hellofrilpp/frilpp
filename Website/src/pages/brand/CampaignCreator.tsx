@@ -149,6 +149,7 @@ const CampaignCreator = () => {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [productQuantity, setProductQuantity] = useState(1);
   const [copying, setCopying] = useState(false);
+  const [launching, setLaunching] = useState(false);
   const restoredRef = useRef(false);
   const draftReadyRef = useRef(false);
 
@@ -345,6 +346,7 @@ const CampaignCreator = () => {
   };
 
   const handleLaunch = () => {
+    if (launching) return;
     const template = (() => {
       const types = formData.contentTypes;
       if (types.includes("REEL") && types.includes("STORY")) return "REEL_PLUS_STORY";
@@ -443,6 +445,9 @@ const CampaignCreator = () => {
       presetId: formData.presetId || null,
     };
 
+    const toastId = toast.loading("Launching campaign...");
+    setLaunching(true);
+
     createBrandOffer({
       title,
       template,
@@ -455,6 +460,7 @@ const CampaignCreator = () => {
       metadata,
     })
       .then(() => {
+        toast.dismiss(toastId);
         toast.success("🎮 Campaign launched! Let the matching begin!", {
           description: "Influencers will start seeing your offer.",
         });
@@ -462,11 +468,21 @@ const CampaignCreator = () => {
         navigate("/brand/campaigns");
       })
       .catch((err) => {
+        toast.dismiss(toastId);
+        const errorId =
+          err instanceof ApiError && err.data && typeof err.data.errorId === "string"
+            ? err.data.errorId
+            : null;
         const message = err instanceof ApiError ? err.message : "Failed to launch campaign";
-        toast.error(message);
+        const full = errorId ? `${message} (errorId: ${errorId})` : message;
+        console.error("launch campaign failed", err);
+        toast.error(full);
         if (err instanceof ApiError && err.status === 401) {
           window.location.href = "/brand/auth";
         }
+      })
+      .finally(() => {
+        setLaunching(false);
       });
   };
 
@@ -1227,10 +1243,11 @@ const CampaignCreator = () => {
               ) : (
                 <Button 
                   onClick={handleLaunch}
+                  disabled={launching}
                   className="bg-neon-pink text-background font-pixel text-xs px-8 pixel-btn glow-pink animate-pulse-neon"
                 >
                   <Sparkles className="w-4 h-4 mr-2" />
-                  LAUNCH CAMPAIGN
+                  {launching ? "LAUNCHING..." : "LAUNCH CAMPAIGN"}
                 </Button>
               )}
             </div>
