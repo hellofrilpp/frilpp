@@ -43,18 +43,7 @@ const Header = () => {
           </nav>
 
           {/* Desktop CTAs */}
-          <div className="hidden lg:flex items-center gap-2 shrink-0">
-            <ThemeToggle />
-            <AccessibilityToggle />
-            <div className="w-px h-8 bg-border mx-1" />
-            <Button
-              size="sm"
-              variant="outline"
-              className="border-2 border-primary text-primary hover:bg-primary/10 text-xs font-mono px-4 pixel-btn"
-              asChild
-            >
-              <Link to="/brand/login">&gt; BRAND_LOG_IN</Link>
-            </Button>
+          <div className="hidden lg:flex items-center gap-3 shrink-0 ml-auto">
             <Button
               variant="outline"
               className="border-2 border-neon-pink text-neon-pink hover:bg-neon-pink hover:text-background text-xs font-pixel px-5 pixel-btn"
@@ -68,15 +57,23 @@ const Header = () => {
             >
               <Link to="/brand/signup">BUSINESS →</Link>
             </Button>
+            <div className="w-px h-8 bg-border" />
+            <ThemeToggle />
+            <AccessibilityToggle />
           </div>
 
-          {/* Mobile Menu Toggle */}
-          <button
-            className="lg:hidden ml-auto p-2 border-2 border-primary pixel-btn"
-            onClick={() => setIsMenuOpen(!isMenuOpen)}
-          >
-            {isMenuOpen ? <X className="w-5 h-5 text-primary" /> : <Menu className="w-5 h-5 text-primary" />}
-          </button>
+          {/* Mobile Controls */}
+          <div className="lg:hidden ml-auto flex items-center gap-2 shrink-0">
+            <button
+              className="p-2 border-2 border-primary pixel-btn"
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? <X className="w-5 h-5 text-primary" /> : <Menu className="w-5 h-5 text-primary" />}
+            </button>
+            <ThemeToggle />
+            <AccessibilityToggle />
+          </div>
         </div>
 
         {/* Mobile Menu */}
@@ -98,16 +95,7 @@ const Header = () => {
               <Link to="/leaderboard" className="text-xs font-mono text-muted-foreground hover:text-neon-green">
                 [LEADERBOARD]
               </Link>
-              <div className="pt-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <ThemeToggle />
-                  <AccessibilityToggle />
-                </div>
-              </div>
               <div className="flex flex-col gap-2 pt-4 border-t-2 border-border">
-                <Button variant="outline" asChild className="w-full border-2 border-primary text-primary font-mono text-xs">
-                  <Link to="/brand/login">&gt; BRAND_LOG_IN</Link>
-                </Button>
                 <Button
                   variant="outline"
                   asChild

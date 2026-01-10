@@ -73,8 +73,6 @@ const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
             <span className="text-xs font-pixel text-neon-yellow">LV.{level}</span>
             <span className="text-xs font-mono text-foreground">{getTotalXP().toLocaleString()} XP</span>
           </div>
-          <ThemeToggle />
-          <AccessibilityToggle />
           <Button
             variant="ghost"
             size="icon"
@@ -96,6 +94,8 @@ const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
           >
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
           </Button>
+          <ThemeToggle />
+          <AccessibilityToggle />
         </div>
       </header>
 

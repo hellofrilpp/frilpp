@@ -2,6 +2,8 @@ import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { AccessibilityToggle } from "@/components/AccessibilityToggle";
 
 const LegalTerms = () => {
   return (
@@ -20,9 +22,13 @@ const LegalTerms = () => {
               These terms govern your access to and use of Frilpp.
             </p>
           </div>
-          <Link to="/">
-            <Button variant="outline">Home</Button>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/">
+              <Button variant="outline">Home</Button>
+            </Link>
+            <ThemeToggle />
+            <AccessibilityToggle />
+          </div>
         </div>
 
         <Card className="mt-8">

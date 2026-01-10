@@ -3,6 +3,8 @@ import { Trophy, Crown, Star, TrendingUp, Users, Briefcase, ArrowLeft, Zap, Targ
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { getLeaderboard } from "@/lib/api";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { AccessibilityToggle } from "@/components/AccessibilityToggle";
 
 const getRankStyle = (rank: number) => {
   switch (rank) {
@@ -43,8 +45,8 @@ const Leaderboard = () => {
     <div className="min-h-screen bg-background bg-grid">
       {/* Header */}
       <header className="border-b-4 border-border bg-card/80 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="container mx-auto px-4 py-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Link to="/" className="flex items-center gap-3">
               <ArrowLeft className="w-5 h-5 text-muted-foreground" />
               <div className="flex items-center gap-2">
@@ -54,9 +56,13 @@ const Leaderboard = () => {
                 <span className="font-pixel text-lg text-foreground">LEADERBOARD</span>
               </div>
             </Link>
-            <div className="flex items-center gap-2">
+            <div className="sm:ml-auto flex items-center gap-2">
               <Zap className="w-4 h-4 text-neon-yellow animate-pulse-neon" />
               <span className="font-mono text-xs text-muted-foreground">LIVE RANKINGS</span>
+            </div>
+            <div className="sm:ml-3 flex items-center gap-2">
+              <ThemeToggle />
+              <AccessibilityToggle />
             </div>
           </div>
         </div>

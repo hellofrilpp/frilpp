@@ -8,6 +8,8 @@ import { ArrowLeft, Mail } from "lucide-react";
 import FrilppLogo from "@/components/FrilppLogo";
 import { ApiError, requestMagicLink } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { AccessibilityToggle } from "@/components/AccessibilityToggle";
 
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
@@ -53,9 +55,13 @@ const VerifyEmail = () => {
               FRI<span className="text-neon-pink">L</span>PP
             </span>
           </Link>
-          <Link to="/" className="text-xs font-mono text-muted-foreground hover:text-neon-green flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" /> BACK
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/" className="text-xs font-mono text-muted-foreground hover:text-neon-green flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" /> BACK
+            </Link>
+            <ThemeToggle />
+            <AccessibilityToggle />
+          </div>
         </div>
       </header>
 
