@@ -1,4 +1,4 @@
-import { createContext, useContext, useMemo, useState } from "react";
+import { createContext, useContext, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 
 export type MarketingMarket = "US" | "IN";
@@ -26,16 +26,15 @@ function inferDefaultMarket(): MarketingMarket {
 }
 
 export function MarketProvider(props: { children: React.ReactNode }) {
-  const [marketOverride, setMarketOverride] = useState<MarketingMarket | null>(() => {
+  // Market is auto-selected via IP (API) with a lightweight local fallback.
+  // Any previously-saved manual overrides are cleared to avoid stale UI state.
+  useEffect(() => {
     try {
-      const stored =
-        typeof window !== "undefined" ? window.localStorage.getItem(STORAGE_KEY) : null;
-      if (stored === "US" || stored === "IN") return stored;
+      window.localStorage.removeItem(STORAGE_KEY);
     } catch {
       // ignore
     }
-    return null;
-  });
+  }, []);
 
   const geoQuery = useQuery({
     queryKey: ["marketing-geo"],
@@ -50,24 +49,14 @@ export function MarketProvider(props: { children: React.ReactNode }) {
     retry: false,
   });
 
-  const effectiveMarket = marketOverride ?? geoQuery.data ?? inferDefaultMarket();
+  const effectiveMarket = geoQuery.data ?? inferDefaultMarket();
 
   const setMarket = (next: MarketingMarket) => {
-    setMarketOverride(next);
-    try {
-      localStorage.setItem(STORAGE_KEY, next);
-    } catch {
-      // ignore
-    }
+    void next;
   };
 
   const clearMarketOverride = () => {
-    setMarketOverride(null);
-    try {
-      localStorage.removeItem(STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    // no-op
   };
 
   const value = useMemo(

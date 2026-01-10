@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Menu, X } from "lucide-react";
 import FrilppLogo from "@/components/FrilppLogo";
-import MarketToggle from "@/components/landing/MarketToggle";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { AccessibilityToggle } from "@/components/AccessibilityToggle";
 
@@ -13,7 +12,7 @@ const Header = () => {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-background/95 backdrop-blur-sm border-b-4 border-primary">
       <div className="container mx-auto px-4">
-        <div className="flex items-center justify-between h-16 md:h-20">
+        <div className="flex items-center gap-4 h-16 md:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group">
             <div className="w-8 h-8 bg-primary flex items-center justify-center animate-pulse-neon">
@@ -25,7 +24,7 @@ const Header = () => {
           </Link>
 
           {/* Desktop Navigation */}
-          <nav className="hidden lg:flex items-center gap-6">
+          <nav className="hidden lg:flex flex-1 items-center justify-center gap-6">
             <a href="#how-it-works" className="text-xs font-mono text-muted-foreground hover:text-neon-green transition-colors hover-shake">
               [HOW_IT_WORKS]
             </a>
@@ -44,9 +43,16 @@ const Header = () => {
           </nav>
 
           {/* Desktop CTAs */}
-          <div className="hidden lg:flex items-center gap-3">
-            <MarketToggle />
-            <Button variant="ghost" className="text-xs font-mono hover:text-neon-green" asChild>
+          <div className="hidden lg:flex items-center gap-2 shrink-0">
+            <ThemeToggle />
+            <AccessibilityToggle />
+            <div className="w-px h-8 bg-border mx-1" />
+            <Button
+              size="sm"
+              variant="outline"
+              className="border-2 border-primary text-primary hover:bg-primary/10 text-xs font-mono px-4 pixel-btn"
+              asChild
+            >
               <Link to="/brand/login">&gt; BRAND_LOG_IN</Link>
             </Button>
             <Button
@@ -66,7 +72,7 @@ const Header = () => {
 
           {/* Mobile Menu Toggle */}
           <button
-            className="lg:hidden p-2 border-2 border-primary pixel-btn"
+            className="lg:hidden ml-auto p-2 border-2 border-primary pixel-btn"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
           >
             {isMenuOpen ? <X className="w-5 h-5 text-primary" /> : <Menu className="w-5 h-5 text-primary" />}
@@ -94,7 +100,6 @@ const Header = () => {
               </Link>
               <div className="pt-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <MarketToggle />
                   <ThemeToggle />
                   <AccessibilityToggle />
                 </div>
