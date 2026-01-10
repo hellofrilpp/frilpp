@@ -38,6 +38,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const nextPath = sanitizeNextPath(url.searchParams.get("next"), "/onboarding");
   const roleParsed = roleSchema.safeParse(url.searchParams.get("role"));
   const role = roleParsed.success ? roleParsed.data : null;
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? url.origin;
 
   if (provider === "youtube") {
     const session = await getSessionUser(request);
@@ -50,13 +51,19 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   }
 
   if (provider === "tiktok" && !isUsCountry(request)) {
+    const accept = request.headers.get("accept") ?? "";
+    if (accept.includes("text/html")) {
+      const brandedUrl = new URL(`${origin}/login/tiktok-unavailable`);
+      brandedUrl.searchParams.set("next", nextPath);
+      if (role) brandedUrl.searchParams.set("role", role);
+      return Response.redirect(brandedUrl.toString(), 302);
+    }
     return Response.json(
       { ok: false, error: "TikTok login is only available in the US" },
       { status: 403 },
     );
   }
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? url.origin;
   const defaultRedirectUri = `${origin}/api/auth/social/${provider}/callback`;
   const redirectUri =
     provider === "tiktok" && process.env.TIKTOK_REDIRECT_URL
