@@ -10,6 +10,8 @@ export const runtime = "nodejs";
 
 const querySchema = z.object({
   secret: z.string().min(1),
+  brandId: z.string().min(1).optional(),
+  creatorId: z.string().min(1).optional(),
   force: z
     .enum(["1", "true"])
     .optional()
@@ -47,6 +49,8 @@ export async function GET(request: Request) {
   const url = new URL(request.url);
   const parsed = querySchema.safeParse({
     secret: url.searchParams.get("secret"),
+    brandId: url.searchParams.get("brandId") ?? undefined,
+    creatorId: url.searchParams.get("creatorId") ?? undefined,
     force: url.searchParams.get("force") ?? undefined,
   });
   if (!parsed.success || parsed.data.secret !== secret) {
@@ -63,12 +67,22 @@ export async function GET(request: Request) {
     brand: { updated: 0, skipped: 0 },
     creator: { updated: 0, skipped: 0 },
     forced: parsed.data.force,
+    scoped: {
+      brandId: parsed.data.brandId ?? null,
+      creatorId: parsed.data.creatorId ?? null,
+    },
   };
 
-  const brandRows = await db
-    .select({ id: brands.id, countriesDefault: brands.countriesDefault })
-    .from(brands)
-    .limit(10_000);
+  const brandRows = parsed.data.brandId
+    ? await db
+        .select({ id: brands.id, countriesDefault: brands.countriesDefault })
+        .from(brands)
+        .where(eq(brands.id, parsed.data.brandId))
+        .limit(1)
+    : await db
+        .select({ id: brands.id, countriesDefault: brands.countriesDefault })
+        .from(brands)
+        .limit(10_000);
 
   for (const brand of brandRows) {
     const existing = await db
@@ -85,7 +99,7 @@ export async function GET(request: Request) {
     const active =
       row?.status &&
       (row.status === "ACTIVE" || row.status === "TRIALING") &&
-      (row.currentPeriodEnd ? row.currentPeriodEnd > now : false);
+      (row.currentPeriodEnd ? row.currentPeriodEnd > now : true);
 
     if (active) {
       result.brand.skipped += 1;
@@ -116,10 +130,16 @@ export async function GET(request: Request) {
     result.brand.updated += 1;
   }
 
-  const creatorRows = await db
-    .select({ id: creators.id, country: creators.country })
-    .from(creators)
-    .limit(10_000);
+  const creatorRows = parsed.data.creatorId
+    ? await db
+        .select({ id: creators.id, country: creators.country })
+        .from(creators)
+        .where(eq(creators.id, parsed.data.creatorId))
+        .limit(1)
+    : await db
+        .select({ id: creators.id, country: creators.country })
+        .from(creators)
+        .limit(10_000);
 
   for (const creator of creatorRows) {
     const existing = await db
@@ -141,7 +161,7 @@ export async function GET(request: Request) {
     const active =
       row?.status &&
       (row.status === "ACTIVE" || row.status === "TRIALING") &&
-      (row.currentPeriodEnd ? row.currentPeriodEnd > now : false);
+      (row.currentPeriodEnd ? row.currentPeriodEnd > now : true);
 
     if (active) {
       result.creator.skipped += 1;

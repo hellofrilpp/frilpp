@@ -1,4 +1,4 @@
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { billingSubscriptions } from "@/db/schema";
 import { ensureBillingSchema } from "@/lib/billing-schema";
@@ -34,7 +34,6 @@ export async function getActiveSubscription(params: {
         and(
           eq(billingSubscriptions.subjectType, params.subjectType),
           eq(billingSubscriptions.subjectId, params.subjectId),
-          gt(billingSubscriptions.currentPeriodEnd, now),
         ),
       )
       .limit(1);
@@ -54,7 +53,6 @@ export async function getActiveSubscription(params: {
           and(
             eq(billingSubscriptions.subjectType, params.subjectType),
             eq(billingSubscriptions.subjectId, params.subjectId),
-            gt(billingSubscriptions.currentPeriodEnd, now),
           ),
         )
         .limit(1);
@@ -65,6 +63,7 @@ export async function getActiveSubscription(params: {
   const sub = rows[0] ?? null;
   if (!sub) return null;
   if (sub.status !== "ACTIVE" && sub.status !== "TRIALING") return null;
+  if (sub.currentPeriodEnd && sub.currentPeriodEnd <= now) return null;
   return sub;
 }
 
