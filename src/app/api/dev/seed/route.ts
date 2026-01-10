@@ -105,12 +105,12 @@ export async function GET(request: Request) {
   const brandLogin = new URL("/api/dev/impersonate", origin);
   brandLogin.searchParams.set("role", "brand");
   brandLogin.searchParams.set("secret", secret);
-  brandLogin.searchParams.set("next", "/brand/offers");
+  brandLogin.searchParams.set("next", "/brand/dashboard");
 
   const creatorLogin = new URL("/api/dev/impersonate", origin);
   creatorLogin.searchParams.set("role", "creator");
   creatorLogin.searchParams.set("secret", secret);
-  creatorLogin.searchParams.set("next", "/influencer/feed");
+  creatorLogin.searchParams.set("next", "/influencer/discover");
 
   return Response.json({
     ok: true,

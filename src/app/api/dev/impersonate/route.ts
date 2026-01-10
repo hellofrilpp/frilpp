@@ -8,6 +8,17 @@ import { sanitizeNextPath } from "@/lib/redirects";
 
 export const runtime = "nodejs";
 
+function normalizeNextPath(params: { role: "brand" | "creator"; next?: string }) {
+  const raw = sanitizeNextPath(params.next, params.role === "brand" ? "/brand/dashboard" : "/influencer/discover");
+  if (params.role === "brand" && (raw === "/brand/offers" || raw.startsWith("/brand/offers/"))) {
+    return "/brand/dashboard";
+  }
+  if (params.role === "creator" && (raw === "/influencer/feed" || raw.startsWith("/influencer/feed/"))) {
+    return "/influencer/discover";
+  }
+  return raw;
+}
+
 const querySchema = z.object({
   secret: z.string().min(1),
   role: z.enum(["brand", "creator"]),
@@ -76,10 +87,7 @@ export async function GET(request: Request) {
     const role = parsed.data.role;
     const defaultEmail = role === "brand" ? "dev-brand@frilpp.test" : "dev-creator@frilpp.test";
     const email = (parsed.data.email ?? defaultEmail).trim().toLowerCase();
-    const nextPath = sanitizeNextPath(
-      parsed.data.next,
-      role === "brand" ? "/brand/offers" : "/influencer/feed",
-    );
+    const nextPath = normalizeNextPath({ role, next: parsed.data.next });
 
     const now = new Date();
     const secure = process.env.NODE_ENV === "production";
