@@ -12,6 +12,7 @@ import BrandAuth from "./pages/brand/Auth";
 import BrandDashboard from "./pages/brand/Dashboard";
 import BrandCampaigns from "./pages/brand/Campaigns";
 import BrandCampaignCreator from "./pages/brand/CampaignCreator";
+import BrandCampaignDetails from "./pages/brand/CampaignDetails";
 import BrandPipeline from "./pages/brand/Pipeline";
 import BrandAnalytics from "./pages/brand/Analytics";
 import BrandSettings from "./pages/brand/Settings";
@@ -50,6 +51,7 @@ const App = () => (
             <Route path="/brand/dashboard" element={<BrandDashboard />} />
             <Route path="/brand/campaigns" element={<BrandCampaigns />} />
             <Route path="/brand/campaigns/new" element={<BrandCampaignCreator />} />
+            <Route path="/brand/campaigns/:offerId" element={<BrandCampaignDetails />} />
             <Route path="/brand/pipeline" element={<BrandPipeline />} />
             <Route path="/brand/analytics" element={<BrandAnalytics />} />
             <Route path="/brand/settings" element={<BrandSettings />} />

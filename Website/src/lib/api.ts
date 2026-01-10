@@ -156,6 +156,30 @@ export async function getBrandOffers() {
   return apiFetch<{ ok: boolean; offers: BrandOffer[] }>("/api/brand/offers");
 }
 
+export type BrandOfferDetails = {
+  id: string;
+  title: string;
+  template: "REEL" | "FEED" | "REEL_PLUS_STORY" | "UGC_ONLY";
+  status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+  countriesAllowed: string[];
+  maxClaims: number;
+  deadlineDaysAfterDelivery: number;
+  deliverableType: "REELS" | "FEED" | "UGC_ONLY";
+  requiresCaptionCode: boolean;
+  usageRightsRequired: boolean;
+  usageRightsScope: string | null;
+  acceptanceFollowersThreshold: number;
+  acceptanceAboveThresholdAutoAccept: boolean;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  products: Array<{ shopifyProductId: string; shopifyVariantId: string; quantity: number }>;
+};
+
+export async function getBrandOffer(offerId: string) {
+  return apiFetch<{ ok: boolean; offer: BrandOfferDetails }>(`/api/brand/offers/${offerId}`);
+}
+
 export async function createBrandOffer(payload: {
   title: string;
   template: "REEL" | "FEED" | "REEL_PLUS_STORY" | "UGC_ONLY";

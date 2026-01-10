@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { 
   Plus, 
   Search,
@@ -28,6 +28,7 @@ const BrandCampaigns = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState("all");
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const { data: offersData, error: offersError, refetch } = useQuery({
     queryKey: ["brand-offers"],
@@ -112,6 +113,10 @@ const BrandCampaigns = () => {
     try {
       await updateBrandOffer(offerId, { status });
       await refetch();
+      toast({
+        title: status === "PUBLISHED" ? "RESUMED" : "PAUSED",
+        description: "Campaign updated.",
+      });
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Update failed";
       toast({ title: "UPDATE FAILED", description: message });
@@ -217,13 +222,20 @@ const BrandCampaigns = () => {
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" className="border-2 border-border">
-                      <DropdownMenuItem className="font-mono text-xs">
+                      <DropdownMenuItem
+                        className="font-mono text-xs"
+                        onSelect={(event) => {
+                          event.preventDefault();
+                          navigate(`/brand/campaigns/${campaign.id}`);
+                        }}
+                      >
                         <Eye className="w-4 h-4 mr-2" />
                         VIEW
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="font-mono text-xs"
-                        onClick={() => {
+                        onSelect={(event) => {
+                          event.preventDefault();
                           if (campaign.rawStatus === "ARCHIVED") {
                             handleStatusChange(campaign.id, "PUBLISHED");
                           } else {
@@ -238,13 +250,24 @@ const BrandCampaigns = () => {
                         )}
                         {campaign.status === "paused" ? "RESUME" : "PAUSE"}
                       </DropdownMenuItem>
-                      <DropdownMenuItem className="font-mono text-xs" onClick={() => handleDuplicate(campaign.id)}>
+                      <DropdownMenuItem
+                        className="font-mono text-xs"
+                        onSelect={(event) => {
+                          event.preventDefault();
+                          handleDuplicate(campaign.id);
+                        }}
+                      >
                         <Copy className="w-4 h-4 mr-2" />
                         DUPLICATE
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="font-mono text-xs text-destructive"
-                        onClick={() => handleStatusChange(campaign.id, "ARCHIVED")}
+                        onSelect={(event) => {
+                          event.preventDefault();
+                          const confirmed = window.confirm("Delete campaign? This will archive it.");
+                          if (!confirmed) return;
+                          handleStatusChange(campaign.id, "ARCHIVED");
+                        }}
                       >
                         <Trash2 className="w-4 h-4 mr-2" />
                         DELETE

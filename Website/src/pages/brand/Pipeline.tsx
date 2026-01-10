@@ -403,7 +403,8 @@ const BrandPipeline = () => {
                               <>
                                 <DropdownMenuItem
                                   className="font-mono text-xs"
-                                  onClick={async () => {
+                                  onSelect={async (event) => {
+                                    event.preventDefault();
                                     const deliverable = deliverableByMatch.get(influencer.id);
                                     if (!deliverable) return;
                                     if (!deliverable.submittedPermalink) {
@@ -430,7 +431,8 @@ const BrandPipeline = () => {
                                 </DropdownMenuItem>
                                 <DropdownMenuItem
                                   className="font-mono text-xs text-destructive"
-                                  onClick={async () => {
+                                  onSelect={async (event) => {
+                                    event.preventDefault();
                                     const deliverable = deliverableByMatch.get(influencer.id);
                                     if (!deliverable) return;
                                     const reason =
@@ -454,7 +456,8 @@ const BrandPipeline = () => {
                             )}
                             <DropdownMenuItem
                               className="font-mono text-xs text-destructive"
-                              onClick={() => {
+                              onSelect={(event) => {
+                                event.preventDefault();
                                 rejectBrandMatch(influencer.id).catch((err) => {
                                   const message = err instanceof ApiError ? err.message : "Reject failed";
                                   toast({ title: "REJECT FAILED", description: message });
