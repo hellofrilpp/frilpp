@@ -81,11 +81,17 @@ async function main() {
   }
 }
 
+// Keep the event loop alive while async work runs. Some environments can exit a Node.js
+// process even when a Promise is pending (Promises alone do not keep Node alive).
+const keepAlive = setInterval(() => {}, 60_000);
+
 main()
   .then((result) => {
+    clearInterval(keepAlive);
     process.exit(result.exitCode);
   })
   .catch((err) => {
+    clearInterval(keepAlive);
     console.error(err);
     process.exit(1);
   });
