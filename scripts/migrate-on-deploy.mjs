@@ -1,11 +1,6 @@
 async function main() {
   const migrateFlag = process.env.MIGRATE_ON_DEPLOY;
-  const shouldRun =
-    migrateFlag !== "false" && process.env.VERCEL === "1";
-
-  if (!shouldRun) {
-    return { ok: true, exitCode: 0 };
-  }
+  const shouldRun = migrateFlag !== "false";
 
   const looksPooled = (value) => Boolean(value && /(^|-)pooler\./.test(value));
 
@@ -21,9 +16,19 @@ async function main() {
   const connectionString = directConnectionString ?? pooledConnectionString;
 
   if (!connectionString) {
-    console.log("[migrate] no database connection string found; skipping");
+    if (shouldRun) console.log("[migrate] no database connection string found; skipping");
     return { ok: true, exitCode: 0 };
   }
+
+  if (!shouldRun) {
+    console.log("[migrate] MIGRATE_ON_DEPLOY=false; skipping");
+    return { ok: true, exitCode: 0 };
+  }
+
+  console.log("[migrate] starting", {
+    hasDirect: Boolean(directConnectionString),
+    hasPooled: Boolean(pooledConnectionString),
+  });
 
   const { createClient, createPool } = await import("@vercel/postgres");
   const { drizzle } = await import("drizzle-orm/vercel-postgres");
@@ -38,6 +43,13 @@ async function main() {
   let locked = false;
 
   try {
+    try {
+      await sql`set lock_timeout = '3s'`;
+      await sql`set statement_timeout = '5m'`;
+    } catch {
+      // ignore; best-effort
+    }
+
     const lock = await sql`select pg_try_advisory_lock(${LOCK_KEY}) as locked`;
     locked = Boolean(lock.rows?.[0]?.locked);
     if (!locked) {
