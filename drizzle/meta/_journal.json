@@ -85,6 +85,13 @@
       "when": 1766960000000,
       "tag": "0015_redemptions",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1768039256126,
+      "tag": "0019_prod_catchup",
+      "breakpoints": true
     }
   ]
 }
