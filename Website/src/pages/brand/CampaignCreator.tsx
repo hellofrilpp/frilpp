@@ -22,6 +22,7 @@ import {
   ShopifyProduct,
   apiUrl,
   createBrandOffer,
+  updateBrandOffer,
   getCreatorRecommendations,
   getBrandOffers,
   getPicklists,
@@ -150,6 +151,8 @@ const CampaignCreator = () => {
   const [productQuantity, setProductQuantity] = useState(1);
   const [copying, setCopying] = useState(false);
   const [launching, setLaunching] = useState(false);
+  const [draftOfferId, setDraftOfferId] = useState<string | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
   const restoredRef = useRef(false);
   const draftReadyRef = useRef(false);
 
@@ -175,6 +178,7 @@ const CampaignCreator = () => {
         formData: Partial<CampaignFormData> | null;
         productQuantity: unknown;
         selectedVariantId: unknown;
+        draftOfferId: unknown;
       }>;
 
       if (draft.formData && typeof draft.formData === "object") {
@@ -200,6 +204,10 @@ const CampaignCreator = () => {
         setSelectedVariantId(draft.selectedVariantId);
       }
 
+      if (typeof draft.draftOfferId === "string" || draft.draftOfferId === null) {
+        setDraftOfferId(draft.draftOfferId);
+      }
+
       toast.success("Draft restored");
     } catch {
       // Ignore corrupted drafts.
@@ -215,10 +223,11 @@ const CampaignCreator = () => {
       formData,
       productQuantity,
       selectedVariantId,
+      draftOfferId,
       updatedAt: Date.now(),
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-  }, [currentStep, formData, productQuantity, selectedVariantId]);
+  }, [currentStep, formData, productQuantity, selectedVariantId, draftOfferId]);
 
   const { data: shopifyStatus } = useQuery({
     queryKey: ["shopify-status"],
@@ -337,23 +346,112 @@ const CampaignCreator = () => {
     });
   };
 
-  const nextStep = () => {
-    if (currentStep < 4) setCurrentStep(prev => prev + 1);
+  const buildOfferTemplate = () => {
+    const types = formData.contentTypes;
+    if (types.includes("REEL") && types.includes("STORY")) return "REEL_PLUS_STORY";
+    if (types.includes("REEL")) return "REEL";
+    if (types.includes("FEED_POST")) return "FEED";
+    return "UGC_ONLY";
   };
 
-  const prevStep = () => {
-    if (currentStep > 1) setCurrentStep(prev => prev - 1);
+  const buildOfferMetadata = (fulfillmentType: "SHOPIFY" | "MANUAL") => {
+    const isKm = countriesAllowed.length === 1 && countriesAllowed[0] === "IN";
+    const radiusInput = Number(formData.locationRadiusMiles || 0);
+    const radiusKm = isKm ? radiusInput : milesToKm(radiusInput);
+    return {
+      productValue: formData.productValue ? Number(formData.productValue) : null,
+      category: formData.category || null,
+      categoryOther: formData.category === "OTHER" ? formData.categoryOther.trim() || null : null,
+      description: formData.description || null,
+      platforms: formData.platforms,
+      platformOther: formData.platforms.includes("OTHER") ? formData.platformOther.trim() || null : null,
+      contentTypes: formData.contentTypes,
+      contentTypeOther: formData.contentTypes.includes("OTHER")
+        ? formData.contentTypeOther.trim() || null
+        : null,
+      hashtags: formData.hashtags || null,
+      guidelines: formData.guidelines || null,
+      niches: formData.niches,
+      nicheOther: formData.niches.includes("OTHER") ? formData.nicheOther.trim() || null : null,
+      region: formData.region || null,
+      campaignName: formData.campaignName || null,
+      fulfillmentType,
+      locationRadiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : null,
+      presetId: formData.presetId || null,
+    };
+  };
+
+  const buildOfferProducts = (fulfillmentType: "SHOPIFY" | "MANUAL") => {
+    if (fulfillmentType !== "SHOPIFY" || !selectedProduct || !selectedVariantId) return [];
+    return [
+      {
+        shopifyProductId: selectedProduct.id,
+        shopifyVariantId: selectedVariantId,
+        quantity: Math.max(1, productQuantity || 1),
+      },
+    ];
+  };
+
+  const saveDraftToServer = async () => {
+    if (savingDraft) return;
+    const fulfillmentType =
+      formData.fulfillmentType || (shopifyStatus?.connected ? "SHOPIFY" : "MANUAL");
+    const template = buildOfferTemplate();
+    const titleRaw = formData.campaignName || formData.productName;
+    const title = titleRaw && titleRaw.trim().length >= 3 ? titleRaw.trim() : "Untitled campaign";
+    const minFollowers = Number(formData.minFollowers || 0);
+    const maxClaims = Number(formData.quantity || 1);
+
+    const basePayload = {
+      title,
+      template,
+      status: "DRAFT" as const,
+      countriesAllowed,
+      maxClaims: Number.isFinite(maxClaims) ? maxClaims : 1,
+      deadlineDaysAfterDelivery: 14,
+      followersThreshold: Number.isFinite(minFollowers) ? minFollowers : 0,
+      aboveThresholdAutoAccept: true,
+      products: buildOfferProducts(fulfillmentType),
+      metadata: buildOfferMetadata(fulfillmentType),
+    };
+
+    setSavingDraft(true);
+    try {
+      if (!draftOfferId) {
+        const toastId = toast.loading("Saving draft...");
+        const res = await createBrandOffer(basePayload);
+        toast.dismiss(toastId);
+        setDraftOfferId(res.offerId);
+        toast.success("Draft saved");
+      } else {
+        await updateBrandOffer(draftOfferId, basePayload);
+      }
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Draft save failed";
+      toast.error(message);
+      if (err instanceof ApiError && err.status === 401) {
+        window.location.href = "/brand/auth";
+      }
+    } finally {
+      setSavingDraft(false);
+    }
+  };
+
+  const nextStep = async () => {
+    if (currentStep >= 4) return;
+    await saveDraftToServer();
+    setCurrentStep((prev) => prev + 1);
+  };
+
+  const prevStep = async () => {
+    if (currentStep <= 1) return;
+    await saveDraftToServer();
+    setCurrentStep((prev) => prev - 1);
   };
 
   const handleLaunch = () => {
     if (launching) return;
-    const template = (() => {
-      const types = formData.contentTypes;
-      if (types.includes("REEL") && types.includes("STORY")) return "REEL_PLUS_STORY";
-      if (types.includes("REEL")) return "REEL";
-      if (types.includes("FEED_POST")) return "FEED";
-      return "UGC_ONLY";
-    })();
+    const template = buildOfferTemplate();
 
     const title = formData.campaignName || formData.productName;
     if (!title) {
@@ -407,50 +505,16 @@ const CampaignCreator = () => {
       }
     }
 
-    const products =
-      fulfillmentType === "SHOPIFY" && selectedProduct && selectedVariantId
-        ? [
-            {
-              shopifyProductId: selectedProduct.id,
-              shopifyVariantId: selectedVariantId,
-              quantity: Math.max(1, productQuantity || 1),
-            },
-          ]
-        : [];
-    const isKm = allowedCountries.length === 1 && allowedCountries[0] === "IN";
-    const radiusInput = Number(formData.locationRadiusMiles || 0);
-    const radiusKm = isKm ? radiusInput : milesToKm(radiusInput);
-    const metadata = {
-      productValue: formData.productValue ? Number(formData.productValue) : null,
-      category: formData.category || null,
-      categoryOther:
-        formData.category === "OTHER" ? formData.categoryOther.trim() || null : null,
-      description: formData.description || null,
-      platforms: formData.platforms,
-      platformOther: formData.platforms.includes("OTHER")
-        ? formData.platformOther.trim() || null
-        : null,
-      contentTypes: formData.contentTypes,
-      contentTypeOther: formData.contentTypes.includes("OTHER")
-        ? formData.contentTypeOther.trim() || null
-        : null,
-      hashtags: formData.hashtags || null,
-      guidelines: formData.guidelines || null,
-      niches: formData.niches,
-      nicheOther: formData.niches.includes("OTHER") ? formData.nicheOther.trim() || null : null,
-      region: formData.region || null,
-      campaignName: formData.campaignName || null,
-      fulfillmentType,
-      locationRadiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : null,
-      presetId: formData.presetId || null,
-    };
+    const products = buildOfferProducts(fulfillmentType);
+    const metadata = buildOfferMetadata(fulfillmentType);
 
     const toastId = toast.loading("Launching campaign...");
     setLaunching(true);
 
-    createBrandOffer({
+    const publishPayload = {
       title,
       template,
+      status: "PUBLISHED" as const,
       countriesAllowed: allowedCountries,
       maxClaims: Number.isFinite(maxClaims) ? maxClaims : 1,
       deadlineDaysAfterDelivery: 14,
@@ -458,13 +522,21 @@ const CampaignCreator = () => {
       aboveThresholdAutoAccept: true,
       products,
       metadata,
-    })
+    };
+
+    const publish =
+      draftOfferId
+        ? updateBrandOffer(draftOfferId, publishPayload)
+        : createBrandOffer(publishPayload);
+
+    publish
       .then(() => {
         toast.dismiss(toastId);
         toast.success("🎮 Campaign launched! Let the matching begin!", {
           description: "Influencers will start seeing your offer.",
         });
         localStorage.removeItem(DRAFT_KEY);
+        setDraftOfferId(null);
         navigate("/brand/campaigns");
       })
       .catch((err) => {
@@ -1225,7 +1297,7 @@ const CampaignCreator = () => {
               <Button 
                 variant="outline" 
                 onClick={prevStep}
-                disabled={currentStep === 1}
+                disabled={currentStep === 1 || savingDraft || launching}
                 className="border-2 border-border font-pixel text-xs px-6 pixel-btn disabled:opacity-50"
               >
                 <ArrowLeft className="w-4 h-4 mr-2" />
@@ -1235,9 +1307,10 @@ const CampaignCreator = () => {
               {currentStep < 4 ? (
                 <Button 
                   onClick={nextStep}
+                  disabled={savingDraft || launching}
                   className="bg-primary text-primary-foreground font-pixel text-xs px-6 pixel-btn glow-green"
                 >
-                  NEXT
+                  {savingDraft ? "SAVING..." : "NEXT"}
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               ) : (

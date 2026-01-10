@@ -1,22 +1,37 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { deliverables, manualShipments, matches, offerProducts, offers, shopifyOrders } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
+import { hasActiveSubscription } from "@/lib/billing";
+import { templateToDeliverableType, type OfferTemplateId } from "@/lib/offer-template";
+import { coerceDraftMetadata, validatePublishMetadata } from "@/lib/offer-metadata";
+import { USAGE_RIGHTS_SCOPES } from "@/lib/usage-rights";
 
 export const runtime = "nodejs";
 
 const patchSchema = z
   .object({
     title: z.string().min(3).max(160).optional(),
+    template: z.enum(["REEL", "FEED", "REEL_PLUS_STORY", "UGC_ONLY"]).optional(),
     countriesAllowed: z.array(z.enum(["US", "IN"])).min(1).optional(),
     maxClaims: z.number().int().min(1).max(10000).optional(),
     deadlineDaysAfterDelivery: z.number().int().min(1).max(365).optional(),
     followersThreshold: z.number().int().min(0).max(100_000_000).optional(),
     aboveThresholdAutoAccept: z.boolean().optional(),
     usageRightsRequired: z.boolean().optional(),
-    usageRightsScope: z.string().max(64).optional(),
+    usageRightsScope: z.enum(USAGE_RIGHTS_SCOPES).optional(),
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
+    products: z
+      .array(
+        z.object({
+          shopifyProductId: z.string().min(1),
+          shopifyVariantId: z.string().min(1),
+          quantity: z.number().int().min(1).max(100).default(1),
+        }),
+      )
+      .optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
 
@@ -97,8 +112,68 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
     return Response.json({ ok: false, error: "No changes" }, { status: 400 });
   }
 
+  const existingRows = await db
+    .select({
+      id: offers.id,
+      status: offers.status,
+      countriesAllowed: offers.countriesAllowed,
+      template: offers.template,
+      metadata: offers.metadata,
+    })
+    .from(offers)
+    .where(and(eq(offers.id, offerId), eq(offers.brandId, ctx.brandId)))
+    .limit(1);
+  const existing = existingRows[0];
+  if (!existing) return Response.json({ ok: false, error: "Offer not found" }, { status: 404 });
+
+  if (patch.status === "DRAFT" && existing.status !== "DRAFT") {
+    return Response.json({ ok: false, error: "Cannot revert to draft" }, { status: 400 });
+  }
+
+  const nextCountriesAllowed = patch.countriesAllowed ?? existing.countriesAllowed;
+  const nextTemplate = (patch.template ?? existing.template) as OfferTemplateId;
+
+  const publishing = patch.status === "PUBLISHED" && existing.status !== "PUBLISHED";
+  const storedMetadata = (() => {
+    if (publishing) {
+      const validated = validatePublishMetadata({
+        raw: patch.metadata ?? existing.metadata,
+        countriesAllowed: nextCountriesAllowed as Array<"US" | "IN">,
+      });
+      if (!validated.ok) return validated.response;
+      return validated.metadata;
+    }
+    if (patch.metadata !== undefined) return coerceDraftMetadata(patch.metadata);
+    return undefined;
+  })();
+  if (storedMetadata instanceof Response) return storedMetadata;
+
+  if (publishing) {
+    const subscribed = await hasActiveSubscription({
+      subjectType: "BRAND",
+      subjectId: ctx.brandId,
+    });
+    if (!subscribed) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Subscription required to publish offers",
+          code: "PAYWALL",
+          lane: "brand",
+        },
+        { status: 402 },
+      );
+    }
+  }
+
   const update: Record<string, unknown> = { updatedAt: new Date() };
   if (patch.title !== undefined) update.title = patch.title;
+  if (patch.template !== undefined) {
+    const deliverableType = templateToDeliverableType(nextTemplate);
+    update.template = nextTemplate;
+    update.deliverableType = deliverableType;
+    update.requiresCaptionCode = deliverableType !== "UGC_ONLY";
+  }
   if (patch.countriesAllowed !== undefined) update.countriesAllowed = patch.countriesAllowed;
   if (patch.maxClaims !== undefined) update.maxClaims = patch.maxClaims;
   if (patch.deadlineDaysAfterDelivery !== undefined)
@@ -110,20 +185,44 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
   if (patch.usageRightsRequired !== undefined)
     update.usageRightsRequired = patch.usageRightsRequired;
   if (patch.usageRightsScope !== undefined) update.usageRightsScope = patch.usageRightsScope;
+  if (storedMetadata !== undefined) update.metadata = storedMetadata;
   if (patch.status !== undefined) {
     update.status = patch.status;
-    if (patch.status === "PUBLISHED") update.publishedAt = new Date();
+    if (publishing) {
+      update.publishedAt = new Date();
+    }
   }
 
   const updated = await db
-    .update(offers)
-    .set(update)
-    .where(and(eq(offers.id, offerId), eq(offers.brandId, ctx.brandId)))
-    .returning({ id: offers.id })
+    .transaction(async (tx) => {
+      await tx.execute(sql`set local lock_timeout = '3s'`);
+      await tx.execute(sql`set local statement_timeout = '10s'`);
+
+      if (patch.products) {
+        await tx.delete(offerProducts).where(eq(offerProducts.offerId, offerId));
+        if (patch.products.length) {
+          await tx.insert(offerProducts).values(
+            patch.products.map((p) => ({
+              id: crypto.randomUUID(),
+              offerId,
+              shopifyProductId: p.shopifyProductId,
+              shopifyVariantId: p.shopifyVariantId,
+              quantity: p.quantity,
+            })),
+          );
+        }
+      }
+
+      return tx
+        .update(offers)
+        .set(update)
+        .where(and(eq(offers.id, offerId), eq(offers.brandId, ctx.brandId)))
+        .returning({ id: offers.id })
+        .catch(() => []);
+    })
     .catch(() => []);
 
   if (!updated.length) return Response.json({ ok: false, error: "Offer not found" }, { status: 404 });
-
   return Response.json({ ok: true });
 }
 

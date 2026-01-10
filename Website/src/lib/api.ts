@@ -183,6 +183,7 @@ export async function getBrandOffer(offerId: string) {
 export async function createBrandOffer(payload: {
   title: string;
   template: "REEL" | "FEED" | "REEL_PLUS_STORY" | "UGC_ONLY";
+  status?: "DRAFT" | "PUBLISHED";
   countriesAllowed: Array<"US" | "IN">;
   maxClaims: number;
   deadlineDaysAfterDelivery: number;
@@ -203,7 +204,18 @@ export async function createBrandOffer(payload: {
 export async function updateBrandOffer(
   offerId: string,
   payload: Partial<{
+    title: string;
+    template: "REEL" | "FEED" | "REEL_PLUS_STORY" | "UGC_ONLY";
+    countriesAllowed: Array<"US" | "IN">;
+    maxClaims: number;
+    deadlineDaysAfterDelivery: number;
+    followersThreshold: number;
+    aboveThresholdAutoAccept: boolean;
+    usageRightsRequired: boolean;
+    usageRightsScope: string;
     status: "DRAFT" | "PUBLISHED" | "ARCHIVED";
+    products: Array<{ shopifyProductId: string; shopifyVariantId: string; quantity: number }>;
+    metadata: Record<string, unknown>;
   }>,
 ) {
   return apiFetch<{ ok: boolean }>(`/api/brand/offers/${offerId}`, {

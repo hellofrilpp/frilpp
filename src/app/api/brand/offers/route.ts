@@ -8,112 +8,17 @@ import { USAGE_RIGHTS_SCOPES } from "@/lib/usage-rights";
 import { hasActiveSubscription } from "@/lib/billing";
 import { log } from "@/lib/logger";
 import { getDbErrorText, isMigrationSchemaError } from "@/lib/runtime-migrations";
-import {
-  CAMPAIGN_CATEGORIES,
-  CONTENT_TYPES,
-  CREATOR_CATEGORIES,
-  PLATFORMS_BY_COUNTRY,
-  REGION_OPTIONS,
-  platformsForCountries,
-} from "@/lib/picklists";
+import { coerceDraftMetadata, validatePublishMetadata } from "@/lib/offer-metadata";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
 
-const milesToKm = (miles: number) => miles * 1.609344;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-const metadataSchema = z
-  .object({
-    productValue: z.number().min(0).max(1_000_000).nullable().optional(),
-    category: z.enum(CAMPAIGN_CATEGORIES).nullable().optional(),
-    categoryOther: z.string().trim().min(2).max(64).nullable().optional(),
-    description: z.string().trim().max(800).nullable().optional(),
-    platforms: z.array(z.enum(PLATFORMS_BY_COUNTRY.US)).max(6).optional().default([]),
-    platformOther: z.string().trim().min(2).max(64).nullable().optional(),
-    contentTypes: z.array(z.enum(CONTENT_TYPES)).max(6).optional().default([]),
-    contentTypeOther: z.string().trim().min(2).max(64).nullable().optional(),
-    hashtags: z.string().trim().max(200).nullable().optional(),
-    guidelines: z.string().trim().max(800).nullable().optional(),
-    niches: z.array(z.enum(CREATOR_CATEGORIES)).max(8).optional().default([]),
-    nicheOther: z.string().trim().min(2).max(64).nullable().optional(),
-    region: z.enum(REGION_OPTIONS).nullable().optional(),
-    campaignName: z.string().trim().max(160).nullable().optional(),
-    fulfillmentType: z.enum(["SHOPIFY", "MANUAL"]).nullable().optional(),
-    manualFulfillmentMethod: z.enum(["PICKUP", "LOCAL_DELIVERY"]).nullable().optional(),
-    manualFulfillmentNotes: z.string().trim().max(300).nullable().optional(),
-    // Local radius is stored in kilometers (preferred). `locationRadiusMiles` is accepted for backward compatibility.
-    locationRadiusKm: z.number().min(1).max(8000).nullable().optional(),
-    locationRadiusMiles: z.number().min(1).max(5000).nullable().optional(),
-    ctaUrl: z.string().trim().max(800).url().nullable().optional(),
-    presetId: z.string().trim().max(40).nullable().optional(),
-  })
-  .passthrough()
-  .superRefine((data, ctx) => {
-    if (data.category === "OTHER" && !data.categoryOther) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["categoryOther"],
-        message: "categoryOther is required when category is OTHER",
-      });
-    }
-    if (data.category !== "OTHER" && data.categoryOther) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["categoryOther"],
-        message: "categoryOther is only allowed when category is OTHER",
-      });
-    }
-    const platforms = data.platforms ?? [];
-    if (platforms.includes("OTHER") && !data.platformOther) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["platformOther"],
-        message: "platformOther is required when platforms include OTHER",
-      });
-    }
-    if (!platforms.includes("OTHER") && data.platformOther) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["platformOther"],
-        message: "platformOther is only allowed when platforms include OTHER",
-      });
-    }
-    const contentTypes = data.contentTypes ?? [];
-    if (contentTypes.includes("OTHER") && !data.contentTypeOther) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["contentTypeOther"],
-        message: "contentTypeOther is required when contentTypes include OTHER",
-      });
-    }
-    if (!contentTypes.includes("OTHER") && data.contentTypeOther) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["contentTypeOther"],
-        message: "contentTypeOther is only allowed when contentTypes include OTHER",
-      });
-    }
-    const niches = data.niches ?? [];
-    if (niches.includes("OTHER") && !data.nicheOther) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["nicheOther"],
-        message: "nicheOther is required when niches include OTHER",
-      });
-    }
-    if (!niches.includes("OTHER") && data.nicheOther) {
-      ctx.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["nicheOther"],
-        message: "nicheOther is only allowed when niches include OTHER",
-      });
-    }
-  });
 
 const createOfferSchema = z.object({
   title: z.string().min(3).max(160),
   template: z.enum(["REEL", "FEED", "REEL_PLUS_STORY", "UGC_ONLY"]),
+  status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
   countriesAllowed: z.array(z.enum(["US", "IN"])).min(1),
   maxClaims: z.number().int().min(1).max(10000),
   deadlineDaysAfterDelivery: z.number().int().min(1).max(365),
@@ -227,57 +132,8 @@ export async function POST(request: Request) {
       );
     }
 
-    const metadataParsed = metadataSchema.safeParse(parsed.data.metadata ?? {});
-    if (!metadataParsed.success) {
-      return Response.json(
-        { ok: false, error: "Invalid metadata", issues: metadataParsed.error.issues },
-        { status: 400 },
-      );
-    }
-
     const input = parsed.data;
-    const metadata = metadataParsed.data;
-    const radiusKm = (() => {
-      const km = metadata.locationRadiusKm;
-      if (typeof km === "number" && Number.isFinite(km) && km > 0) return km;
-      const miles = metadata.locationRadiusMiles;
-      if (typeof miles === "number" && Number.isFinite(miles) && miles > 0) return milesToKm(miles);
-      return null;
-    })();
-
-    const allowedPlatforms = platformsForCountries(input.countriesAllowed);
-    const invalidPlatforms = (metadata.platforms ?? []).filter(
-      (platform) => !allowedPlatforms.includes(platform),
-    );
-    if (invalidPlatforms.length) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Platforms not allowed for selected countries",
-          issues: invalidPlatforms.map((platform) => ({ platform })),
-        },
-        { status: 400 },
-      );
-    }
-
-    if (metadata.region) {
-      const expectedRegion =
-        input.countriesAllowed.length === 2
-          ? "US_IN"
-          : input.countriesAllowed[0] === "IN"
-            ? "IN"
-            : "US";
-      if (metadata.region !== expectedRegion) {
-        return Response.json(
-          {
-            ok: false,
-            error: "Region does not match countriesAllowed",
-            issues: [{ region: metadata.region, expected: expectedRegion }],
-          },
-          { status: 400 },
-        );
-      }
-    }
+    const desiredStatus = input.status ?? "PUBLISHED";
 
     const t0 = Date.now();
     log("debug", "brand offer create start", { errorId });
@@ -288,24 +144,39 @@ export async function POST(request: Request) {
 
     log("debug", "brand offer create authed", { errorId, ms: Date.now() - t0 });
 
-    phase = "billing";
-    const subscribed = await hasActiveSubscription({
-      subjectType: "BRAND",
-      subjectId: ctx.brandId,
-    });
-    log("debug", "brand offer create subscription checked", { errorId, ms: Date.now() - t0 });
+    if (desiredStatus === "PUBLISHED") {
+      phase = "billing";
+      const subscribed = await hasActiveSubscription({
+        subjectType: "BRAND",
+        subjectId: ctx.brandId,
+      });
+      log("debug", "brand offer create subscription checked", { errorId, ms: Date.now() - t0 });
 
-    if (!subscribed) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Subscription required to publish offers",
-          code: "PAYWALL",
-          lane: "brand",
-        },
-        { status: 402 },
-      );
+      if (!subscribed) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Subscription required to publish offers",
+            code: "PAYWALL",
+            lane: "brand",
+          },
+          { status: 402 },
+        );
+      }
     }
+
+    const storedMetadata =
+      desiredStatus === "PUBLISHED"
+        ? (() => {
+            const validated = validatePublishMetadata({
+              raw: input.metadata ?? {},
+              countriesAllowed: input.countriesAllowed,
+            });
+            if (!validated.ok) return validated.response;
+            return validated.metadata;
+          })()
+        : coerceDraftMetadata(input.metadata ?? {});
+    if (storedMetadata instanceof Response) return storedMetadata;
 
     const id = crypto.randomUUID();
     const template = input.template as OfferTemplateId;
@@ -313,12 +184,6 @@ export async function POST(request: Request) {
     const usageRightsScope =
       input.usageRightsScope ??
       (input.usageRightsRequired ? "PAID_ADS_12MO" : undefined);
-
-    const storedMetadata: Record<string, unknown> = {
-      ...metadata,
-      locationRadiusKm: radiusKm,
-    };
-    delete storedMetadata.locationRadiusMiles;
 
     const runInsert = async () => {
       phase = "insert:start";
@@ -333,7 +198,7 @@ export async function POST(request: Request) {
           brandId: ctx.brandId,
           title: input.title,
           template,
-          status: "PUBLISHED",
+          status: desiredStatus,
           countriesAllowed: input.countriesAllowed,
           maxClaims: input.maxClaims,
           deadlineDaysAfterDelivery: input.deadlineDaysAfterDelivery,
@@ -344,7 +209,7 @@ export async function POST(request: Request) {
           acceptanceFollowersThreshold: input.followersThreshold,
           acceptanceAboveThresholdAutoAccept: input.aboveThresholdAutoAccept,
           metadata: storedMetadata,
-          publishedAt: new Date(),
+          publishedAt: desiredStatus === "PUBLISHED" ? new Date() : null,
         });
 
         if (input.products.length) {
