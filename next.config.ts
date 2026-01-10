@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
         { source: "/placeholder.svg", destination: "/site/placeholder.svg" },
         {
           source:
-            "/:path((?!api|_next|site|legal(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$).*)",
+            "/:path((?!api|_next|site|legal(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$|.*\\.txt$).*)",
           destination: "/site/index.html",
         },
       ],
