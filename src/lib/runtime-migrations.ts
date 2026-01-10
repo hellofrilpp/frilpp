@@ -1,5 +1,5 @@
 let didMigrate = false;
-let migrating: Promise<void> | null = null;
+let migrating: Promise<EnsureRuntimeMigrationsResult> | null = null;
 
 function sleep(ms: number) {
   return new Promise<void>((resolve) => setTimeout(resolve, ms));
@@ -9,27 +9,38 @@ function looksPooled(value?: string) {
   return Boolean(value && /(^|-)pooler\./.test(value));
 }
 
-function resolveMigrationConnectionString() {
-  const pooledConnectionString =
-    process.env.POSTGRES_URL ??
-    (looksPooled(process.env.DATABASE_URL) ? process.env.DATABASE_URL : undefined);
-
-  const directConnectionString =
+function resolveDirectMigrationConnectionString() {
+  const direct =
     process.env.POSTGRES_URL_NON_POOLING ??
     process.env.POSTGRES_PRISMA_URL ??
-    (!pooledConnectionString ? process.env.DATABASE_URL : undefined);
-
-  return directConnectionString ?? pooledConnectionString ?? null;
+    (process.env.DATABASE_URL && !looksPooled(process.env.DATABASE_URL) ? process.env.DATABASE_URL : null);
+  return direct ?? null;
 }
 
-export async function ensureRuntimeMigrations(options?: { maxWaitMs?: number; pollMs?: number }) {
-  if (didMigrate) return;
+export type EnsureRuntimeMigrationsResult =
+  | { ok: true; migrated: boolean }
+  | {
+      ok: false;
+      code: "NO_DIRECT_CONNECTION" | "LOCK_UNAVAILABLE" | "MIGRATE_FAILED";
+      error?: string;
+    };
+
+export async function ensureRuntimeMigrations(options?: {
+  maxWaitMs?: number;
+  pollMs?: number;
+}): Promise<EnsureRuntimeMigrationsResult> {
+  if (didMigrate) return { ok: true, migrated: false };
   if (migrating) return migrating;
 
   migrating = (async () => {
-    const connectionString = resolveMigrationConnectionString();
+    const connectionString = resolveDirectMigrationConnectionString();
     if (!connectionString) {
-      throw new Error("Database is not configured. Set POSTGRES_URL / POSTGRES_URL_NON_POOLING or DATABASE_URL.");
+      return {
+        ok: false,
+        code: "NO_DIRECT_CONNECTION",
+        error:
+          "Direct Postgres connection string is not configured. Set POSTGRES_URL_NON_POOLING (recommended) or a non-pooled DATABASE_URL.",
+      };
     }
 
     const { createClient } = await import("@vercel/postgres");
@@ -54,12 +65,16 @@ export async function ensureRuntimeMigrations(options?: { maxWaitMs?: number; po
       }
 
       if (!locked) {
-        throw new Error("Database migrations are currently running; please retry in a moment.");
+        return { ok: false, code: "LOCK_UNAVAILABLE" };
       }
 
       const migrationDb = drizzle(client);
       await migrate(migrationDb, { migrationsFolder: "drizzle" });
       didMigrate = true;
+      return { ok: true, migrated: true };
+    } catch (err) {
+      const error = getDbErrorText(err);
+      return { ok: false, code: "MIGRATE_FAILED", error };
     } finally {
       try {
         if (locked) await sql`select pg_advisory_unlock(${LOCK_KEY})`;

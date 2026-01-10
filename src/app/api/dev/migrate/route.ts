@@ -26,7 +26,12 @@ export async function GET(request: Request) {
     return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  await ensureRuntimeMigrations();
-  return Response.json({ ok: true });
+  const result = await ensureRuntimeMigrations({ maxWaitMs: 30_000 });
+  if (!result.ok) {
+    return Response.json(
+      { ok: false, error: "Migrate failed", code: result.code, details: result.error ?? null },
+      { status: 500 },
+    );
+  }
+  return Response.json({ ok: true, migrated: result.migrated });
 }
-

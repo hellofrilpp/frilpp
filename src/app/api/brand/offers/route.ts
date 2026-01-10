@@ -192,9 +192,10 @@ export async function GET(request: Request) {
       })),
     });
   } catch (err) {
-    log("error", "brand offers GET failed", { error: getDbErrorText(err) });
+    const errorId = crypto.randomUUID();
+    log("error", "brand offers GET failed", { errorId, error: getDbErrorText(err) });
     return Response.json(
-      { ok: false, error: "Failed to load offers" },
+      { ok: false, error: "Failed to load offers", errorId },
       { status: 500 },
     );
   }
@@ -289,9 +290,6 @@ export async function POST(request: Request) {
       );
     }
 
-    // Ensure schema exists (first-time prod deploys / misconfigured migrations).
-    await ensureRuntimeMigrations();
-
     const id = crypto.randomUUID();
     const template = input.template as OfferTemplateId;
     const deliverableType = templateToDeliverableType(template);
@@ -342,13 +340,31 @@ export async function POST(request: Request) {
       await runInsert();
     } catch (err) {
       if (!isMigrationSchemaError(err)) throw err;
-      await ensureRuntimeMigrations();
+      const mig = await ensureRuntimeMigrations();
+      if (!mig.ok && mig.code === "NO_DIRECT_CONNECTION") {
+        return Response.json(
+          {
+            ok: false,
+            error:
+              "Database migrations need a direct Postgres connection. Set POSTGRES_URL_NON_POOLING on Vercel and run pnpm db:migrate.",
+            code: "DB_MIGRATION_NO_DIRECT",
+          },
+          { status: 500 },
+        );
+      }
+
+      // If another deploy/instance is migrating, wait briefly then retry.
+      if (!mig.ok && mig.code === "LOCK_UNAVAILABLE") {
+        await new Promise((r) => setTimeout(r, 750));
+      }
+
       await runInsert();
     }
 
     return Response.json({ ok: true, offerId: id });
   } catch (err) {
-    log("error", "brand offer create failed", { error: getDbErrorText(err) });
+    const errorId = crypto.randomUUID();
+    log("error", "brand offer create failed", { errorId, error: getDbErrorText(err) });
     const causeMessage =
       err && typeof err === "object" && "cause" in err && err.cause instanceof Error
         ? err.cause.message
@@ -357,7 +373,7 @@ export async function POST(request: Request) {
       ? "Database schema is out of date; run pnpm db:migrate and retry."
       : causeMessage ?? "Failed to launch campaign";
     return Response.json(
-      { ok: false, error: message },
+      { ok: false, error: message, errorId },
       { status: 500 },
     );
   }
