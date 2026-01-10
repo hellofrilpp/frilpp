@@ -35,18 +35,18 @@ const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {/* Header */}
-      <header className="h-16 border-b-4 border-border bg-card flex items-center justify-between px-4 md:px-6">
-        <Link to="/" className="flex items-center gap-2">
+      <header className="h-16 border-b-4 border-border bg-card flex items-center gap-3 px-4 md:px-6">
+        <Link to="/" className="flex items-center gap-2 shrink-0">
           <div className="w-8 h-8 bg-neon-pink flex items-center justify-center">
             <FrilppLogo size="sm" />
           </div>
-          <span className="text-xs font-pixel text-neon-green">
+          <span className="hidden sm:inline text-xs font-pixel text-neon-green">
             FRI<span className="text-neon-pink">L</span>PP
           </span>
         </Link>
 
         {/* Desktop Nav */}
-        <nav className="hidden md:flex items-center gap-1">
+        <nav className="hidden md:flex flex-1 items-center justify-center gap-1 min-w-0">
           {navItems.map((item) => {
             const isActive = location.pathname === item.href;
             return (
@@ -67,21 +67,18 @@ const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
           })}
         </nav>
 
-        {/* Points Display */}
-        <div className="hidden md:flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-2 bg-muted border-2 border-neon-yellow">
+        <div className="ml-auto flex items-center gap-2 shrink-0">
+          <div className="hidden lg:flex items-center gap-2 px-3 py-2 bg-muted border-2 border-neon-yellow">
             <Trophy className="w-4 h-4 text-neon-yellow" />
             <span className="text-xs font-pixel text-neon-yellow">LV.{level}</span>
             <span className="text-xs font-mono text-foreground">{getTotalXP().toLocaleString()} XP</span>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle />
-            <AccessibilityToggle />
-          </div>
+          <ThemeToggle />
+          <AccessibilityToggle />
           <Button
             variant="ghost"
             size="icon"
-            className="border-2 border-transparent hover:border-destructive"
+            className="hidden md:inline-flex border-2 border-transparent hover:border-destructive"
             onClick={async () => {
               await logout().catch(() => null);
               window.location.href = "/";
@@ -89,17 +86,17 @@ const InfluencerLayout = ({ children }: InfluencerLayoutProps) => {
           >
             <LogOut className="w-4 h-4" />
           </Button>
-        </div>
 
-        {/* Mobile Menu Toggle */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="md:hidden border-2 border-border"
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        >
-          {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-        </Button>
+          {/* Mobile Menu Toggle */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="md:hidden border-2 border-border"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </Button>
+        </div>
       </header>
 
       {/* Mobile Menu */}

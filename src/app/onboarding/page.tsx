@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,11 +22,11 @@ type Me = {
 };
 
 export default function OnboardingPage() {
-  const search = useSearchParams();
   const [me, setMe] = useState<Me | null>(null);
   const [status, setStatus] = useState<"loading" | "idle" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
   const [lane, setLane] = useState<"brand" | "creator" | null>(null);
+  const [requestedNextPath, setRequestedNextPath] = useState<string | null>(null);
 
   const [brandName, setBrandName] = useState("My brand");
   const [brandCountries, setBrandCountries] = useState<Array<"US" | "IN">>(["US"]);
@@ -51,11 +50,18 @@ export default function OnboardingPage() {
   const showBrandCreate = showBrandOnboarding && !hasBrand;
   const showCreatorCreate = showCreatorOnboarding && !hasCreator;
 
-  const requestedNextPath = useMemo(() => {
-    const raw = search.get("next");
-    if (!raw) return null;
-    return sanitizeNextPath(raw, "/");
-  }, [search]);
+  useEffect(() => {
+    try {
+      const raw = new URLSearchParams(window.location.search).get("next");
+      if (!raw) {
+        setRequestedNextPath(null);
+        return;
+      }
+      setRequestedNextPath(sanitizeNextPath(raw, "/"));
+    } catch {
+      setRequestedNextPath(null);
+    }
+  }, []);
 
   const primaryNextLink = useMemo(() => {
     const laneAllows = (path: string) => {
