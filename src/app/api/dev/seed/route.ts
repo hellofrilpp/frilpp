@@ -3,6 +3,8 @@ import { sql } from "drizzle-orm";
 import { db } from "@/db";
 import { brandMemberships, creators, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { planKeyFor } from "@/lib/billing";
+import { upsertBillingSubscriptionBySubject } from "@/lib/billing-store";
 
 export const runtime = "nodejs";
 
@@ -72,8 +74,9 @@ export async function GET(request: Request) {
     .from(brandMemberships)
     .where(eq(brandMemberships.userId, brandUserId))
     .limit(1);
-  if (!membershipRows[0]) {
-    const brandId = crypto.randomUUID();
+  const existingBrandId = membershipRows[0]?.brandId ?? null;
+  const brandId = existingBrandId ?? crypto.randomUUID();
+  if (!existingBrandId) {
     await db.execute(sql`
       insert into "brands"
         ("id", "name", "countries_default", "instagram_handle",
@@ -100,6 +103,35 @@ export async function GET(request: Request) {
       createdAt: now,
     });
     await db.update(users).set({ activeBrandId: brandId, updatedAt: now }).where(eq(users.id, brandUserId));
+  }
+
+  try {
+    await upsertBillingSubscriptionBySubject({
+      subjectType: "BRAND",
+      subjectId: brandId,
+      provider: "STRIPE",
+      providerCustomerId: `dev_${brandId}`,
+      providerSubscriptionId: `dev_STRIPE_BRAND_${brandId}`,
+      status: "ACTIVE",
+      market: "US",
+      planKey: planKeyFor("brand", "US"),
+      cancelAtPeriodEnd: false,
+      currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    });
+    await upsertBillingSubscriptionBySubject({
+      subjectType: "CREATOR",
+      subjectId: creatorUserId,
+      provider: "STRIPE",
+      providerCustomerId: `dev_${creatorUserId}`,
+      providerSubscriptionId: `dev_STRIPE_CREATOR_${creatorUserId}`,
+      status: "ACTIVE",
+      market: "US",
+      planKey: planKeyFor("creator", "US"),
+      cancelAtPeriodEnd: false,
+      currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+    });
+  } catch (err) {
+    console.error("dev seed subscription failed", err);
   }
 
   const brandLogin = new URL("/api/dev/impersonate", origin);

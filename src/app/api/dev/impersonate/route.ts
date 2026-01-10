@@ -4,6 +4,8 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { brandMemberships, creators, sessions, users } from "@/db/schema";
 import { SESSION_COOKIE_NAME } from "@/lib/auth";
+import { planKeyFor, marketFromRequest } from "@/lib/billing";
+import { upsertBillingSubscriptionBySubject } from "@/lib/billing-store";
 import { sanitizeNextPath } from "@/lib/redirects";
 
 export const runtime = "nodejs";
@@ -91,6 +93,8 @@ export async function GET(request: Request) {
 
     const now = new Date();
     const secure = process.env.NODE_ENV === "production";
+    const market = marketFromRequest(request);
+    const lane = role === "brand" ? "brand" : "creator";
 
     const userRows = await db.select().from(users).where(eq(users.email, email)).limit(1);
     const existingUser = userRows[0] ?? null;
@@ -180,6 +184,45 @@ export async function GET(request: Request) {
         await tx.update(users).set({ activeBrandId: brandId, updatedAt: now }).where(eq(users.id, userId));
       }
     });
+
+    let activeBrandId: string | null = null;
+    if (role === "brand") {
+      const row = (
+        await db
+          .select({ activeBrandId: users.activeBrandId })
+          .from(users)
+          .where(eq(users.id, userId))
+          .limit(1)
+      )[0];
+      activeBrandId = row?.activeBrandId ?? null;
+    }
+
+    const seededSubject =
+      role === "creator"
+        ? ({ subjectType: "CREATOR", subjectId: userId } as const)
+        : activeBrandId
+          ? ({ subjectType: "BRAND", subjectId: activeBrandId } as const)
+          : null;
+
+    if (seededSubject) {
+      try {
+        const provider = market === "IN" ? "RAZORPAY" : "STRIPE";
+        await upsertBillingSubscriptionBySubject({
+          subjectType: seededSubject.subjectType,
+          subjectId: seededSubject.subjectId,
+          provider,
+          providerCustomerId: `dev_${seededSubject.subjectId}`,
+          providerSubscriptionId: `dev_${provider}_${seededSubject.subjectType}_${seededSubject.subjectId}`,
+          status: "ACTIVE",
+          market,
+          planKey: planKeyFor(lane, market),
+          cancelAtPeriodEnd: false,
+          currentPeriodEnd: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        });
+      } catch (err) {
+        console.error("dev impersonate subscription seed failed", err);
+      }
+    }
 
     // Create a fresh session (outside transaction to avoid cookie side effects inside tx).
     await db.delete(sessions).where(eq(sessions.userId, userId));
