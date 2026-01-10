@@ -2,6 +2,7 @@ import crypto from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { billingSubscriptions } from "@/db/schema";
+import { ensureBillingSchema } from "@/lib/billing-schema";
 
 export type BillingSubscriptionUpsert = {
   subjectType: "BRAND" | "CREATOR";
@@ -18,16 +19,41 @@ export type BillingSubscriptionUpsert = {
 
 export async function upsertBillingSubscriptionBySubject(input: BillingSubscriptionUpsert) {
   const now = new Date();
-  const existing = await db
-    .select({ id: billingSubscriptions.id })
-    .from(billingSubscriptions)
-    .where(
-      and(
-        eq(billingSubscriptions.subjectType, input.subjectType),
-        eq(billingSubscriptions.subjectId, input.subjectId),
-      ),
-    )
-    .limit(1);
+  let existing: Array<{ id: string }> = [];
+  try {
+    existing = await db
+      .select({ id: billingSubscriptions.id })
+      .from(billingSubscriptions)
+      .where(
+        and(
+          eq(billingSubscriptions.subjectType, input.subjectType),
+          eq(billingSubscriptions.subjectId, input.subjectId),
+        ),
+      )
+      .limit(1);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    const causeMessage =
+      err && typeof err === "object" && "cause" in err && err.cause instanceof Error
+        ? err.cause.message
+        : "";
+    const combined = `${message} ${causeMessage}`.toLowerCase();
+    if (combined.includes("billing_subscriptions") && combined.includes("does not exist")) {
+      await ensureBillingSchema();
+      existing = await db
+        .select({ id: billingSubscriptions.id })
+        .from(billingSubscriptions)
+        .where(
+          and(
+            eq(billingSubscriptions.subjectType, input.subjectType),
+            eq(billingSubscriptions.subjectId, input.subjectId),
+          ),
+        )
+        .limit(1);
+    } else {
+      throw err;
+    }
+  }
   const row = existing[0] ?? null;
   const values = {
     subjectType: input.subjectType,
@@ -54,4 +80,3 @@ export async function upsertBillingSubscriptionBySubject(input: BillingSubscript
 
   await db.update(billingSubscriptions).set(values).where(eq(billingSubscriptions.id, row.id));
 }
-

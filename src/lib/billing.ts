@@ -1,6 +1,7 @@
 import { and, eq, gt } from "drizzle-orm";
 import { db } from "@/db";
 import { billingSubscriptions } from "@/db/schema";
+import { ensureBillingSchema } from "@/lib/billing-schema";
 
 export type BillingMarket = "US" | "IN";
 export type BillingLane = "brand" | "creator";
@@ -24,17 +25,43 @@ export async function getActiveSubscription(params: {
   subjectId: string;
 }) {
   const now = new Date();
-  const rows = await db
-    .select()
-    .from(billingSubscriptions)
-    .where(
-      and(
-        eq(billingSubscriptions.subjectType, params.subjectType),
-        eq(billingSubscriptions.subjectId, params.subjectId),
-        gt(billingSubscriptions.currentPeriodEnd, now),
-      ),
-    )
-    .limit(1);
+  let rows: Array<typeof billingSubscriptions.$inferSelect> = [];
+  try {
+    rows = await db
+      .select()
+      .from(billingSubscriptions)
+      .where(
+        and(
+          eq(billingSubscriptions.subjectType, params.subjectType),
+          eq(billingSubscriptions.subjectId, params.subjectId),
+          gt(billingSubscriptions.currentPeriodEnd, now),
+        ),
+      )
+      .limit(1);
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "";
+    const causeMessage =
+      err && typeof err === "object" && "cause" in err && err.cause instanceof Error
+        ? err.cause.message
+        : "";
+    const combined = `${message} ${causeMessage}`.toLowerCase();
+    if (combined.includes("billing_subscriptions") && combined.includes("does not exist")) {
+      await ensureBillingSchema();
+      rows = await db
+        .select()
+        .from(billingSubscriptions)
+        .where(
+          and(
+            eq(billingSubscriptions.subjectType, params.subjectType),
+            eq(billingSubscriptions.subjectId, params.subjectId),
+            gt(billingSubscriptions.currentPeriodEnd, now),
+          ),
+        )
+        .limit(1);
+    } else {
+      throw err;
+    }
+  }
   const sub = rows[0] ?? null;
   if (!sub) return null;
   if (sub.status !== "ACTIVE" && sub.status !== "TRIALING") return null;
@@ -47,4 +74,3 @@ export async function hasActiveSubscription(params: {
 }) {
   return Boolean(await getActiveSubscription(params));
 }
-
