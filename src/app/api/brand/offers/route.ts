@@ -212,6 +212,8 @@ export async function POST(request: Request) {
 
   const errorId = crypto.randomUUID();
   const timeoutMs = 15_000;
+  const startedAt = Date.now();
+  let phase: "parse" | "auth" | "billing" | "insert" | "done" = "parse";
 
   const main = async () => {
     const json = await request.json().catch(() => null);
@@ -278,11 +280,13 @@ export async function POST(request: Request) {
     const t0 = Date.now();
     log("debug", "brand offer create start", { errorId });
 
+    phase = "auth";
     const ctx = await requireBrandContext(request);
     if (ctx instanceof Response) return ctx;
 
     log("debug", "brand offer create authed", { errorId, ms: Date.now() - t0 });
 
+    phase = "billing";
     const subscribed = await hasActiveSubscription({
       subjectType: "BRAND",
       subjectId: ctx.brandId,
@@ -315,6 +319,7 @@ export async function POST(request: Request) {
     delete storedMetadata.locationRadiusMiles;
 
     const runInsert = async () => {
+      phase = "insert";
       await db.insert(offers).values({
         id,
         brandId: ctx.brandId,
@@ -392,6 +397,7 @@ export async function POST(request: Request) {
     }
 
     log("debug", "brand offer create inserted", { errorId, ms: Date.now() - t0 });
+    phase = "done";
     return Response.json({ ok: true, offerId: id });
   };
 
@@ -399,14 +405,18 @@ export async function POST(request: Request) {
     return await Promise.race([
       main(),
       sleep(timeoutMs).then(() =>
-        Response.json(
-          { ok: false, error: "Request timed out", code: "REQUEST_TIMEOUT", errorId },
-          { status: 504 },
-        ),
+        (() => {
+          const elapsedMs = Date.now() - startedAt;
+          log("error", "brand offer create timed out", { errorId, phase, elapsedMs });
+          return Response.json(
+            { ok: false, error: "Request timed out", code: "REQUEST_TIMEOUT", errorId, phase, elapsedMs },
+            { status: 504 },
+          );
+        })(),
       ),
     ]);
   } catch (err) {
-    log("error", "brand offer create failed", { errorId, error: getDbErrorText(err) });
+    log("error", "brand offer create failed", { errorId, phase, error: getDbErrorText(err) });
     const causeMessage =
       err && typeof err === "object" && "cause" in err && err.cause instanceof Error
         ? err.cause.message
