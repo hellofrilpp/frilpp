@@ -120,14 +120,18 @@ export async function GET(request: Request) {
       const metadata = (row.metadata ?? {}) as Record<string, unknown>;
       const radiusKm = parseRadiusKm(metadata);
       if (!radiusKm || radiusKm <= 0) return true;
+
+      // If either side lacks coordinates, we can't evaluate eligibility here.
+      // Keep the offer visible; the claim endpoint enforces local eligibility.
       if (
         creatorLat === null ||
         creatorLng === null ||
         row.brandLat === null ||
         row.brandLng === null
       ) {
-        return false;
+        return true;
       }
+
       const distanceKm = haversineKm(creatorLat, creatorLng, row.brandLat, row.brandLng);
       return distanceKm <= radiusKm;
     });
