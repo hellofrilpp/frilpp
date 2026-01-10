@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { offerProducts, offers, brands } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
@@ -213,7 +213,15 @@ export async function POST(request: Request) {
   const errorId = crypto.randomUUID();
   const timeoutMs = 15_000;
   const startedAt = Date.now();
-  let phase: "parse" | "auth" | "billing" | "insert" | "done" = "parse";
+  let phase:
+    | "parse"
+    | "auth"
+    | "billing"
+    | "insert:start"
+    | "insert:done"
+    | "migrate"
+    | "insert:retry"
+    | "done" = "parse";
 
   const main = async () => {
     const json = await request.json().catch(() => null);
@@ -319,37 +327,45 @@ export async function POST(request: Request) {
     delete storedMetadata.locationRadiusMiles;
 
     const runInsert = async () => {
-      phase = "insert";
-      await db.insert(offers).values({
-        id,
-        brandId: ctx.brandId,
-        title: input.title,
-        template,
-        status: "PUBLISHED",
-        countriesAllowed: input.countriesAllowed,
-        maxClaims: input.maxClaims,
-        deadlineDaysAfterDelivery: input.deadlineDaysAfterDelivery,
-        deliverableType,
-        requiresCaptionCode: deliverableType !== "UGC_ONLY",
-        usageRightsRequired: Boolean(input.usageRightsRequired),
-        usageRightsScope: usageRightsScope ?? null,
-        acceptanceFollowersThreshold: input.followersThreshold,
-        acceptanceAboveThresholdAutoAccept: input.aboveThresholdAutoAccept,
-        metadata: storedMetadata,
-        publishedAt: new Date(),
-      });
+      phase = "insert:start";
+      await db.transaction(async (tx) => {
+        // Production safety: if migrations/another writer holds a lock, fail fast instead of hanging
+        // until the platform times out.
+        await tx.execute(sql`set local lock_timeout = '3s'`);
+        await tx.execute(sql`set local statement_timeout = '10s'`);
 
-      if (input.products.length) {
-        await db.insert(offerProducts).values(
-          input.products.map((p) => ({
-            id: crypto.randomUUID(),
-            offerId: id,
-            shopifyProductId: p.shopifyProductId,
-            shopifyVariantId: p.shopifyVariantId,
-            quantity: p.quantity,
-          })),
-        );
-      }
+        await tx.insert(offers).values({
+          id,
+          brandId: ctx.brandId,
+          title: input.title,
+          template,
+          status: "PUBLISHED",
+          countriesAllowed: input.countriesAllowed,
+          maxClaims: input.maxClaims,
+          deadlineDaysAfterDelivery: input.deadlineDaysAfterDelivery,
+          deliverableType,
+          requiresCaptionCode: deliverableType !== "UGC_ONLY",
+          usageRightsRequired: Boolean(input.usageRightsRequired),
+          usageRightsScope: usageRightsScope ?? null,
+          acceptanceFollowersThreshold: input.followersThreshold,
+          acceptanceAboveThresholdAutoAccept: input.aboveThresholdAutoAccept,
+          metadata: storedMetadata,
+          publishedAt: new Date(),
+        });
+
+        if (input.products.length) {
+          await tx.insert(offerProducts).values(
+            input.products.map((p) => ({
+              id: crypto.randomUUID(),
+              offerId: id,
+              shopifyProductId: p.shopifyProductId,
+              shopifyVariantId: p.shopifyVariantId,
+              quantity: p.quantity,
+            })),
+          );
+        }
+      });
+      phase = "insert:done";
     };
 
     try {
@@ -357,7 +373,8 @@ export async function POST(request: Request) {
     } catch (err) {
       if (!isMigrationSchemaError(err)) throw err;
 
-      const mig = await ensureRuntimeMigrations({ maxWaitMs: 2_000 });
+      phase = "migrate";
+      const mig = await ensureRuntimeMigrations({ maxWaitMs: 5_000 });
       if (!mig.ok && mig.code === "NO_DIRECT_CONNECTION") {
         return Response.json(
           {
@@ -393,6 +410,7 @@ export async function POST(request: Request) {
         );
       }
 
+      phase = "insert:retry";
       await runInsert();
     }
 
