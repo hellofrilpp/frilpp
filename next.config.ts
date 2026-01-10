@@ -10,7 +10,8 @@ const nextConfig: NextConfig = {
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
       {
-        source: "/:path((?!api|_next|site|legal|r|o|sitemap\\.xml).*)",
+        source:
+          "/:path((?!api|_next|site|legal(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$).*)",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];
@@ -22,7 +23,8 @@ const nextConfig: NextConfig = {
         { source: "/robots.txt", destination: "/site/robots.txt" },
         { source: "/placeholder.svg", destination: "/site/placeholder.svg" },
         {
-          source: "/((?!api|_next|site|legal|r|o|sitemap.xml).*)",
+          source:
+            "/:path((?!api|_next|site|legal(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$).*)",
           destination: "/site/index.html",
         },
       ],

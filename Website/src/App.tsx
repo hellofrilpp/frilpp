@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
+import Onboarding from "./pages/Onboarding";
 
 // Brand Pages
 import BrandAuth from "./pages/brand/Auth";
@@ -40,6 +41,7 @@ const App = () => (
         <div className="min-h-screen overflow-x-hidden">
           <Routes>
             <Route path="/" element={<Index />} />
+            <Route path="/onboarding" element={<Onboarding />} />
 
             {/* Brand Routes */}
             <Route path="/brand/auth" element={<BrandAuth />} />
