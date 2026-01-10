@@ -6,6 +6,7 @@ import { requireBrandContext } from "@/lib/auth";
 import { templateToDeliverableType, type OfferTemplateId } from "@/lib/offer-template";
 import { USAGE_RIGHTS_SCOPES } from "@/lib/usage-rights";
 import { hasActiveSubscription } from "@/lib/billing";
+import { ensureRuntimeMigrations, isMissingRelation } from "@/lib/runtime-migrations";
 import {
   CAMPAIGN_CATEGORIES,
   CONTENT_TYPES,
@@ -142,29 +143,39 @@ export async function GET(request: Request) {
     const ctx = await requireBrandContext(request);
     if (ctx instanceof Response) return ctx;
 
-    const rows = await db
-      .select({
-        id: offers.id,
-        title: offers.title,
-        template: offers.template,
-        status: offers.status,
-        countriesAllowed: offers.countriesAllowed,
-        maxClaims: offers.maxClaims,
-        deadlineDaysAfterDelivery: offers.deadlineDaysAfterDelivery,
-        deliverableType: offers.deliverableType,
-        acceptanceFollowersThreshold: offers.acceptanceFollowersThreshold,
-        acceptanceAboveThresholdAutoAccept: offers.acceptanceAboveThresholdAutoAccept,
-        metadata: offers.metadata,
-        publishedAt: offers.publishedAt,
-        createdAt: offers.createdAt,
-        updatedAt: offers.updatedAt,
-        brandName: brands.name,
-      })
-      .from(offers)
-      .innerJoin(brands, eq(brands.id, offers.brandId))
-      .where(eq(offers.brandId, ctx.brandId))
-      .orderBy(desc(offers.createdAt))
-      .limit(100);
+    const run = async () =>
+      db
+        .select({
+          id: offers.id,
+          title: offers.title,
+          template: offers.template,
+          status: offers.status,
+          countriesAllowed: offers.countriesAllowed,
+          maxClaims: offers.maxClaims,
+          deadlineDaysAfterDelivery: offers.deadlineDaysAfterDelivery,
+          deliverableType: offers.deliverableType,
+          acceptanceFollowersThreshold: offers.acceptanceFollowersThreshold,
+          acceptanceAboveThresholdAutoAccept: offers.acceptanceAboveThresholdAutoAccept,
+          metadata: offers.metadata,
+          publishedAt: offers.publishedAt,
+          createdAt: offers.createdAt,
+          updatedAt: offers.updatedAt,
+          brandName: brands.name,
+        })
+        .from(offers)
+        .innerJoin(brands, eq(brands.id, offers.brandId))
+        .where(eq(offers.brandId, ctx.brandId))
+        .orderBy(desc(offers.createdAt))
+        .limit(100);
+
+    let rows;
+    try {
+      rows = await run();
+    } catch (err) {
+      if (!isMissingRelation(err)) throw err;
+      await ensureRuntimeMigrations();
+      rows = await run();
+    }
 
     return Response.json({
       ok: true,
@@ -271,6 +282,9 @@ export async function POST(request: Request) {
         { status: 402 },
       );
     }
+
+    // Ensure schema exists (first-time prod deploys / misconfigured migrations).
+    await ensureRuntimeMigrations();
 
     const id = crypto.randomUUID();
     const template = input.template as OfferTemplateId;
