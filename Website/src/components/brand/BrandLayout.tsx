@@ -162,6 +162,8 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
     return next;
   }, [gateCountries]);
 
+  const blockChildren = gateSubmitting || gateMode !== "none";
+
   return (
     <div className="min-h-screen bg-background flex">
       <AlertDialog open={gateMode !== "none"}>
@@ -448,7 +450,20 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
           <ThemeToggle />
           <AccessibilityToggle />
         </div>
-        {children}
+        {blockChildren ? (
+          <div className="p-6">
+            <div className="border-4 border-border bg-card p-6 text-center">
+              <div className="font-pixel text-sm text-foreground">
+                {gateSubmitting ? "SETTING UP…" : "SELECT BRAND…"}
+              </div>
+              <div className="mt-2 text-xs font-mono text-muted-foreground">
+                Finish the dialog to continue.
+              </div>
+            </div>
+          </div>
+        ) : (
+          children
+        )}
       </main>
     </div>
   );

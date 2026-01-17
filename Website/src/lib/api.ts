@@ -83,7 +83,9 @@ export async function apiFetch<T>(
       window.location.href = apiUrl(`/legal/accept?next=${encodeURIComponent(nextPath)}`);
     }
     if (response.status === 409 && code === "NEEDS_BRAND_SELECTION") {
-      window.location.href = apiUrl(`/onboarding?next=${encodeURIComponent(nextPath)}`);
+      if (!window.location.pathname.startsWith("/brand/")) {
+        window.location.href = apiUrl(`/brand/dashboard`);
+      }
     }
     if (response.status === 409 && code === "NEEDS_CREATOR_PROFILE") {
       window.location.href = apiUrl(`/influencer/onboarding`);
