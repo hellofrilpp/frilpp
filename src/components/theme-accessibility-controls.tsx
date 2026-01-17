@@ -53,7 +53,7 @@ export function ThemeAccessibilityControls() {
 
   return (
     <div
-      className="fixed bottom-3 right-3 z-50 flex items-center gap-2 rounded-md border border-input bg-background/85 p-2 backdrop-blur"
+      className="fixed right-3 top-14 z-50 flex items-center gap-2 rounded-md border border-input bg-background/85 p-2 backdrop-blur sm:right-4"
       role="group"
       aria-label="Theme and accessibility controls"
     >
@@ -80,4 +80,3 @@ export function ThemeAccessibilityControls() {
     </div>
   );
 }
-
