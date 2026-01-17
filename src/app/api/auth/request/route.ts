@@ -164,7 +164,12 @@ export async function POST(request: Request) {
     maxAge: 60 * 10,
   });
 
-  const html = renderMagicLinkEmail({ callbackUrl, expiresMinutes: 10 });
+  const html = renderMagicLinkEmail({
+    callbackUrl,
+    logoUrl: `${origin}/email/frilpp-logo.png`,
+    copyIconUrl: `${origin}/email/icons/copy.svg`,
+    expiresMinutes: 10,
+  });
 
   const send = await sendEmail({
     to: email,

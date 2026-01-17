@@ -9,10 +9,14 @@ function escapeHtml(input: string) {
 
 export function renderMagicLinkEmail(params: {
   callbackUrl: string;
+  logoUrl?: string;
+  copyIconUrl?: string;
   expiresMinutes?: number;
 }) {
   const expiresMinutes = params.expiresMinutes ?? 10;
   const callbackUrlEscaped = escapeHtml(params.callbackUrl);
+  const logoUrl = params.logoUrl ? escapeHtml(params.logoUrl) : null;
+  const copyIconUrl = params.copyIconUrl ? escapeHtml(params.copyIconUrl) : null;
 
   const preheader = `Your sign-in link (expires in ${expiresMinutes} minutes).`;
 
@@ -36,9 +40,9 @@ export function renderMagicLinkEmail(params: {
     `<tr>`,
     `<td style="padding:0 0 16px 0;">`,
     `<div style="display:flex; align-items:center; gap:10px;">`,
-    `<div style="width:36px; height:36px; border:2px solid #00d07a; background:#09130f;">`,
-    `<div style="width:100%; height:100%; background-image: linear-gradient(#00d07a 1px, transparent 1px), linear-gradient(90deg, #00d07a 1px, transparent 1px); background-size: 9px 9px; opacity:0.25;"></div>`,
-    `</div>`,
+    logoUrl
+      ? `<div style="width:36px; height:36px; border:2px solid #00d07a; background:#0b0c10; overflow:hidden;"><img src="${logoUrl}" width="36" height="36" alt="Frilpp" style="display:block; width:36px; height:36px; object-fit:contain; image-rendering:pixelated;" /></div>`
+      : `<div style="width:36px; height:36px; border:2px solid #00d07a; background:#09130f;"><div style="width:100%; height:100%; background-image: linear-gradient(#00d07a 1px, transparent 1px), linear-gradient(90deg, #00d07a 1px, transparent 1px); background-size: 9px 9px; opacity:0.25;"></div></div>`,
     `<div style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; letter-spacing: 2px; font-weight: 800; font-size: 16px; line-height: 1;">`,
     `<span style="color:#00d07a;">FRI</span><span style="color:#ff4aa2;">L</span><span style="color:#00d07a;">PP</span>`,
     `</div>`,
@@ -60,7 +64,16 @@ export function renderMagicLinkEmail(params: {
     `<div style="border-top:1px solid #222633; margin:18px 0; padding-top:14px; color:#b5bdcc; font-size:12px; line-height:1.6;">`,
     `<div style="margin:0 0 8px 0;">If the button doesn’t work, copy and paste this link:</div>`,
     `<div style="word-break:break-all; background:#0b0c10; border:1px solid #222633; padding:10px 12px;">`,
+    `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>`,
+    `<td style="padding:0; vertical-align:top;">`,
     `<a href="${callbackUrlEscaped}" style="color:#86fbd1; text-decoration:underline;">${callbackUrlEscaped}</a>`,
+    `</td>`,
+    `<td align="right" style="padding:0 0 0 10px; vertical-align:top; white-space:nowrap;">`,
+    copyIconUrl
+      ? `<img src="${copyIconUrl}" width="16" height="16" alt="Copy" style="display:inline-block; vertical-align:middle;" />`
+      : ``,
+    `</td>`,
+    `</tr></table>`,
     `</div>`,
     `</div>`,
     `<div style="color:#7f8796; font-size:12px; line-height:1.6; margin-top:14px;">`,
@@ -82,4 +95,3 @@ export function renderMagicLinkEmail(params: {
     `</html>`,
   ].join("");
 }
-
