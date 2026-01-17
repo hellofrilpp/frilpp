@@ -51,6 +51,20 @@
   --ring: 220 80% 55%;
 }
 
+.a11y *:focus-visible {
+  outline: 3px solid hsl(var(--foreground));
+  outline-offset: 2px;
+}
+
+.a11y *,
+.a11y *::before,
+.a11y *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}
+
 @theme inline {
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));

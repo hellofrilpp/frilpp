@@ -42,9 +42,9 @@ const SocialLoginButtons = ({
   const primary = primaryProvider ?? (providers.length === 1 ? providers[0] : null);
 
   const primaryClasses = {
-    pink: "border-neon-pink bg-neon-pink/10 shadow-[0_0_24px_hsl(var(--neon-pink)/0.35)]",
-    purple: "border-neon-purple bg-neon-purple/10 shadow-[0_0_24px_hsl(var(--neon-purple)/0.35)]",
-    green: "border-neon-green bg-neon-green/10 shadow-[0_0_24px_hsl(var(--neon-green)/0.35)]",
+    pink: "border-neon-pink bg-neon-pink/8",
+    purple: "border-neon-purple bg-neon-purple/6",
+    green: "border-neon-green bg-neon-green/10",
   } satisfies Record<typeof accentColor, string>;
 
   const loginLabel = (() => {

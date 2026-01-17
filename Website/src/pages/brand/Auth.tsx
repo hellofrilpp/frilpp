@@ -87,7 +87,7 @@ const BrandAuth = () => {
               </div>
 
               <SocialLoginButtons
-                accentColor="pink"
+                accentColor="green"
                 providers={["tiktok"]}
                 role="brand"
                 nextPath="/brand/dashboard"
