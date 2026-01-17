@@ -9,6 +9,7 @@ import { sendEmail } from "@/lib/email";
 import { log } from "@/lib/logger";
 import { ipKey, rateLimit } from "@/lib/rate-limit";
 import { sanitizeNextPath } from "@/lib/redirects";
+import { renderMagicLinkEmail } from "@/lib/email-templates/magic-link";
 
 export const runtime = "nodejs";
 
@@ -163,20 +164,13 @@ export async function POST(request: Request) {
     maxAge: 60 * 10,
   });
 
-  const html = [
-    `<div style="font-family: ui-sans-serif, system-ui; line-height: 1.5;">`,
-    `<h2>Sign in to Frilpp</h2>`,
-    `<p>Click to sign in (valid for 10 minutes):</p>`,
-    `<p><a href="${callbackUrl}">${callbackUrl}</a></p>`,
-    `<p style="color:#666; font-size: 12px;">If you didn’t request this, you can ignore this email.</p>`,
-    `</div>`,
-  ].join("");
+  const html = renderMagicLinkEmail({ callbackUrl, expiresMinutes: 10 });
 
   const send = await sendEmail({
     to: email,
     subject: "Your Frilpp sign-in link",
     html,
-    text: `Sign in to Frilpp: ${callbackUrl}`,
+    text: `Frilpp sign-in link (expires in 10 minutes): ${callbackUrl}`,
   });
 
   if (!send.ok) {
