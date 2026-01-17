@@ -72,7 +72,7 @@ const BrandAuth = () => {
             <div className="mx-auto mb-4 w-16 h-16 bg-neon-green/20 border-4 border-neon-green flex items-center justify-center">
               <Building2 className="w-8 h-8 text-neon-green" />
             </div>
-            <CardTitle className="text-xl font-pixel text-neon-green">BRAND PORTAL</CardTitle>
+            <CardTitle className="text-xl font-pixel text-neon-green text-crisp">BRAND PORTAL</CardTitle>
             <CardDescription className="font-mono text-xs">
               Login with TikTok to continue
             </CardDescription>

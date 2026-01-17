@@ -199,6 +199,11 @@
     text-shadow: 0 0 10px hsl(var(--neon-purple) / 0.8);
   }
 
+  .text-crisp {
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
   .a11y .text-neon-green,
   .a11y .text-neon-pink,
   .a11y .text-neon-blue,
