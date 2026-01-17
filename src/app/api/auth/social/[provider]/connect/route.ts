@@ -11,6 +11,10 @@ export const runtime = "nodejs";
 const providerSchema = z.enum(["instagram", "tiktok", "youtube"]);
 const roleSchema = z.enum(["brand", "creator"]);
 
+function restrictTikTokToUsOnly() {
+  return process.env.TIKTOK_US_ONLY === "true";
+}
+
 function isUsCountry(request: Request) {
   const country = request.headers.get("x-vercel-ip-country") ||
     request.headers.get("x-country-code") ||
@@ -50,7 +54,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     }
   }
 
-  if (provider === "tiktok" && !isUsCountry(request)) {
+  if (provider === "tiktok" && restrictTikTokToUsOnly() && !isUsCountry(request)) {
     const accept = request.headers.get("accept") ?? "";
     if (accept.includes("text/html")) {
       const brandedUrl = new URL(`${origin}/login/tiktok-unavailable`);
