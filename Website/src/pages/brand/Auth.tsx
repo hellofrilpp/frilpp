@@ -1,14 +1,44 @@
 import { Link } from "react-router-dom";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Building2 } from "lucide-react";
 import SocialLoginButtons from "@/components/SocialLoginButtons";
 import FrilppLogo from "@/components/FrilppLogo";
-import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
+import { ApiError, requestMagicLink } from "@/lib/api";
 
 const BrandAuth = () => {
   const [signupCompany, setSignupCompany] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
+
+  const handleVerifyEmail = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    const form = new FormData(event.currentTarget);
+    const email = String(form.get("verify-email") || "").trim();
+    try {
+      await requestMagicLink(email, "/brand/dashboard");
+      toast({
+        title: "CHECK YOUR EMAIL",
+        description: "We sent a sign-in link. It expires in 10 minutes.",
+      });
+    } catch (err) {
+      let message = err instanceof ApiError ? err.message : "Verification failed";
+      if (err instanceof ApiError && err.status === 403) {
+        message = "Email login is disabled right now. Use TikTok instead.";
+      }
+      if (err instanceof ApiError && err.message.toLowerCase().includes("email not configured")) {
+        message = "Email login isn’t configured yet. Use TikTok instead.";
+      }
+      toast({ title: "FAILED", description: message });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background bg-grid flex flex-col">
@@ -66,6 +96,32 @@ const BrandAuth = () => {
                   if (name) localStorage.setItem("pendingBrandName", name);
                 }}
               />
+
+              <div className="border-2 border-dashed border-border p-4">
+                <p className="text-xs font-mono text-muted-foreground mb-3">
+                  Prefer email? Get a magic sign-in link.
+                </p>
+                <form onSubmit={handleVerifyEmail} className="space-y-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="verify-email" className="font-mono text-xs">EMAIL</Label>
+                    <Input
+                      id="verify-email"
+                      name="verify-email"
+                      type="email"
+                      placeholder="brand@company.com"
+                      required
+                      className="border-2 border-border bg-background font-mono"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full bg-neon-pink text-primary-foreground font-pixel pixel-btn"
+                    disabled={isLoading}
+                  >
+                    {isLoading ? "SENDING..." : "SEND MAGIC LINK →"}
+                  </Button>
+                </form>
+              </div>
             </div>
 
             <div className="mt-6 text-center">

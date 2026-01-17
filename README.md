@@ -18,6 +18,7 @@ Open [http://localhost:3000](http://localhost:3000) with your browser to see the
 
 ### Auth (magic link)
 - Visit `/login` and request a magic link.
+- Enable magic links with `AUTH_ENABLE_MAGIC_LINK=true`.
 - Email delivery requires Resend (`RESEND_API_KEY` + `RESEND_FROM` or `AUTH_EMAIL_FROM`). If it’s not configured, the API returns an error.
 - After login, use `/onboarding` to create a brand workspace and/or a creator profile.
 
