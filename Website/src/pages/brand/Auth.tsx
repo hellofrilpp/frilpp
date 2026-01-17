@@ -23,6 +23,8 @@ const BrandAuth = () => {
     const form = new FormData(event.currentTarget);
     const email = String(form.get("verify-email") || "").trim();
     try {
+      const name = signupCompany.trim();
+      if (name) localStorage.setItem("pendingBrandName", name);
       await requestMagicLink(email, "/brand/dashboard");
       toast({
         title: "CHECK YOUR EMAIL",

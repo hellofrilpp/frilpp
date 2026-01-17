@@ -19,18 +19,19 @@ const bodySchema = z.object({
   acceptPrivacy: z.boolean(),
 });
 
+function magicLinkEnabled() {
+  const raw = String(process.env.AUTH_ENABLE_MAGIC_LINK ?? "").trim().toLowerCase();
+  if (!raw) return true;
+  if (raw === "true" || raw === "1" || raw === "yes") return true;
+  if (raw === "false" || raw === "0" || raw === "no") return false;
+  return true;
+}
+
 export async function POST(request: Request) {
   if (!process.env.DATABASE_URL) {
     return Response.json(
       { ok: false, error: "DATABASE_URL is not configured" },
       { status: 500 },
-    );
-  }
-
-  if (String(process.env.AUTH_ENABLE_MAGIC_LINK ?? "").toLowerCase() !== "true") {
-    return Response.json(
-      { ok: false, error: "Magic link login is disabled. Continue with Instagram or TikTok." },
-      { status: 403 },
     );
   }
 
@@ -48,26 +49,37 @@ export async function POST(request: Request) {
   const nextPath = sanitizeNextPath(parsed.data.next, "/onboarding");
   const jar = await cookies();
 
+  const isBrandFlow = nextPath.startsWith("/brand/");
+  if (!magicLinkEnabled() && !isBrandFlow) {
+    return Response.json(
+      { ok: false, error: "Magic link login is disabled. Continue with Instagram or TikTok." },
+      { status: 403 },
+    );
+  }
+
   const userRows = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   const user = userRows[0] ?? null;
   if (!user) {
     const pendingSocialId = jar.get("pending_social_id")?.value ?? null;
-    if (!pendingSocialId) {
+    const allowEmailSignup = isBrandFlow;
+    if (!pendingSocialId && !allowEmailSignup) {
       return Response.json(
         { ok: false, error: "Connect a social account to sign up", code: "SOCIAL_REQUIRED" },
         { status: 400 },
       );
     }
-    const pending = await db
-      .select({ id: pendingSocialAccounts.id })
-      .from(pendingSocialAccounts)
-      .where(eq(pendingSocialAccounts.id, pendingSocialId))
-      .limit(1);
-    if (!pending[0]) {
-      return Response.json(
-        { ok: false, error: "Social connection expired. Try again.", code: "SOCIAL_EXPIRED" },
-        { status: 400 },
-      );
+    if (pendingSocialId) {
+      const pending = await db
+        .select({ id: pendingSocialAccounts.id })
+        .from(pendingSocialAccounts)
+        .where(eq(pendingSocialAccounts.id, pendingSocialId))
+        .limit(1);
+      if (!pending[0]) {
+        return Response.json(
+          { ok: false, error: "Social connection expired. Try again.", code: "SOCIAL_EXPIRED" },
+          { status: 400 },
+        );
+      }
     }
   } else {
     const social = await db
