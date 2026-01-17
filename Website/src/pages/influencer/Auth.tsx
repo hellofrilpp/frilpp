@@ -34,10 +34,10 @@ const InfluencerAuth = () => {
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md pixel-border-primary bg-card">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-16 h-16 bg-neon-purple/20 border-4 border-neon-purple flex items-center justify-center">
-              <Sparkles className="w-8 h-8 text-neon-purple" />
+            <div className="mx-auto mb-4 w-16 h-16 bg-neon-pink/20 border-4 border-neon-pink flex items-center justify-center">
+              <Sparkles className="w-8 h-8 text-neon-pink" />
             </div>
-            <CardTitle className="text-xl font-pixel text-neon-purple text-crisp">CREATOR PORTAL</CardTitle>
+            <CardTitle className="text-xl font-pixel text-portal-pink">CREATOR PORTAL</CardTitle>
             <CardDescription className="font-mono text-xs">
               Login with TikTok to continue
             </CardDescription>
@@ -50,8 +50,9 @@ const InfluencerAuth = () => {
             </div>
             
             <SocialLoginButtons
-              accentColor="purple"
+              accentColor="pink"
               providers={["tiktok"]}
+              primaryVariant="filled"
               role="creator"
               nextPath="/influencer/onboarding"
             />

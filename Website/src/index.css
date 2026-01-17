@@ -42,6 +42,8 @@
     --neon-blue: 200 100% 60%;
     --neon-yellow: 45 100% 55%;
     --neon-purple: 280 100% 70%;
+    --portal-green: 160 80% 42%;
+    --portal-pink: 330 65% 50%;
     --pixel-dark: 240 10% 8%;
     --pixel-gray: 240 8% 20%;
     
@@ -101,6 +103,8 @@
     --neon-blue: 200 100% 45%;
     --neon-yellow: 45 100% 40%;
     --neon-purple: 280 80% 55%;
+    --portal-green: 160 80% 28%;
+    --portal-pink: 330 55% 38%;
     --pixel-dark: 60 20% 95%;
     --pixel-gray: 60 10% 80%;
 
@@ -132,6 +136,8 @@
     --neon-blue: 200 55% 32%;
     --neon-yellow: 45 65% 30%;
     --neon-purple: 280 50% 34%;
+    --portal-green: 160 45% 28%;
+    --portal-pink: 330 45% 30%;
     --shadow-neon-green: 0 0 0 hsl(0 0% 0% / 0);
     --shadow-neon-pink: 0 0 0 hsl(0 0% 0% / 0);
     --shadow-neon-purple: 0 0 0 hsl(0 0% 0% / 0);
@@ -200,6 +206,18 @@
   }
 
   .text-crisp {
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
+  .text-portal-green {
+    color: hsl(var(--portal-green));
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
+  .text-portal-pink {
+    color: hsl(var(--portal-pink));
     text-shadow: none !important;
     filter: none !important;
   }
