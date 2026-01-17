@@ -30,7 +30,6 @@ import LegalPrivacy from "./pages/LegalPrivacy";
 // Other Pages
 import Leaderboard from "./pages/Leaderboard";
 import Achievements from "./pages/Achievements";
-import ThemeAccessibilityControls from "@/components/ThemeAccessibilityControls";
 
 const queryClient = new QueryClient();
 
@@ -41,7 +40,6 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <div className="min-h-screen overflow-x-hidden">
-          <ThemeAccessibilityControls />
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/onboarding" element={<Onboarding />} />

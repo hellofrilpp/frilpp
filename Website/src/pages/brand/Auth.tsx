@@ -9,6 +9,8 @@ import SocialLoginButtons from "@/components/SocialLoginButtons";
 import FrilppLogo from "@/components/FrilppLogo";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, requestMagicLink } from "@/lib/api";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { AccessibilityToggle } from "@/components/AccessibilityToggle";
 
 const BrandAuth = () => {
   const [signupCompany, setSignupCompany] = useState("");
@@ -53,9 +55,13 @@ const BrandAuth = () => {
               FRI<span className="text-neon-pink">L</span>PP
             </span>
           </Link>
-          <Link to="/" className="text-xs font-mono text-muted-foreground hover:text-neon-green flex items-center gap-2">
-            <ArrowLeft className="w-4 h-4" /> BACK
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link to="/" className="text-xs font-mono text-muted-foreground hover:text-neon-green flex items-center gap-2">
+              <ArrowLeft className="w-4 h-4" /> BACK
+            </Link>
+            <ThemeToggle />
+            <AccessibilityToggle />
+          </div>
         </div>
       </header>
 
@@ -63,10 +69,10 @@ const BrandAuth = () => {
       <main className="flex-1 flex items-center justify-center p-4">
         <Card className="w-full max-w-md pixel-border-primary bg-card">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-16 h-16 bg-neon-pink/20 border-4 border-neon-pink flex items-center justify-center">
-              <Building2 className="w-8 h-8 text-neon-pink" />
+            <div className="mx-auto mb-4 w-16 h-16 bg-neon-green/20 border-4 border-neon-green flex items-center justify-center">
+              <Building2 className="w-8 h-8 text-neon-green" />
             </div>
-            <CardTitle className="text-xl font-pixel text-neon-pink">BRAND PORTAL</CardTitle>
+            <CardTitle className="text-xl font-pixel text-neon-green">BRAND PORTAL</CardTitle>
             <CardDescription className="font-mono text-xs">
               Login with TikTok to continue
             </CardDescription>
@@ -116,7 +122,7 @@ const BrandAuth = () => {
                   </div>
                   <Button
                     type="submit"
-                    className="w-full bg-neon-pink text-primary-foreground font-pixel pixel-btn"
+                    className="w-full bg-neon-green text-background font-pixel pixel-btn"
                     disabled={isLoading}
                   >
                     {isLoading ? "SENDING..." : "SEND MAGIC LINK →"}
