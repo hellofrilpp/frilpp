@@ -8,21 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 
 type Market = "US" | "IN";
 type BillingProvider = "STRIPE" | "RAZORPAY";
-type BillingProviderMode = "AUTO" | "STRIPE" | "RAZORPAY" | "BOTH";
+type BillingProviderMode = "AUTO" | "STRIPE" | "RAZORPAY";
 
-function billingProviderMode(): BillingProviderMode {
-  const raw = (process.env.NEXT_PUBLIC_BILLING_PROVIDER_MODE ?? "").trim().toUpperCase();
-  if (raw === "STRIPE") return "STRIPE";
-  if (raw === "RAZORPAY") return "RAZORPAY";
-  if (raw === "BOTH") return "BOTH";
-  return "AUTO";
-}
-
-function enabledProviders(market: Market): BillingProvider[] {
-  const mode = billingProviderMode();
+function enabledProviders(market: Market, mode: BillingProviderMode): BillingProvider[] {
   if (mode === "STRIPE") return ["STRIPE"];
   if (mode === "RAZORPAY") return ["RAZORPAY"];
-  if (mode === "BOTH") return ["STRIPE", "RAZORPAY"];
   return [market === "IN" ? "RAZORPAY" : "STRIPE"];
 }
 
@@ -31,6 +21,7 @@ export default function BrandBillingPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
   const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "error">("idle");
   const [checkoutProvider, setCheckoutProvider] = useState<BillingProvider | null>(null);
+  const [providerMode, setProviderMode] = useState<BillingProviderMode>("AUTO");
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,6 +37,18 @@ export default function BrandBillingPage() {
       } catch {
         setStatus("error");
       }
+    })();
+  }, []);
+
+  useEffect(() => {
+    (async () => {
+      const res = await fetch("/api/billing/config", { method: "GET" }).catch(() => null);
+      const json = (await res?.json().catch(() => null)) as { mode?: unknown } | null;
+      if (json?.mode === "STRIPE" || json?.mode === "RAZORPAY") {
+        setProviderMode(json.mode);
+        return;
+      }
+      setProviderMode("AUTO");
     })();
   }, []);
 
@@ -129,7 +132,7 @@ export default function BrandBillingPage() {
               <li>Clicks + redemptions ROI</li>
             </ul>
             <div className="grid gap-2 sm:grid-cols-2">
-              {enabledProviders(market).map((provider) => (
+              {enabledProviders(market, providerMode).map((provider) => (
                 <Button
                   key={provider}
                   onClick={() => subscribe(provider)}

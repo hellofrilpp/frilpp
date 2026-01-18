@@ -4,7 +4,7 @@ import { CreditCard, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { ApiError, apiUrl, getBillingStatus, startBillingCheckout, type BillingProvider } from "@/lib/api";
-import { enabledBillingProviders, type BillingMarket } from "@/lib/billing";
+import { enabledBillingProviders, type BillingMarket, type BillingProviderMode } from "@/lib/billing";
 import { useQuery } from "@tanstack/react-query";
 
 type GeoResponse = { market?: unknown } | null;
@@ -30,11 +30,24 @@ const BrandBilling = () => {
     retry: false,
   });
 
+  const { data: billingConfig } = useQuery({
+    queryKey: ["billing-config"],
+    queryFn: async () => {
+      const res = await fetch(apiUrl("/api/billing/config"), { credentials: "include" }).catch(() => null);
+      const json = (await res?.json().catch(() => null)) as { ok?: unknown; mode?: unknown } | null;
+      const mode = json?.mode === "STRIPE" || json?.mode === "RAZORPAY" ? json.mode : "AUTO";
+      return mode as BillingProviderMode;
+    },
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+  });
+
   const subscribed = billingStatus?.brand?.subscribed ?? false;
   const resolvedMarket: BillingMarket = market === "IN" ? "IN" : "US";
+  const providerMode: BillingProviderMode = billingConfig ?? "AUTO";
   const enabledProviders = useMemo(
-    () => enabledBillingProviders(resolvedMarket),
-    [resolvedMarket],
+    () => enabledBillingProviders(resolvedMarket, providerMode),
+    [providerMode, resolvedMarket],
   );
 
   const priceLabel = resolvedMarket === "IN" ? "₹299/mo" : "$29/mo";
@@ -137,4 +150,3 @@ const BrandBilling = () => {
 };
 
 export default BrandBilling;
-
