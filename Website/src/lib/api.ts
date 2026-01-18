@@ -141,6 +141,7 @@ export type BillingProvider = "STRIPE" | "RAZORPAY";
 export type BillingStatus = {
   ok: boolean;
   authed: boolean;
+  billingEnabled?: boolean;
   brand: { id: string; name: string | null; subscribed: boolean } | null;
   creator: { id: string; subscribed: boolean } | null;
 };

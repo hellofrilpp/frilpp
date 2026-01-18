@@ -6,6 +6,15 @@ import { ensureBillingSchema } from "@/lib/billing-schema";
 export type BillingMarket = "US" | "IN";
 export type BillingLane = "brand" | "creator";
 
+export function billingEnabled() {
+  const raw = (process.env.BILLING_ENABLED ?? process.env.ENABLE_BILLING ?? "YES")
+    .trim()
+    .toUpperCase();
+  if (raw === "NO" || raw === "FALSE" || raw === "0") return false;
+  if (raw === "YES" || raw === "TRUE" || raw === "1") return true;
+  return true;
+}
+
 export function marketFromRequest(request: Request): BillingMarket {
   const raw =
     request.headers.get("x-vercel-ip-country") ||
@@ -71,5 +80,6 @@ export async function hasActiveSubscription(params: {
   subjectType: "BRAND" | "CREATOR";
   subjectId: string;
 }) {
+  if (!billingEnabled()) return true;
   return Boolean(await getActiveSubscription(params));
 }

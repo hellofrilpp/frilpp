@@ -57,8 +57,20 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
     queryKey: ["auth-me"],
     queryFn: getAuthMe,
   });
+  const { data: billingEnabled } = useQuery({
+    queryKey: ["billing-enabled"],
+    queryFn: async () => {
+      const res = await fetch(apiUrl("/api/billing/config"), { credentials: "include" }).catch(() => null);
+      const json = (await res?.json().catch(() => null)) as { enabled?: unknown } | null;
+      return Boolean(json?.enabled);
+    },
+    staleTime: 1000 * 60 * 10,
+    retry: false,
+  });
   const user = authData?.user ?? null;
   const memberships = user?.memberships ?? emptyMemberships;
+  const filteredNavItems =
+    billingEnabled === false ? navItems.filter((item) => item.href !== "/brand/billing") : navItems;
 
   const [gateMode, setGateMode] = useState<"none" | "create" | "select">("none");
   const [gateBrandName, setGateBrandName] = useState("");
@@ -330,7 +342,7 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
 
         {/* Navigation */}
         <nav className="flex-1 p-3 space-y-1">
-          {navItems.map((item) => {
+          {filteredNavItems.map((item) => {
             const isActive = location.pathname === item.href || 
               (item.href === "/brand/campaigns" && location.pathname.startsWith("/brand/campaigns"));
             return (
@@ -422,7 +434,7 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
               </Button>
             </div>
             <nav className="p-3 space-y-1">
-              {navItems.map((item) => {
+              {filteredNavItems.map((item) => {
                 const isActive = location.pathname === item.href;
                 return (
                   <Link

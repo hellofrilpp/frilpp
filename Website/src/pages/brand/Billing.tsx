@@ -8,6 +8,7 @@ import { enabledBillingProviders, type BillingMarket, type BillingProviderMode }
 import { useQuery } from "@tanstack/react-query";
 
 type GeoResponse = { market?: unknown } | null;
+type BillingConfigResponse = { ok?: unknown; enabled?: unknown; mode?: unknown } | null;
 
 const BrandBilling = () => {
   const [message, setMessage] = useState<string | null>(null);
@@ -34,9 +35,10 @@ const BrandBilling = () => {
     queryKey: ["billing-config"],
     queryFn: async () => {
       const res = await fetch(apiUrl("/api/billing/config"), { credentials: "include" }).catch(() => null);
-      const json = (await res?.json().catch(() => null)) as { ok?: unknown; mode?: unknown } | null;
+      const json = (await res?.json().catch(() => null)) as BillingConfigResponse;
+      const enabled = Boolean(json?.enabled);
       const mode = json?.mode === "STRIPE" || json?.mode === "RAZORPAY" ? json.mode : "AUTO";
-      return mode as BillingProviderMode;
+      return { enabled, mode: mode as BillingProviderMode };
     },
     staleTime: 1000 * 60 * 10,
     retry: false,
@@ -44,7 +46,8 @@ const BrandBilling = () => {
 
   const subscribed = billingStatus?.brand?.subscribed ?? false;
   const resolvedMarket: BillingMarket = market === "IN" ? "IN" : "US";
-  const providerMode: BillingProviderMode = billingConfig ?? "AUTO";
+  const billingEnabled = billingConfig?.enabled ?? true;
+  const providerMode: BillingProviderMode = billingConfig?.mode ?? "AUTO";
   const enabledProviders = useMemo(
     () => enabledBillingProviders(resolvedMarket, providerMode),
     [providerMode, resolvedMarket],
@@ -119,6 +122,10 @@ const BrandBilling = () => {
             {subscribed ? (
               <div className="border-2 border-neon-green bg-neon-green/10 p-4 text-xs font-mono text-neon-green">
                 SUBSCRIPTION_ACTIVE
+              </div>
+            ) : !billingEnabled ? (
+              <div className="border-2 border-border bg-muted p-4 text-xs font-mono text-muted-foreground">
+                BILLING_DISABLED (beta)
               </div>
             ) : (
               <div className="grid gap-3 sm:grid-cols-2">

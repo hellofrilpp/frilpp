@@ -22,6 +22,7 @@ export default function BrandBillingPage() {
   const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "error">("idle");
   const [checkoutProvider, setCheckoutProvider] = useState<BillingProvider | null>(null);
   const [providerMode, setProviderMode] = useState<BillingProviderMode>("AUTO");
+  const [billingEnabled, setBillingEnabled] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -43,7 +44,8 @@ export default function BrandBillingPage() {
   useEffect(() => {
     (async () => {
       const res = await fetch("/api/billing/config", { method: "GET" }).catch(() => null);
-      const json = (await res?.json().catch(() => null)) as { mode?: unknown } | null;
+      const json = (await res?.json().catch(() => null)) as { mode?: unknown; enabled?: unknown } | null;
+      setBillingEnabled(Boolean(json?.enabled));
       if (json?.mode === "STRIPE" || json?.mode === "RAZORPAY") {
         setProviderMode(json.mode);
         return;
@@ -131,21 +133,27 @@ export default function BrandBillingPage() {
               <li>AI recommendations + nearby preview</li>
               <li>Clicks + redemptions ROI</li>
             </ul>
-            <div className="grid gap-2 sm:grid-cols-2">
-              {enabledProviders(market, providerMode).map((provider) => (
-                <Button
-                  key={provider}
-                  onClick={() => subscribe(provider)}
-                  disabled={checkoutStatus === "loading" || status === "loading"}
-                >
-                  {checkoutStatus === "loading" && checkoutProvider === provider
-                    ? "Redirecting…"
-                    : provider === "STRIPE"
-                      ? "Subscribe with Stripe"
-                      : "Subscribe with Razorpay"}
-                </Button>
-              ))}
-            </div>
+            {billingEnabled ? (
+              <div className="grid gap-2 sm:grid-cols-2">
+                {enabledProviders(market, providerMode).map((provider) => (
+                  <Button
+                    key={provider}
+                    onClick={() => subscribe(provider)}
+                    disabled={checkoutStatus === "loading" || status === "loading"}
+                  >
+                    {checkoutStatus === "loading" && checkoutProvider === provider
+                      ? "Redirecting…"
+                      : provider === "STRIPE"
+                        ? "Subscribe with Stripe"
+                        : "Subscribe with Razorpay"}
+                  </Button>
+                ))}
+              </div>
+            ) : (
+              <div className="rounded-lg border bg-muted p-4 text-sm text-muted-foreground">
+                Billing is disabled (beta).
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

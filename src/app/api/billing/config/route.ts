@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { billingEnabled } from "@/lib/billing";
 
 export const runtime = "nodejs";
 
@@ -11,6 +12,9 @@ function billingProviderMode() {
 }
 
 export async function GET() {
-  return Response.json({ ok: true, mode: billingProviderMode() as "AUTO" | "STRIPE" | "RAZORPAY" });
+  return Response.json({
+    ok: true,
+    enabled: billingEnabled(),
+    mode: billingProviderMode() as "AUTO" | "STRIPE" | "RAZORPAY",
+  });
 }
-

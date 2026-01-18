@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { brands, creators, users } from "@/db/schema";
 import { getSessionUser } from "@/lib/auth";
-import { hasActiveSubscription } from "@/lib/billing";
+import { billingEnabled, hasActiveSubscription } from "@/lib/billing";
 import { eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
@@ -46,8 +46,8 @@ export async function GET(request: Request) {
   return Response.json({
     ok: true,
     authed: true,
+    billingEnabled: billingEnabled(),
     brand: activeBrandId ? { id: activeBrandId, name: brandName, subscribed: brandActive } : null,
     creator: creatorId ? { id: creatorId, subscribed: creatorActive } : null,
   });
 }
-
