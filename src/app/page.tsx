@@ -490,7 +490,7 @@ export default function Home() {
                     <span className="font-semibold text-foreground">On</span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">
-                    <span>Auto-ship via Shopify</span>
+                    <span>Automated fulfillment</span>
                     <span className="font-semibold text-foreground">Live</span>
                   </div>
                   <div className="flex items-center justify-between rounded-lg border border-border bg-background px-3 py-2">

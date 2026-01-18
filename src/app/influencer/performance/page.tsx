@@ -145,7 +145,7 @@ export default function CreatorPerformancePage() {
           <Card>
             <CardHeader>
               <CardTitle>Online revenue</CardTitle>
-              <CardDescription>Shopify (net)</CardDescription>
+              <CardDescription>Orders (net)</CardDescription>
             </CardHeader>
             <CardContent className="text-2xl font-bold">
               {formatUsd(summary.totalNetOrderRevenueCents)}

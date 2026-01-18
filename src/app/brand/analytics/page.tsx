@@ -66,8 +66,8 @@ export default function BrandAnalyticsPage() {
               Offer performance
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Tracks clicks via `r/FRILP-XXXXXX` and attributed purchases via Shopify discount codes
-              matching the code, plus manual redemptions recorded by your team.
+              Tracks clicks via `r/FRILP-XXXXXX`, attributed purchases via discount codes matching
+              the code, plus manual redemptions recorded by your team.
             </p>
           </div>
           <div className="flex gap-2">

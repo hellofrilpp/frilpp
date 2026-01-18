@@ -6,7 +6,6 @@ import {
   CreditCard,
   Save,
   Settings,
-  ShoppingBag,
   Truck
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -23,7 +22,6 @@ import {
   getBrandInstagramHandle,
   getBrandNotifications,
   getBrandProfile,
-  getShopifyStatus,
   getSocialAccounts,
   updateBrandAcceptanceSettings,
   updateBrandInstagramHandle,
@@ -78,10 +76,6 @@ const BrandSettings = () => {
   const { data: instagramData } = useQuery({
     queryKey: ["brand-instagram"],
     queryFn: getBrandInstagramHandle,
-  });
-  const { data: shopifyStatus } = useQuery({
-    queryKey: ["shopify-status"],
-    queryFn: getShopifyStatus,
   });
   const { data: socialData } = useQuery({
     queryKey: ["social-accounts"],
@@ -426,27 +420,6 @@ const BrandSettings = () => {
             <h2 className="font-pixel text-sm text-neon-purple">[INTEGRATIONS]</h2>
           </div>
           <div className="divide-y-2 divide-border">
-            <div className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 border-2 border-neon-green bg-neon-green/10 flex items-center justify-center">
-                  <ShoppingBag className="w-5 h-5 text-neon-green" />
-                </div>
-                <div>
-                  <p className="font-mono text-sm">SHOPIFY</p>
-                  <p className="text-xs font-mono text-muted-foreground">Sync products and inventory</p>
-                </div>
-              </div>
-              <Button
-                asChild
-                variant="outline"
-                size="sm"
-                className="border-2 border-primary text-primary font-mono text-xs"
-              >
-                <a href={apiUrl("/api/shopify/install")}>
-                  {shopifyStatus?.connected ? "RECONNECT" : "CONNECT"}
-                </a>
-              </Button>
-            </div>
             <div className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
               <div className="flex items-center gap-4">
                 <div className="w-10 h-10 border-2 border-neon-yellow bg-neon-yellow/10 flex items-center justify-center">

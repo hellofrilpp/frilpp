@@ -13,6 +13,8 @@ import { formatUsageRightsScope } from "@/lib/usage-rights";
 type TemplateId = "REEL" | "FEED" | "REEL_PLUS_STORY" | "UGC_ONLY";
 type WizardStep = 0 | 1 | 2 | 3;
 
+const SHOPIFY_ENABLED = false;
+
 type OfferDraft = {
   template: TemplateId;
   title: string;
@@ -75,7 +77,7 @@ const templateLabels: Record<TemplateId, string> = {
 };
 
 function StepPill(props: {
-  step: WizardStep;
+  index: number;
   title: string;
   active: boolean;
   onClick: () => void;
@@ -97,7 +99,7 @@ function StepPill(props: {
           props.active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
         ].join(" ")}
       >
-        {props.step + 1}
+        {props.index + 1}
       </span>
       <span className="truncate">{props.title}</span>
     </button>
@@ -105,7 +107,7 @@ function StepPill(props: {
 }
 
 export default function NewOfferPage() {
-  const [step, setStep] = useState<WizardStep>(0);
+  const [step, setStep] = useState<WizardStep>(SHOPIFY_ENABLED ? 0 : 1);
   const [origin, setOrigin] = useState("");
 
   const [draft, setDraft] = useState<OfferDraft>(() => ({
@@ -218,16 +220,30 @@ export default function NewOfferPage() {
     };
   }, [draft.locationRadiusKm, draft.countriesAllowed]);
 
-  const steps = useMemo(
-    () =>
-      [
-        { title: "Products", description: "Connect Shopify (optional) and pick products." },
-        { title: "Template", description: "Pick the deliverable type." },
-        { title: "Details", description: "Local radius, tracking link, and acceptance rules." },
-        { title: "Review + publish", description: "One-click publish and share." },
-      ] as const,
+  const stepOrder = useMemo<WizardStep[]>(
+    () => (SHOPIFY_ENABLED ? [0, 1, 2, 3] : [1, 2, 3]),
     [],
   );
+
+  const steps = useMemo(
+    () =>
+      SHOPIFY_ENABLED
+        ? [
+            { title: "Products", description: "Pick products (optional)." },
+            { title: "Template", description: "Pick the deliverable type." },
+            { title: "Details", description: "Local radius, tracking link, and acceptance rules." },
+            { title: "Review + publish", description: "One-click publish and share." },
+          ]
+        : [
+            { title: "Template", description: "Pick the deliverable type." },
+            { title: "Details", description: "Local radius, tracking link, and acceptance rules." },
+            { title: "Review + publish", description: "One-click publish and share." },
+          ],
+    [],
+  );
+
+  const activeIndex = stepOrder.indexOf(step);
+  const displayStepNumber = (target: WizardStep) => stepOrder.indexOf(target) + 1;
 
   useEffect(() => {
     setOrigin(window.location.origin);
@@ -376,11 +392,19 @@ export default function NewOfferPage() {
   }
 
   function nextStep() {
-    setStep((s) => (s < 3 ? ((s + 1) as WizardStep) : s));
+    setStep((s) => {
+      const index = stepOrder.indexOf(s);
+      if (index < 0) return stepOrder[0] ?? s;
+      return index < stepOrder.length - 1 ? stepOrder[index + 1] : s;
+    });
   }
 
   function prevStep() {
-    setStep((s) => (s > 0 ? ((s - 1) as WizardStep) : s));
+    setStep((s) => {
+      const index = stepOrder.indexOf(s);
+      if (index <= 0) return s;
+      return stepOrder[index - 1];
+    });
   }
 
   async function copyOfferLink(offerId: string) {
@@ -400,7 +424,7 @@ export default function NewOfferPage() {
         ? draft.manualFulfillmentMethod === "LOCAL_DELIVERY"
           ? "- This is local delivery: add your delivery address in Profile before claiming."
           : "- This is pickup: your location is used for eligibility."
-        : "- This ships via Shopify (address required).";
+        : "- Fulfillment details will be shared after you claim.";
     return [
       "Hey! We’d love to send you a free product in exchange for content.",
       "",
@@ -428,7 +452,7 @@ export default function NewOfferPage() {
             </h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Publish in ~2 minutes. Creators can claim via a link; Frilpp automates approvals,
-              tracking, and ROI reporting (Shopify optional).
+              tracking, and ROI reporting.
             </p>
           </div>
           <Link href="/">
@@ -473,16 +497,16 @@ export default function NewOfferPage() {
           <Card>
             <CardHeader>
               <CardTitle>Progress</CardTitle>
-              <CardDescription>{steps[step].description}</CardDescription>
+              <CardDescription>{steps[Math.max(0, activeIndex)].description}</CardDescription>
             </CardHeader>
             <CardContent className="flex flex-wrap gap-2">
               {steps.map((s, i) => (
                 <StepPill
                   key={s.title}
-                  step={i as WizardStep}
+                  index={i}
                   title={s.title}
-                  active={step === i}
-                  onClick={() => setStep(i as WizardStep)}
+                  active={activeIndex === i}
+                  onClick={() => setStep(stepOrder[i] ?? step)}
                 />
               ))}
             </CardContent>
@@ -566,12 +590,12 @@ export default function NewOfferPage() {
             </Card>
           ) : null}
 
-          {step === 0 ? (
+          {SHOPIFY_ENABLED && step === 0 ? (
             <Card>
               <CardHeader>
                 <CardTitle>1) Products (optional)</CardTitle>
                 <CardDescription>
-                  If you have Shopify, connect it to auto-create discount codes and orders. Otherwise, skip this step.
+                  Pick products (optional).
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
@@ -588,7 +612,7 @@ export default function NewOfferPage() {
                         onClick={registerWebhook}
                         disabled={isRegisteringWebhook}
                       >
-                        {isRegisteringWebhook ? "Registering..." : "Register Shopify webhooks"}
+                        {isRegisteringWebhook ? "Registering..." : "Register webhooks"}
                       </Button>
                       {webhookStatus === "ok" ? (
                         <Badge variant="success">Webhook ready</Badge>
@@ -605,16 +629,16 @@ export default function NewOfferPage() {
                       <Label htmlFor="shopDomain">Shop domain</Label>
                       <Input
                         id="shopDomain"
-                        placeholder="your-store.myshopify.com"
+                        placeholder="your-store.example.com"
                         value={shopInput}
                         onChange={(e) => setShopInput(e.target.value)}
                       />
                       <div className="text-xs text-muted-foreground">
-                        Shopify requires a public app URL; on localhost use a tunnel (ngrok/cloudflared) and set `SHOPIFY_APP_URL`.
+                        This integration requires a public app URL; on localhost use a tunnel (ngrok/cloudflared) and set the integration app URL.
                       </div>
                     </div>
                     <a href={`/api/shopify/install?shop=${encodeURIComponent(shopInput || "")}`}>
-                      <Button disabled={!shopInput.trim()}>Connect Shopify</Button>
+                      <Button disabled={!shopInput.trim()}>Connect store</Button>
                     </a>
                   </div>
                 )}
@@ -751,9 +775,9 @@ export default function NewOfferPage() {
           {step === 1 ? (
             <Card>
               <CardHeader>
-                <CardTitle>2) Template</CardTitle>
+                <CardTitle>{displayStepNumber(1)}) Template</CardTitle>
                 <CardDescription>
-                  Reels/Feed templates use a unique caption code for verification + Shopify discount attribution. UGC-only is for content collection.
+                  Reels/Feed templates use a unique caption code for verification. UGC-only is for content collection.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3 sm:grid-cols-2">
@@ -791,7 +815,7 @@ export default function NewOfferPage() {
           {step === 2 ? (
             <Card>
               <CardHeader>
-                <CardTitle>3) Details</CardTitle>
+                <CardTitle>{displayStepNumber(2)}) Details</CardTitle>
                 <CardDescription>
                   Keep it concrete (what you ship + what you want in return).
                 </CardDescription>
@@ -1071,18 +1095,9 @@ export default function NewOfferPage() {
                         >
                           Manual
                         </Button>
-                        <Button
-                          size="sm"
-                          type="button"
-                          variant={draft.fulfillmentType === "SHOPIFY" ? "default" : "outline"}
-                          onClick={() => setDraft((d) => ({ ...d, fulfillmentType: "SHOPIFY" }))}
-                          disabled={!shopifyConnected}
-                        >
-                          Shopify
-                        </Button>
                       </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        Manual works for local delivery/pickup. Shopify auto-creates orders (requires connect).
+                        Manual works for local delivery/pickup.
                       </div>
 
                       {draft.fulfillmentType === "MANUAL" ? (
@@ -1183,7 +1198,7 @@ export default function NewOfferPage() {
           {step === 3 ? (
             <Card>
               <CardHeader>
-                <CardTitle>4) Review + publish</CardTitle>
+                <CardTitle>{displayStepNumber(3)}) Review + publish</CardTitle>
                 <CardDescription>
                   Publish and share. Under-the-hood: auto-approve rules, auto-ship, and ROI tracking.
                 </CardDescription>
@@ -1202,14 +1217,16 @@ export default function NewOfferPage() {
                       <Badge variant="secondary">Usage rights: {formatUsageRightsScope(draft.usageRightsScope)}</Badge>
                     ) : null}
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant={shopifyConnected ? "success" : "warning"}>
-                      {shopifyConnected ? "Shopify connected" : "Shopify not connected"}
-                    </Badge>
-                    <Badge variant={productsSelectedCount > 0 ? "success" : "warning"}>
-                      Products selected: {productsSelectedCount}
-                    </Badge>
-                  </div>
+                  {SHOPIFY_ENABLED ? (
+                    <div className="flex flex-wrap gap-2">
+                      <Badge variant={shopifyConnected ? "success" : "warning"}>
+                        {shopifyConnected ? "Store connected" : "Store not connected"}
+                      </Badge>
+                      <Badge variant={productsSelectedCount > 0 ? "success" : "warning"}>
+                        Products selected: {productsSelectedCount}
+                      </Badge>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="grid gap-3 rounded-lg border bg-card p-4 text-sm">
@@ -1242,7 +1259,7 @@ export default function NewOfferPage() {
                   Caption code example:{" "}
                   <span className="font-mono font-semibold text-foreground">{campaignCodeExample}</span>
                   <div className="mt-2 text-xs text-muted-foreground">
-                    Reels/Feed: attribution is via tracked link clicks + Shopify discount codes. Stories are best-effort.
+                    Reels/Feed: attribution is via tracked link clicks and redemptions. Stories are best-effort.
                   </div>
                 </div>
               </CardContent>
@@ -1251,13 +1268,17 @@ export default function NewOfferPage() {
 
           <div className="flex flex-col items-stretch justify-between gap-3 sm:flex-row sm:items-center">
             <div className="text-sm text-muted-foreground">
-              {step < 3 ? `Step ${step + 1} of 4` : hasMinimumDetails ? "Ready to publish" : "Complete required fields to publish"}
+              {activeIndex < stepOrder.length - 1
+                ? `Step ${Math.max(0, activeIndex) + 1} of ${stepOrder.length}`
+                : hasMinimumDetails
+                  ? "Ready to publish"
+                  : "Complete required fields to publish"}
             </div>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={prevStep} disabled={step === 0 || isPublishing}>
+              <Button variant="outline" onClick={prevStep} disabled={activeIndex <= 0 || isPublishing}>
                 Back
               </Button>
-              {step < 3 ? (
+              {activeIndex < stepOrder.length - 1 ? (
                 <Button variant="secondary" onClick={nextStep} disabled={isPublishing}>
                   Next
                 </Button>

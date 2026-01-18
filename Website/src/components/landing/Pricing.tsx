@@ -56,7 +56,7 @@ const Pricing = () => {
         "Multiple locations",
         "More roles + permissions",
         "Custom reporting",
-        "Integrations (Shopify optional)",
+        "Integrations",
       ],
       cta: "CONTACT",
       href: "mailto:hello@frilpp.com",

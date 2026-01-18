@@ -45,6 +45,8 @@ const platformIcons: Record<string, string> = {
   OTHER: "✨",
 };
 
+const allowedCreatorPlatformIds = new Set(["TIKTOK", "YOUTUBE"]);
+
 const contentTypeXp: Record<string, number> = {
   REEL: 50,
   STORY: 20,
@@ -89,7 +91,7 @@ const initialFormData: CampaignFormData = {
   description: "",
   productImage: "",
   presetId: "",
-  fulfillmentType: "",
+  fulfillmentType: "MANUAL",
   platforms: [],
   platformOther: "",
   contentTypes: [],
@@ -141,6 +143,8 @@ const emptyPlatformsByCountry = { US: [], IN: [] };
 
 const DRAFT_KEY = "frilpp:brandCampaignDraft:v1";
 
+type AiCreatorAvailability = "idle" | "checking" | "available" | "empty" | "error";
+
 const CampaignCreator = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -155,6 +159,8 @@ const CampaignCreator = () => {
   const [savingDraft, setSavingDraft] = useState(false);
   const restoredRef = useRef(false);
   const draftReadyRef = useRef(false);
+  const aiCheckKeyRef = useRef<string | null>(null);
+  const [aiCreatorAvailability, setAiCreatorAvailability] = useState<AiCreatorAvailability>("idle");
 
   useEffect(() => {
     if (restoredRef.current) return;
@@ -188,6 +194,7 @@ const CampaignCreator = () => {
           platforms: Array.isArray(draft.formData.platforms) ? draft.formData.platforms : prev.platforms,
           contentTypes: Array.isArray(draft.formData.contentTypes) ? draft.formData.contentTypes : prev.contentTypes,
           niches: Array.isArray(draft.formData.niches) ? draft.formData.niches : prev.niches,
+          fulfillmentType: "MANUAL",
         }));
       }
 
@@ -289,12 +296,27 @@ const CampaignCreator = () => {
     enabled: false,
   });
 
+  useEffect(() => {
+    if (currentStep !== 4) return;
+    if (aiCheckKeyRef.current === offerDraftKey) return;
+    aiCheckKeyRef.current = offerDraftKey;
+    setAiCreatorAvailability("checking");
+    refetchDraftRecommendations()
+      .then((result) => {
+        const creators = result.data?.creators ?? [];
+        setAiCreatorAvailability(creators.length ? "available" : "empty");
+      })
+      .catch(() => {
+        setAiCreatorAvailability("error");
+      });
+  }, [currentStep, offerDraftKey, refetchDraftRecommendations]);
+
   const availablePlatforms = useMemo(() => {
     const region = formData.region || "US_IN";
-    if (region === "US") return platformsByCountry.US;
-    if (region === "IN") return platformsByCountry.IN;
+    if (region === "US") return platformsByCountry.US.filter((p) => allowedCreatorPlatformIds.has(p.id));
+    if (region === "IN") return platformsByCountry.IN.filter((p) => allowedCreatorPlatformIds.has(p.id));
     const byId = new Map(platformsByCountry.US.map((item) => [item.id, item]));
-    return platformsByCountry.IN.filter((item) => byId.has(item.id));
+    return platformsByCountry.IN.filter((item) => byId.has(item.id) && allowedCreatorPlatformIds.has(item.id));
   }, [formData.region, platformsByCountry]);
 
   useEffect(() => {
@@ -315,10 +337,10 @@ const CampaignCreator = () => {
   useEffect(() => {
     if (!shopifyStatus) return;
     setFormData((prev) => {
-      if (prev.fulfillmentType) return prev;
+      if (prev.fulfillmentType) return { ...prev, fulfillmentType: "MANUAL" };
       return {
         ...prev,
-        fulfillmentType: shopifyStatus.connected ? "SHOPIFY" : "MANUAL",
+        fulfillmentType: "MANUAL",
       };
     });
   }, [shopifyStatus]);
@@ -394,8 +416,7 @@ const CampaignCreator = () => {
 
   const saveDraftToServer = async () => {
     if (savingDraft) return;
-    const fulfillmentType =
-      formData.fulfillmentType || (shopifyStatus?.connected ? "SHOPIFY" : "MANUAL");
+    const fulfillmentType: FulfillmentType = "MANUAL";
     const template = buildOfferTemplate();
     const titleRaw = formData.campaignName || formData.productName;
     const title = titleRaw && titleRaw.trim().length >= 3 ? titleRaw.trim() : "Untitled campaign";
@@ -465,11 +486,6 @@ const CampaignCreator = () => {
       setCurrentStep(1);
       return;
     }
-    if (formData.platforms.includes("OTHER") && !formData.platformOther.trim()) {
-      toast.error("Add a platform for Other");
-      setCurrentStep(2);
-      return;
-    }
     if (formData.contentTypes.includes("OTHER") && !formData.contentTypeOther.trim()) {
       toast.error("Add a content type for Other");
       setCurrentStep(2);
@@ -484,26 +500,7 @@ const CampaignCreator = () => {
     const minFollowers = Number(formData.minFollowers || 0);
     const maxClaims = Number(formData.quantity || 1);
     const allowedCountries = countriesAllowed;
-    const fulfillmentType =
-      formData.fulfillmentType || (shopifyStatus?.connected ? "SHOPIFY" : "MANUAL");
-
-    if (fulfillmentType === "SHOPIFY") {
-      if (!shopifyStatus?.connected) {
-        toast.error("Connect Shopify or switch to manual fulfillment");
-        setCurrentStep(1);
-        return;
-      }
-      if (!selectedProduct) {
-        toast.error("Select a Shopify product or choose manual fulfillment");
-        setCurrentStep(1);
-        return;
-      }
-      if (!selectedVariantId) {
-        toast.error("Select a variant for the Shopify product");
-        setCurrentStep(1);
-        return;
-      }
-    }
+    const fulfillmentType: FulfillmentType = "MANUAL";
 
     const products = buildOfferProducts(fulfillmentType);
     const metadata = buildOfferMetadata(fulfillmentType);
@@ -773,8 +770,9 @@ const CampaignCreator = () => {
                     />
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="font-mono text-sm">SHOPIFY_PRODUCT</Label>
+                  {false ? (
+                    <div className="space-y-2">
+                    <Label className="font-mono text-sm">STORE_PRODUCT</Label>
                     {shopifyStatus?.connected ? (
                       <>
                         <Input
@@ -845,35 +843,21 @@ const CampaignCreator = () => {
                       </>
                     ) : (
                       <div className="border-2 border-border p-4 text-xs font-mono text-muted-foreground">
-                        Connect Shopify to pull product details.
+                        Connect your store to pull product details.
                         <Button
                           asChild
                           size="sm"
                           className="ml-3 bg-primary text-primary-foreground font-pixel text-xs"
                         >
-                          <a href={apiUrl("/api/shopify/install")}>CONNECT SHOPIFY</a>
+                          <a href={apiUrl("/api/shopify/install")}>CONNECT STORE</a>
                         </Button>
                       </div>
                     )}
-                  </div>
+                    </div>
+                  ) : null}
                   <div className="space-y-2">
                     <Label className="font-mono text-sm">FULFILLMENT</Label>
-                    <div className="grid md:grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => updateField("fulfillmentType", "SHOPIFY")}
-                        disabled={!shopifyStatus?.connected}
-                        className={`p-4 border-2 text-left transition-all pixel-btn ${
-                          formData.fulfillmentType === "SHOPIFY"
-                            ? "border-neon-green bg-neon-green/20"
-                            : "border-border hover:border-neon-green"
-                        } ${!shopifyStatus?.connected ? "opacity-50 cursor-not-allowed" : ""}`}
-                      >
-                        <p className="font-pixel text-xs text-neon-green">SHOPIFY_AUTO_SHIP</p>
-                        <p className="font-mono text-xs text-muted-foreground mt-1">
-                          Create draft orders + tracking automatically.
-                        </p>
-                      </button>
+                    <div className="grid gap-3">
                       <button
                         type="button"
                         onClick={() => updateField("fulfillmentType", "MANUAL")}
@@ -985,7 +969,7 @@ const CampaignCreator = () => {
                   )}
                   <div className="space-y-2">
                     <Label className="font-mono text-sm">WHERE_CREATORS_POST</Label>
-                    <div className="grid grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       {availablePlatforms.map((platform) => (
                         <button
                           key={platform.id}
@@ -1002,18 +986,6 @@ const CampaignCreator = () => {
                       ))}
                     </div>
                   </div>
-
-                  {formData.platforms.includes("OTHER") && (
-                    <div className="space-y-2">
-                      <Label className="font-mono text-sm">PLATFORM_OTHER</Label>
-                      <Input
-                        value={formData.platformOther}
-                        onChange={(e) => updateField('platformOther', e.target.value)}
-                        placeholder="e.g. Snapchat, Pinterest"
-                        className="border-2 border-border font-mono focus:border-primary"
-                      />
-                    </div>
-                  )}
 
                   <div className="space-y-2">
                     <Label className="font-mono text-sm">CONTENT_TYPES (select multiple)</Label>
@@ -1247,28 +1219,47 @@ const CampaignCreator = () => {
                     </div>
                   </div>
 
-                  <div className="border-4 border-border bg-card">
-                    <div className="p-4 border-b-4 border-border flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Sparkles className="w-4 h-4 text-neon-yellow" />
-                        <span className="font-pixel text-sm text-neon-yellow">[AI_MATCHES]</span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-2 border-border font-mono text-xs"
-                        onClick={() => refetchDraftRecommendations()}
-                      >
-                        {draftRecommendationsLoading ? "THINKING..." : "GENERATE"}
-                      </Button>
-                    </div>
-                    <div className="divide-y-2 divide-border">
-                      {(draftRecommendationsData?.creators ?? []).length ? (
-                        draftRecommendationsData?.creators.map((creator) => (
-                          <div key={creator.creatorId} className="p-4 flex items-center justify-between">
-                            <div>
-                              <p className="font-mono text-sm">{creator.username}</p>
-                              <p className="text-xs font-mono text-muted-foreground">{creator.reason}</p>
+	                  <div className="border-4 border-border bg-card">
+	                    <div className="p-4 border-b-4 border-border flex items-center justify-between">
+	                      <div className="flex items-center gap-2">
+	                        <Sparkles className="w-4 h-4 text-neon-yellow" />
+	                        <span className="font-pixel text-sm text-neon-yellow">[AI_MATCHES]</span>
+	                      </div>
+	                      <Button
+	                        variant="outline"
+	                        size="sm"
+	                        className="border-2 border-border font-mono text-xs"
+	                        onClick={() => {
+	                          setAiCreatorAvailability("checking");
+	                          refetchDraftRecommendations()
+	                            .then((result) => {
+	                              const creators = result.data?.creators ?? [];
+	                              setAiCreatorAvailability(creators.length ? "available" : "empty");
+	                            })
+	                            .catch(() => {
+	                              setAiCreatorAvailability("error");
+	                            });
+	                        }}
+	                        disabled={
+	                          draftRecommendationsLoading ||
+	                          aiCreatorAvailability === "checking" ||
+	                          aiCreatorAvailability === "empty"
+	                        }
+	                      >
+	                        {draftRecommendationsLoading || aiCreatorAvailability === "checking"
+	                          ? "THINKING..."
+	                          : aiCreatorAvailability === "empty"
+	                            ? "NO_CREATORS"
+	                            : "GENERATE"}
+	                      </Button>
+	                    </div>
+	                    <div className="divide-y-2 divide-border">
+	                      {(draftRecommendationsData?.creators ?? []).length ? (
+	                        draftRecommendationsData?.creators.map((creator) => (
+	                          <div key={creator.creatorId} className="p-4 flex items-center justify-between">
+	                            <div>
+	                              <p className="font-mono text-sm">{creator.username}</p>
+	                              <p className="text-xs font-mono text-muted-foreground">{creator.reason}</p>
                               {formatDistance(creator) && (
                                 <p className="text-xs font-mono text-neon-blue">
                                   {formatDistance(creator)} away
@@ -1277,17 +1268,23 @@ const CampaignCreator = () => {
                             </div>
                             <div className="text-right">
                               <p className="font-pixel text-sm text-neon-green">{creator.score}</p>
-                              <p className="text-xs font-mono text-muted-foreground">AI score</p>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <div className="p-4 text-xs font-mono text-muted-foreground">
-                          Generate AI matches to preview high-potential creators.
-                        </div>
-                      )}
-                    </div>
-                  </div>
+	                              <p className="text-xs font-mono text-muted-foreground">AI score</p>
+	                            </div>
+	                          </div>
+	                        ))
+	                      ) : (
+	                        <div className="p-4 text-xs font-mono text-muted-foreground">
+	                          {aiCreatorAvailability === "checking"
+	                            ? "Checking creator availability..."
+	                            : aiCreatorAvailability === "empty"
+	                              ? "No creators on Frilpp yet. Invite creators to join, then try again."
+	                              : aiCreatorAvailability === "error"
+	                                ? "Unable to load creators right now. Please try again."
+	                                : "Generate AI matches to preview high-potential creators."}
+	                        </div>
+	                      )}
+	                    </div>
+	                  </div>
                 </div>
               </div>
             )}

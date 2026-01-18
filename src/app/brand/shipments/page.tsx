@@ -146,7 +146,7 @@ export default function BrandShipmentsPage() {
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Shipments</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Track Shopify orders and manual fulfillment (local delivery / pickup).
+              Track fulfillment (local delivery / pickup).
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

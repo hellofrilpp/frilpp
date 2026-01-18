@@ -44,7 +44,7 @@ const features = [
   "Pickup / local delivery / shipping",
   "Clicks + redemptions ROI",
   "Verified posting + strike rules",
-  "Shopify optional",
+  "Optional integrations",
 ];
 
 const ForBrands = () => {

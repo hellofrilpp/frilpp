@@ -25,7 +25,7 @@ const faqs = [
   },
   {
     question: "How does shipping work?",
-    answer: "Offers can be pickup, local delivery, or shipping. Shipping labels are optional — you can paste your carrier tracking link or use Shopify if connected.",
+    answer: "Offers can be pickup, local delivery, or shipping. Shipping labels are optional — you can paste your carrier tracking link.",
   },
   {
     question: "Minimum follower requirement?",

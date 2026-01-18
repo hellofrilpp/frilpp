@@ -123,7 +123,7 @@ export default function BrandMatchesPage() {
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">{title}</h1>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
               Approve creators that fall below your auto-accept threshold. On approve, Frilpp
-              activates tracking and (optionally) Shopify automation if you’ve connected a store.
+              activates tracking and fulfillment workflows.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

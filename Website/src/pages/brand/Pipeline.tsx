@@ -591,7 +591,7 @@ const BrandPipeline = () => {
               ))
             ) : (
               <div className="p-4 text-xs font-mono text-muted-foreground">
-                Manual shipments will appear here when Shopify is not connected.
+                Manual shipments will appear here once they’re created.
               </div>
             )}
           </div>
