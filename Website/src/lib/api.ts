@@ -136,6 +136,26 @@ export async function logout() {
   });
 }
 
+export type BillingProvider = "STRIPE" | "RAZORPAY";
+
+export type BillingStatus = {
+  ok: boolean;
+  authed: boolean;
+  brand: { id: string; name: string | null; subscribed: boolean } | null;
+  creator: { id: string; subscribed: boolean } | null;
+};
+
+export async function getBillingStatus() {
+  return apiFetch<BillingStatus>("/api/billing/status");
+}
+
+export async function startBillingCheckout(payload: { lane: "brand" | "creator"; provider?: BillingProvider }) {
+  return apiFetch<{ ok: boolean; provider?: BillingProvider; checkoutUrl: string }>("/api/billing/checkout", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export type BrandOffer = {
   id: string;
   title: string;

@@ -5,6 +5,7 @@ import {
   Package, 
   Users, 
   BarChart3, 
+  CreditCard,
   Settings,
   Menu,
   X,
@@ -37,6 +38,7 @@ const navItems = [
   { icon: Package, label: "CAMPAIGNS", href: "/brand/campaigns" },
   { icon: Users, label: "PIPELINE", href: "/brand/pipeline" },
   { icon: BarChart3, label: "ANALYTICS", href: "/brand/analytics" },
+  { icon: CreditCard, label: "BILLING", href: "/brand/billing" },
   { icon: Settings, label: "SETTINGS", href: "/brand/settings" },
 ];
 

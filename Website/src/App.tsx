@@ -16,6 +16,7 @@ import BrandCampaignDetails from "./pages/brand/CampaignDetails";
 import BrandPipeline from "./pages/brand/Pipeline";
 import BrandAnalytics from "./pages/brand/Analytics";
 import BrandSettings from "./pages/brand/Settings";
+import BrandBilling from "./pages/brand/Billing";
 
 // Influencer Pages
 import InfluencerAuth from "./pages/influencer/Auth";
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/brand/campaigns/:offerId" element={<BrandCampaignDetails />} />
             <Route path="/brand/pipeline" element={<BrandPipeline />} />
             <Route path="/brand/analytics" element={<BrandAnalytics />} />
+            <Route path="/brand/billing" element={<BrandBilling />} />
             <Route path="/brand/settings" element={<BrandSettings />} />
 
             {/* Influencer Routes */}

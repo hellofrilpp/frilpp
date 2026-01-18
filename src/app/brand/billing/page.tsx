@@ -7,11 +7,30 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 type Market = "US" | "IN";
+type BillingProvider = "STRIPE" | "RAZORPAY";
+type BillingProviderMode = "AUTO" | "STRIPE" | "RAZORPAY" | "BOTH";
+
+function billingProviderMode(): BillingProviderMode {
+  const raw = (process.env.NEXT_PUBLIC_BILLING_PROVIDER_MODE ?? "").trim().toUpperCase();
+  if (raw === "STRIPE") return "STRIPE";
+  if (raw === "RAZORPAY") return "RAZORPAY";
+  if (raw === "BOTH") return "BOTH";
+  return "AUTO";
+}
+
+function enabledProviders(market: Market): BillingProvider[] {
+  const mode = billingProviderMode();
+  if (mode === "STRIPE") return ["STRIPE"];
+  if (mode === "RAZORPAY") return ["RAZORPAY"];
+  if (mode === "BOTH") return ["STRIPE", "RAZORPAY"];
+  return [market === "IN" ? "RAZORPAY" : "STRIPE"];
+}
 
 export default function BrandBillingPage() {
   const [market, setMarket] = useState<Market>("US");
   const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
   const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [checkoutProvider, setCheckoutProvider] = useState<BillingProvider | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -34,14 +53,15 @@ export default function BrandBillingPage() {
     return market === "IN" ? "₹299/mo" : "$29/mo";
   }, [market]);
 
-  async function subscribe() {
+  async function subscribe(provider: BillingProvider) {
     setCheckoutStatus("loading");
+    setCheckoutProvider(provider);
     setMessage(null);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ lane: "brand" }),
+        body: JSON.stringify({ lane: "brand", provider }),
       });
       const data = (await res.json().catch(() => null)) as
         | { ok: true; checkoutUrl: string }
@@ -57,6 +77,7 @@ export default function BrandBillingPage() {
     } catch (err) {
       setCheckoutStatus("error");
       setMessage(err instanceof Error ? err.message : "Failed to start checkout");
+      setCheckoutProvider(null);
     }
   }
 
@@ -107,13 +128,24 @@ export default function BrandBillingPage() {
               <li>AI recommendations + nearby preview</li>
               <li>Clicks + redemptions ROI</li>
             </ul>
-            <Button onClick={subscribe} disabled={checkoutStatus === "loading" || status === "loading"}>
-              {checkoutStatus === "loading" ? "Redirecting…" : "Subscribe"}
-            </Button>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {enabledProviders(market).map((provider) => (
+                <Button
+                  key={provider}
+                  onClick={() => subscribe(provider)}
+                  disabled={checkoutStatus === "loading" || status === "loading"}
+                >
+                  {checkoutStatus === "loading" && checkoutProvider === provider
+                    ? "Redirecting…"
+                    : provider === "STRIPE"
+                      ? "Subscribe with Stripe"
+                      : "Subscribe with Razorpay"}
+                </Button>
+              ))}
+            </div>
           </CardContent>
         </Card>
       </div>
     </div>
   );
 }
-

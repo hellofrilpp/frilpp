@@ -15,7 +15,7 @@ import {
 import { Button } from "@/components/ui/button";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery } from "@tanstack/react-query";
-import { ApiError, getBrandDeliverables, getBrandMatches, getBrandOffers, getCreatorRecommendations } from "@/lib/api";
+import { ApiError, getBillingStatus, getBrandDeliverables, getBrandMatches, getBrandOffers, getCreatorRecommendations } from "@/lib/api";
 
 const BrandDashboard = () => {
   const { data: offersData, error: offersError } = useQuery({
@@ -33,6 +33,10 @@ const BrandDashboard = () => {
   const { data: verifiedDeliverablesData } = useQuery({
     queryKey: ["brand-deliverables", "verified"],
     queryFn: () => getBrandDeliverables("VERIFIED"),
+  });
+  const { data: billingStatus } = useQuery({
+    queryKey: ["billing-status"],
+    queryFn: getBillingStatus,
   });
   const {
     data: recommendationsData,
@@ -59,6 +63,7 @@ const BrandDashboard = () => {
   );
 
   const reachEstimate = acceptedMatches.reduce((sum, match) => sum + (match.creator.followersCount ?? 0), 0);
+  const isSubscribed = billingStatus?.brand?.subscribed ?? false;
   const formatReach = (value: number) => {
     if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
     if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
@@ -156,12 +161,22 @@ const BrandDashboard = () => {
             <h1 className="text-xl md:text-2xl font-pixel text-foreground">WELCOME BACK</h1>
             <p className="font-mono text-sm text-muted-foreground mt-1">&gt; Campaign status: ACTIVE</p>
           </div>
-          <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-pixel text-xs px-6 pixel-btn glow-green" asChild>
-            <Link to="/brand/campaigns/new">
-              <Plus className="w-4 h-4 mr-2" />
-              NEW CAMPAIGN
-            </Link>
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {!isSubscribed ? (
+              <Button className="bg-neon-yellow text-background hover:bg-neon-yellow/90 font-pixel text-xs px-6 pixel-btn" asChild>
+                <Link to="/brand/billing">
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  SUBSCRIBE
+                </Link>
+              </Button>
+            ) : null}
+            <Button className="bg-primary text-primary-foreground hover:bg-primary/90 font-pixel text-xs px-6 pixel-btn glow-green" asChild>
+              <Link to="/brand/campaigns/new">
+                <Plus className="w-4 h-4 mr-2" />
+                NEW CAMPAIGN
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {/* Stats Grid */}

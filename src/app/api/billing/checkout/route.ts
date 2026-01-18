@@ -12,6 +12,7 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({
   lane: z.enum(["brand", "creator"]),
+  provider: z.enum(["STRIPE", "RAZORPAY"]).optional(),
 });
 
 function getOrigin(request: Request) {
@@ -37,7 +38,7 @@ async function createRazorpaySubscription(params: {
   lane: BillingLane;
   subjectType: "BRAND" | "CREATOR";
   subjectId: string;
-  market: "IN";
+  market: "US" | "IN";
   planKey: string;
   customerEmail: string;
 }) {
@@ -108,6 +109,15 @@ async function createRazorpaySubscription(params: {
   return { ok: true as const, checkoutUrl: shortUrl };
 }
 
+type BillingProvider = "STRIPE" | "RAZORPAY";
+type BillingProviderMode = "AUTO" | BillingProvider;
+
+function billingProviderMode(): BillingProviderMode {
+  const raw = (process.env.BILLING_PROVIDER_MODE ?? "").trim().toUpperCase();
+  if (raw === "STRIPE" || raw === "RAZORPAY") return raw;
+  return "AUTO";
+}
+
 export async function POST(request: Request) {
   if (!process.env.DATABASE_URL) {
     return Response.json(
@@ -123,6 +133,7 @@ export async function POST(request: Request) {
   }
 
   const lane = parsed.data.lane;
+  const requestedProvider = parsed.data.provider ?? null;
   const origin = getOrigin(request);
 
   const session = await getSessionUser(request);
@@ -147,7 +158,11 @@ export async function POST(request: Request) {
     const market = brandCountry === "IN" ? "IN" : marketFromRequest(request);
     const planKey = planKeyFor(lane, market);
 
-    if (market === "US") {
+    const mode = billingProviderMode();
+    const provider: BillingProvider =
+      requestedProvider ?? (mode === "AUTO" ? (market === "US" ? "STRIPE" : "RAZORPAY") : mode);
+
+    if (provider === "STRIPE") {
       const stripe = stripeClient();
       const priceId = stripePriceIdFor(lane);
       if (!stripe || !priceId) {
@@ -174,7 +189,7 @@ export async function POST(request: Request) {
       lane,
       subjectType: "BRAND",
       subjectId: brandId,
-      market: "IN",
+      market,
       planKey,
       customerEmail: email,
     });
@@ -189,7 +204,11 @@ export async function POST(request: Request) {
   const market = creatorCountry === "IN" ? "IN" : marketFromRequest(request);
   const planKey = planKeyFor(lane, market);
 
-  if (market === "US") {
+  const mode = billingProviderMode();
+  const provider: BillingProvider =
+    requestedProvider ?? (mode === "AUTO" ? (market === "US" ? "STRIPE" : "RAZORPAY") : mode);
+
+  if (provider === "STRIPE") {
     const stripe = stripeClient();
     const priceId = stripePriceIdFor(lane);
     if (!stripe || !priceId) {
@@ -216,7 +235,7 @@ export async function POST(request: Request) {
     lane,
     subjectType: "CREATOR",
     subjectId: creatorId,
-    market: "IN",
+    market,
     planKey,
     customerEmail: email,
   });

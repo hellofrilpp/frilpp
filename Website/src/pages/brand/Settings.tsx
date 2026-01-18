@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { 
   Building2,
   Bell,
@@ -18,6 +19,7 @@ import LocationPicker from "@/components/LocationPicker";
 import {
   ApiError,
   apiUrl,
+  getBillingStatus,
   getBrandAcceptanceSettings,
   getBrandInstagramHandle,
   getBrandNotifications,
@@ -81,6 +83,10 @@ const BrandSettings = () => {
     queryKey: ["social-accounts"],
     queryFn: getSocialAccounts,
   });
+  const { data: billingStatus } = useQuery({
+    queryKey: ["billing-status"],
+    queryFn: getBillingStatus,
+  });
 
   useEffect(() => {
     if (!profileData?.profile) return;
@@ -117,6 +123,8 @@ const BrandSettings = () => {
     if (!instagramData) return;
     setInstagramHandle(instagramData.instagramHandle ?? "");
   }, [instagramData]);
+
+  const subscribed = billingStatus?.brand?.subscribed ?? false;
 
   return (
     <BrandLayout>
@@ -437,29 +445,37 @@ const BrandSettings = () => {
           </div>
         </section>
 
-        {/* Billing */}
-        <section className="mb-8 border-4 border-border bg-card">
-          <div className="p-4 border-b-4 border-border flex items-center gap-3">
-            <CreditCard className="w-5 h-5 text-neon-yellow" />
-            <h2 className="font-pixel text-sm text-neon-yellow">[BILLING]</h2>
-          </div>
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <p className="font-pixel text-sm text-neon-green">GROWTH_PLAN</p>
-                <p className="text-xs font-mono text-muted-foreground">$29/month · Renews Jan 15, 2025</p>
-              </div>
-              <Button variant="outline" size="sm" className="border-2 border-border font-mono text-xs">
-                MANAGE
-              </Button>
-            </div>
-            <div className="p-3 bg-muted border-2 border-border">
-              <p className="text-xs font-mono">
-                <span className="text-neon-green">USAGE:</span> 45 matches // UNLIMITED
-              </p>
-            </div>
-          </div>
-        </section>
+	        {/* Billing */}
+	        <section className="mb-8 border-4 border-border bg-card">
+	          <div className="p-4 border-b-4 border-border flex items-center gap-3">
+	            <CreditCard className="w-5 h-5 text-neon-yellow" />
+	            <h2 className="font-pixel text-sm text-neon-yellow">[BILLING]</h2>
+	          </div>
+	          <div className="p-4">
+	            <div className="flex items-center justify-between mb-4">
+	              <div>
+	                <p className="font-pixel text-sm text-neon-green">GROWTH_PLAN</p>
+	                <p className="text-xs font-mono text-muted-foreground">
+	                  {subscribed ? "ACTIVE" : "NOT_SUBSCRIBED"}
+	                </p>
+	              </div>
+	              <Button
+	                asChild
+	                variant="outline"
+	                size="sm"
+	                className="border-2 border-border font-mono text-xs"
+	              >
+	                <Link to="/brand/billing">{subscribed ? "MANAGE" : "SUBSCRIBE"}</Link>
+	              </Button>
+	            </div>
+	            <div className="p-3 bg-muted border-2 border-border">
+	              <p className="text-xs font-mono">
+	                <span className="text-neon-green">STATUS:</span>{" "}
+	                {subscribed ? "UNLOCKED" : "LOCKED"}
+	              </p>
+	            </div>
+	          </div>
+	        </section>
 
         {/* Save Button */}
         <div className="flex justify-end">
