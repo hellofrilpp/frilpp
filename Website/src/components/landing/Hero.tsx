@@ -99,7 +99,7 @@ const Hero = () => {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.3 }}
               >
-                DMING.
+                DM CHAOS.
               </motion.span>
               <motion.span
                 className="text-neon-pink block"
@@ -115,7 +115,7 @@ const Hero = () => {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.5, delay: 0.5 }}
               >
-                MATCHING
+                COLLABS
               </motion.span>
               <motion.span
                 className="text-neon-yellow inline-block"

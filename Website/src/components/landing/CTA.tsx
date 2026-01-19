@@ -39,7 +39,7 @@ const CTA = () => {
           {/* Subheadline */}
           <p className="text-sm font-mono text-background/70 mb-12 max-w-xl mx-auto leading-relaxed">
             &gt; BUILT FOR LOCAL BUSINESSES + CREATORS (US + INDIA)<br />
-            &gt; START MATCHING TODAY<br />
+            &gt; START COLLABS TODAY<br />
             <span className="text-background">&gt; PRICING_LIVE: TRUE_</span>
           </p>
 
