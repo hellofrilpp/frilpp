@@ -68,7 +68,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     );
   }
 
-  const defaultRedirectUri = `${origin}/api/auth/social/${provider}/callback/`;
+  const defaultRedirectUri = `${origin}/api/auth/social/${provider}/callback`;
   const redirectUri =
     provider === "tiktok" && process.env.TIKTOK_REDIRECT_URL
       ? process.env.TIKTOK_REDIRECT_URL
