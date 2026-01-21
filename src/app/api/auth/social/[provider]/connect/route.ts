@@ -133,7 +133,8 @@ export async function GET(request: Request, context: { params: Promise<{ provide
       return buildTikTokOAuthUrl({
         redirectUri,
         state,
-        scopes: ["user.info.basic", "video.list"],
+        scopes: ["user.info.basic", "user.info.profile", "user.info.stats"],
+
       });
     }
     return buildYouTubeOAuthUrl({
