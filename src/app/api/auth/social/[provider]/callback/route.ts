@@ -76,6 +76,20 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     return Response.json({ ok: false, error: "Invalid callback" }, { status: 400 });
   }
 
+  const origin = process.env.NEXT_PUBLIC_APP_URL ?? url.origin;
+  const defaultRedirectUri = `${origin}/api/auth/social/${provider}/callback`;
+  const redirectUri =
+    provider === "tiktok" && process.env.TIKTOK_REDIRECT_URL
+      ? process.env.TIKTOK_REDIRECT_URL
+      : provider === "youtube" && process.env.YOUTUBE_REDIRECT_URL
+        ? process.env.YOUTUBE_REDIRECT_URL
+        : defaultRedirectUri;
+  const redirectOrigin = new URL(redirectUri).origin;
+  if (redirectOrigin !== url.origin) {
+    const canonicalUrl = new URL(url.pathname + url.search, redirectOrigin);
+    return Response.redirect(canonicalUrl.toString(), 302);
+  }
+
   const jar = await cookies();
   const stateCookie = jar.get("social_oauth_state")?.value;
   const providerCookie = jar.get("social_oauth_provider")?.value;
@@ -87,14 +101,6 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     return Response.json({ ok: false, error: "Invalid state" }, { status: 400 });
   }
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? url.origin;
-  const defaultRedirectUri = `${origin}/api/auth/social/${provider}/callback`;
-  const redirectUri =
-    provider === "tiktok" && process.env.TIKTOK_REDIRECT_URL
-      ? process.env.TIKTOK_REDIRECT_URL
-      : provider === "youtube" && process.env.YOUTUBE_REDIRECT_URL
-        ? process.env.YOUTUBE_REDIRECT_URL
-        : defaultRedirectUri;
 
   let providerUserId: string | null = null;
   let username: string | null = null;
