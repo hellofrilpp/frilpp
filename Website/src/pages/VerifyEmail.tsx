@@ -71,7 +71,7 @@ const VerifyEmail = () => {
             <div className="mx-auto mb-4 w-16 h-16 bg-neon-green/20 border-4 border-neon-green flex items-center justify-center">
               <Mail className="w-8 h-8 text-neon-green" />
             </div>
-            <CardTitle className="text-xl font-pixel text-neon-green">VERIFY EMAIL</CardTitle>
+            <CardTitle className="text-xl font-pixel text-neon-green/80">VERIFY EMAIL</CardTitle>
             <CardDescription className="font-mono text-xs">
               {provider ? `Connected ${provider.toUpperCase()}.` : "Social connected."} Verify your email to continue.
             </CardDescription>

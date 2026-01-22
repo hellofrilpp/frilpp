@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
+import { brands, creators, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
 import { getSessionUser, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sanitizeNextPath } from "@/lib/redirects";
 import { discoverInstagramAccount, exchangeMetaCode, fetchInstagramProfile } from "@/lib/meta";
@@ -49,6 +49,11 @@ async function createSession(userId: string) {
       maxAge: 60 * 60 * 24 * 365,
     });
   }
+}
+
+function buildPlaceholderEmail(providerId: string, providerUserId: string) {
+  const safeProvider = providerId.toLowerCase();
+  return `${safeProvider}+${providerUserId}@frilpp.local`;
 }
 
 export async function GET(request: Request, context: { params: Promise<{ provider: string }> }) {
@@ -218,6 +223,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     jar.delete("social_oauth_provider");
     jar.delete("social_oauth_next");
     jar.delete("social_oauth_role");
+    jar.delete("pending_social_id");
 
     return Response.redirect(new URL(nextPath, origin), 302);
   }
@@ -234,6 +240,58 @@ export async function GET(request: Request, context: { params: Promise<{ provide
         maxAge: 60 * 60 * 24 * 30,
       });
     }
+
+    jar.delete("social_oauth_state");
+    jar.delete("social_oauth_provider");
+    jar.delete("social_oauth_next");
+    jar.delete("social_oauth_role");
+
+    return Response.redirect(new URL(nextPath, origin), 302);
+  }
+
+  if (roleCookie === "creator") {
+    const now = new Date();
+    const placeholderEmail = buildPlaceholderEmail(providerId, providerUserId);
+    const userId = crypto.randomUUID();
+
+    await db.insert(users).values({
+      id: userId,
+      email: placeholderEmail,
+      name: username,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await db.insert(userSocialAccounts).values({
+      id: crypto.randomUUID(),
+      userId,
+      provider: providerId,
+      providerUserId,
+      username,
+      accessTokenEncrypted,
+      refreshTokenEncrypted,
+      expiresAt,
+      scopes,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await db.insert(creators).values({
+      id: userId,
+      username,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await createSession(userId);
+
+    jar.set("frilpp_lane", "creator", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
 
     jar.delete("social_oauth_state");
     jar.delete("social_oauth_provider");

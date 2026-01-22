@@ -54,7 +54,7 @@ const InfluencerAuth = () => {
               providers={["tiktok"]}
               primaryVariant="filled"
               role="creator"
-              nextPath="/influencer/onboarding"
+              nextPath="/influencer/discover"
             />
 
             <div className="mt-6 text-center">
