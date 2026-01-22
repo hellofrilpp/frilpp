@@ -114,7 +114,11 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     const creator = creatorCtx.creator;
     if (creator.lat === null || creator.lng === null) {
       return Response.json(
-        { ok: false, error: "Set your location to claim offers", code: "NEEDS_LOCATION" },
+        {
+          ok: false,
+          error: "Please add your location in Profile before claiming offers.",
+          code: "NEEDS_LOCATION",
+        },
         { status: 409 },
       );
     }
@@ -223,13 +227,17 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
       const brand = brandRows[0] ?? null;
       if (brand?.lat === null || brand?.lng === null || brand?.lat === undefined || brand?.lng === undefined) {
         return Response.json(
-          { ok: false, error: "Offer location not configured", code: "OFFER_LOCATION_MISSING" },
+          {
+            ok: false,
+            error: "This offer is missing a brand location. Please try again later.",
+            code: "OFFER_LOCATION_MISSING",
+          },
           { status: 400 },
         );
       }
       if (creator.lat === null || creator.lng === null) {
         return Response.json(
-          { ok: false, error: "Set your location to claim local offers", code: "NEEDS_LOCATION" },
+          { ok: false, error: "Please add your location in Profile before claiming offers.", code: "NEEDS_LOCATION" },
           { status: 409 },
         );
       }

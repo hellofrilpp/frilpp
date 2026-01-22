@@ -466,7 +466,7 @@ const CampaignCreator = () => {
       }
     } catch (err) {
       if (err instanceof ApiError && err.code === "NEEDS_LOCATION") {
-        toast.error("Set your brand location before creating campaigns.");
+        toast.error("Please add your brand location in Settings before creating campaigns.");
         window.location.href = "/brand/settings";
         return;
       }
@@ -573,7 +573,7 @@ const CampaignCreator = () => {
       .catch((err) => {
         toast.dismiss(toastId);
         if (err instanceof ApiError && err.code === "NEEDS_LOCATION") {
-          toast.error("Set your brand location before launching campaigns.");
+          toast.error("Please add your brand location in Settings before launching campaigns.");
           window.location.href = "/brand/settings";
           return;
         }

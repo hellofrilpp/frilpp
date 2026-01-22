@@ -152,7 +152,11 @@ export async function POST(request: Request) {
     const brand = brandRows[0] ?? null;
     if (brand?.lat === null || brand?.lat === undefined || brand?.lng === null || brand?.lng === undefined) {
       return Response.json(
-        { ok: false, error: "Set your brand location to continue", code: "NEEDS_LOCATION" },
+        {
+          ok: false,
+          error: "Please add your brand location in Settings before creating campaigns.",
+          code: "NEEDS_LOCATION",
+        },
         { status: 409 },
       );
     }

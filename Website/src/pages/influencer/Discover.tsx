@@ -113,14 +113,14 @@ const InfluencerDiscover = () => {
           });
         } else if (err instanceof ApiError && err.code === "NEEDS_LOCATION") {
           toast({
-            title: "SET LOCATION",
-            description: "Add your location to claim offers.",
+            title: "ADD YOUR LOCATION",
+            description: "Please add your location in Profile before claiming offers.",
           });
           window.location.href = "/influencer/profile";
         } else if (err instanceof ApiError && err.code === "NEEDS_ADDRESS") {
           toast({
-            title: "ADD ADDRESS",
-            description: "Add your delivery address to claim this offer.",
+            title: "ADD YOUR ADDRESS",
+            description: "Please add your delivery address in Profile before claiming this offer.",
           });
           window.location.href = "/influencer/profile";
         } else if (err instanceof ApiError && err.code === "NEEDS_SOCIAL_CONNECT") {
