@@ -476,18 +476,6 @@ export async function updateBrandAcceptanceSettings(payload: BrandAcceptanceSett
   });
 }
 
-export async function getBrandInstagramHandle() {
-  return apiFetch<{ ok: boolean; instagramHandle: string | null }>(
-    "/api/brand/settings/instagram",
-  );
-}
-
-export async function updateBrandInstagramHandle(instagramHandle: string) {
-  return apiFetch<{ ok: boolean }>("/api/brand/settings/instagram", {
-    method: "PATCH",
-    body: JSON.stringify({ instagramHandle }),
-  });
-}
 
 export type BrandProfile = {
   name: string;
@@ -679,26 +667,6 @@ export async function getCreatorDeliverables() {
   );
 }
 
-export type InstagramStatus = {
-  ok: boolean;
-  connected: boolean;
-  igUserId: string | null;
-  expiresAt: string | null;
-  accountType: string | null;
-  profileSyncedAt: string | null;
-  profileError: string | null;
-};
-
-export async function getInstagramStatus() {
-  return apiFetch<InstagramStatus>("/api/meta/instagram/status");
-}
-
-export async function syncInstagramProfile() {
-  return apiFetch<{ ok: boolean }>("/api/meta/instagram/sync", {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
-}
 
 export type CreatorDeal = {
   id: string;
@@ -716,7 +684,7 @@ export async function getCreatorDeals() {
 }
 
 export type SocialAccount = {
-  provider: "INSTAGRAM" | "TIKTOK";
+  provider: "TIKTOK" | "YOUTUBE";
   username: string | null;
   providerUserId: string;
 };

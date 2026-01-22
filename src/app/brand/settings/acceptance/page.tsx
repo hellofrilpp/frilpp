@@ -77,9 +77,6 @@ export default function AcceptancePolicyPage() {
             <Link href="/brand/settings/profile">
               <Button variant="outline">Profile</Button>
             </Link>
-            <Link href="/brand/settings/instagram">
-              <Button variant="secondary">Instagram</Button>
-            </Link>
             <Link href="/">
               <Button variant="outline">Home</Button>
             </Link>

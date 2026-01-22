@@ -17,7 +17,7 @@ export default function InfluencerAuthPage() {
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Get started</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Sign in with Instagram or TikTok. You can connect the other platform later in settings.
+              Sign in with TikTok to get started.
             </p>
           </div>
           <Link href="/">
@@ -31,11 +31,6 @@ export default function InfluencerAuthPage() {
             <CardDescription>Claim local deals in minutes.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            <a href="/api/auth/social/instagram/connect?next=%2Fonboarding&role=creator">
-              <Button className="w-full" variant="secondary">
-                Instagram
-              </Button>
-            </a>
             <a href="/api/auth/social/tiktok/connect?next=%2Fonboarding&role=creator">
               <Button className="w-full" variant="secondary">
                 TikTok

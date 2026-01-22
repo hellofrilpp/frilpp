@@ -53,7 +53,7 @@ export async function POST(request: Request) {
   const isBrandFlow = nextPath.startsWith("/brand/");
   if (!magicLinkEnabled() && !isBrandFlow) {
     return Response.json(
-      { ok: false, error: "Magic link login is disabled. Continue with Instagram or TikTok." },
+      { ok: false, error: "Magic link login is disabled. Continue with TikTok." },
       { status: 403 },
     );
   }

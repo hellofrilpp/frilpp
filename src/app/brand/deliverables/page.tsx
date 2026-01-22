@@ -125,7 +125,7 @@ export default function BrandDeliverablesPage() {
               Verification queue
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Automated verification runs via Meta OAuth; creators can submit a link for manual review.
+              Automated verification runs via connected social accounts; creators can submit a link for manual review.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -237,7 +237,7 @@ export default function BrandDeliverablesPage() {
                               placeholder={
                                 r.expectedType === "UGC_ONLY"
                                   ? "https://drive.google.com/..."
-                                  : "https://www.instagram.com/..."
+                                  : "https://www.tiktok.com/..."
                               }
                               value={permalinkByDeliverableId[r.deliverableId] ?? ""}
                               onChange={(e) =>

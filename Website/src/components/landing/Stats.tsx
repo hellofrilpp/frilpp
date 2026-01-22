@@ -10,7 +10,7 @@ const Stats = () => {
     {
       icon: Zap,
       title: "FAST SETUP",
-      body: "Sign up with Instagram or TikTok. Add email later in settings.",
+      body: "Sign up with TikTok. Add email later in settings.",
     },
     {
       icon: Target,

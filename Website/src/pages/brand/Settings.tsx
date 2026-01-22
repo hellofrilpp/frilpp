@@ -21,12 +21,10 @@ import {
   apiUrl,
   getBillingStatus,
   getBrandAcceptanceSettings,
-  getBrandInstagramHandle,
   getBrandNotifications,
   getBrandProfile,
   getSocialAccounts,
   updateBrandAcceptanceSettings,
-  updateBrandInstagramHandle,
   updateBrandNotifications,
   updateBrandProfile,
 } from "@/lib/api";
@@ -53,7 +51,6 @@ const BrandSettings = () => {
     lng: null as number | null,
     logoUrl: "",
   });
-  const [instagramHandle, setInstagramHandle] = useState("");
   const [acceptanceThreshold, setAcceptanceThreshold] = useState(2000);
   const [autoAccept, setAutoAccept] = useState(true);
   const [notifications, setNotifications] = useState({
@@ -74,10 +71,6 @@ const BrandSettings = () => {
   const { data: acceptanceData } = useQuery({
     queryKey: ["brand-acceptance"],
     queryFn: getBrandAcceptanceSettings,
-  });
-  const { data: instagramData } = useQuery({
-    queryKey: ["brand-instagram"],
-    queryFn: getBrandInstagramHandle,
   });
   const { data: socialData } = useQuery({
     queryKey: ["social-accounts"],
@@ -118,11 +111,6 @@ const BrandSettings = () => {
     setAcceptanceThreshold(acceptanceData.acceptance.threshold);
     setAutoAccept(acceptanceData.acceptance.aboveThresholdAutoAccept);
   }, [acceptanceData]);
-
-  useEffect(() => {
-    if (!instagramData) return;
-    setInstagramHandle(instagramData.instagramHandle ?? "");
-  }, [instagramData]);
 
   const subscribed = billingStatus?.brand?.subscribed ?? false;
   const billingEnabled = billingStatus?.billingEnabled ?? true;
@@ -308,14 +296,6 @@ const BrandSettings = () => {
                   className="mt-2 border-2 border-border font-mono"
                 />
               </div>
-              <div>
-                <Label className="font-mono text-xs">INSTAGRAM_HANDLE</Label>
-                <Input
-                  value={instagramHandle}
-                  onChange={(event) => setInstagramHandle(event.target.value)}
-                  className="mt-2 border-2 border-border font-mono"
-                />
-              </div>
             </div>
           </div>
         </section>
@@ -328,11 +308,11 @@ const BrandSettings = () => {
           </div>
           <div className="p-6 space-y-4">
             <div className="flex flex-col gap-3">
-              {(["INSTAGRAM", "TIKTOK"] as const).map((provider) => {
+              {(["TIKTOK"] as const).map((provider) => {
                 const connected = socialData?.accounts?.some(
                   (account) => account.provider === provider,
                 );
-                const label = provider === "INSTAGRAM" ? "Instagram" : "TikTok (US only)";
+                const label = "TikTok";
                 return (
                   <div key={provider} className="flex items-center justify-between border-2 border-border p-4">
                     <div>
@@ -359,7 +339,7 @@ const BrandSettings = () => {
               })}
             </div>
             <p className="text-xs font-mono text-muted-foreground">
-              Link both to let brands and creators verify your official channels.
+              Link your TikTok to verify your official channel.
             </p>
           </div>
         </section>
@@ -498,11 +478,9 @@ const BrandSettings = () => {
                   threshold: acceptanceThreshold,
                   aboveThresholdAutoAccept: autoAccept,
                 });
-                await updateBrandInstagramHandle(instagramHandle.trim());
                 await queryClient.invalidateQueries({ queryKey: ["brand-profile"] });
                 await queryClient.invalidateQueries({ queryKey: ["brand-notifications"] });
                 await queryClient.invalidateQueries({ queryKey: ["brand-acceptance"] });
-                await queryClient.invalidateQueries({ queryKey: ["brand-instagram"] });
                 toast({ title: "SAVED", description: "Settings updated." });
               } catch (err) {
                 const message = err instanceof ApiError ? err.message : "Failed to save settings";

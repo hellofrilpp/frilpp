@@ -83,7 +83,7 @@ export default function TermsPage() {
 
             <div className="text-sm font-semibold">Third-party services</div>
             <p className="text-muted-foreground">
-              Frilpp integrates with third-party services (for example, Instagram and TikTok).
+              Frilpp integrates with third-party services (for example, TikTok).
               Your use of those services is governed by their terms.
             </p>
 

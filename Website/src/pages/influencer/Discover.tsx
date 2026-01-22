@@ -111,16 +111,6 @@ const InfluencerDiscover = () => {
             title: "RECONNECT TIKTOK",
             description: "Your TikTok token expired. Reconnect to claim.",
           });
-        } else if (
-          err instanceof ApiError &&
-          (err.code === "NEEDS_INSTAGRAM_CONNECT" ||
-            err.code === "NEEDS_INSTAGRAM_RECONNECT" ||
-            err.code === "NEEDS_INSTAGRAM_SYNC")
-        ) {
-          toast({
-            title: "INSTAGRAM TEMPORARILY DISABLED",
-            description: "Instagram connect is unavailable right now. Try another offer.",
-          });
         } else if (err instanceof ApiError && err.code === "NEEDS_SOCIAL_CONNECT") {
           toast({
             title: "CONNECT SOCIAL",

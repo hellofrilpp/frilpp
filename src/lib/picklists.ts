@@ -33,8 +33,8 @@ export const CONTENT_TYPES = [
 ] as const;
 
 export const PLATFORMS_BY_COUNTRY = {
-  US: ["INSTAGRAM", "TIKTOK", "YOUTUBE", "OTHER"],
-  IN: ["INSTAGRAM", "YOUTUBE", "OTHER"],
+  US: ["TIKTOK", "YOUTUBE", "OTHER"],
+  IN: ["YOUTUBE", "OTHER"],
 } as const;
 
 export const REGION_OPTIONS = ["US", "IN", "US_IN"] as const;
@@ -44,28 +44,12 @@ export const ALL_PLATFORMS = Array.from(
 
 export const OFFER_PRESETS = [
   {
-    id: "IG_REEL_STORY",
-    label: "IG Reel + Story",
-    description: "Fast hype: one Reel + one Story tag.",
-    platforms: ["INSTAGRAM"],
-    contentTypes: ["REEL", "STORY"],
-    template: "REEL_PLUS_STORY",
-  },
-  {
     id: "TIKTOK_REVIEW",
     label: "TikTok Review",
     description: "Short review video on TikTok.",
     platforms: ["TIKTOK"],
     contentTypes: ["REVIEW_VIDEO"],
     template: "REEL",
-  },
-  {
-    id: "FEED_POST",
-    label: "IG Feed Post",
-    description: "Single feed post with caption code.",
-    platforms: ["INSTAGRAM"],
-    contentTypes: ["FEED_POST"],
-    template: "FEED",
   },
   {
     id: "UGC_ONLY",
@@ -102,7 +86,6 @@ export const LABELS: Record<string, string> = {
   STORY: "Story",
   FEED_POST: "Feed Post",
   REVIEW_VIDEO: "Review Video",
-  INSTAGRAM: "Instagram",
   TIKTOK: "TikTok",
   YOUTUBE: "YouTube",
   US: "United States",

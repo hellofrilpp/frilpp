@@ -33,15 +33,6 @@ export default function InfluencerSettingsPage() {
   const [socialAccounts, setSocialAccounts] = useState<
     Array<{ provider: string; username: string | null; providerUserId: string }>
   >([]);
-  const [igStatus, setIgStatus] = useState<{
-    connected: boolean;
-    igUserId: string | null;
-    expiresAt: string | null;
-    accountType: string | null;
-    profileSyncedAt: string | null;
-    profileError: string | null;
-  } | null>(null);
-  const [isSyncingIg, setIsSyncingIg] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteStatus, setDeleteStatus] = useState<"idle" | "deleting" | "done" | "error">("idle");
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
@@ -97,94 +88,6 @@ export default function InfluencerSettingsPage() {
     };
   }, []);
 
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const res = await fetch("/api/meta/instagram/status", { method: "GET" });
-        const data = (await res.json().catch(() => null)) as
-          | {
-              ok: true;
-              connected: boolean;
-              igUserId: string | null;
-              expiresAt: string | null;
-              accountType: string | null;
-              profileSyncedAt: string | null;
-              profileError: string | null;
-            }
-          | { ok: false };
-        if (!res.ok || !data || !("ok" in data) || data.ok !== true) return;
-        if (cancelled) return;
-        setIgStatus({
-          connected: data.connected,
-          igUserId: data.igUserId,
-          expiresAt: data.expiresAt ?? null,
-          accountType: data.accountType ?? null,
-          profileSyncedAt: data.profileSyncedAt ?? null,
-          profileError: data.profileError ?? null,
-        });
-      } catch {
-        // ignore
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function syncInstagramProfile() {
-    setIsSyncingIg(true);
-    setError(null);
-    try {
-      const res = await fetch("/api/meta/instagram/sync", { method: "POST" });
-      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
-      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
-        throw new Error(
-          data && "error" in data && typeof data.error === "string"
-            ? data.error
-            : "Instagram sync failed",
-        );
-      }
-
-      const [profileRes, statusRes] = await Promise.all([
-        fetch("/api/creator/profile", { method: "GET" }),
-        fetch("/api/meta/instagram/status", { method: "GET" }),
-      ]);
-      const profileData = (await profileRes.json().catch(() => null)) as
-        | { ok: true; creator: CreatorProfile }
-        | { ok: false; error?: string };
-      const statusData = (await statusRes.json().catch(() => null)) as
-        | {
-            ok: true;
-            connected: boolean;
-            igUserId: string | null;
-            expiresAt: string | null;
-            accountType: string | null;
-            profileSyncedAt: string | null;
-            profileError: string | null;
-          }
-        | { ok: false };
-
-      if (profileRes.ok && profileData && "ok" in profileData && profileData.ok === true) {
-        setProfile(profileData.creator);
-      }
-      if (statusRes.ok && statusData && "ok" in statusData && statusData.ok === true) {
-        setIgStatus({
-          connected: statusData.connected,
-          igUserId: statusData.igUserId,
-          expiresAt: statusData.expiresAt ?? null,
-          accountType: statusData.accountType ?? null,
-          profileSyncedAt: statusData.profileSyncedAt ?? null,
-          profileError: statusData.profileError ?? null,
-        });
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Instagram sync failed");
-    } finally {
-      setIsSyncingIg(false);
-    }
-  }
-
   async function save() {
     if (!profile) return;
     setStatus("saving");
@@ -216,7 +119,6 @@ export default function InfluencerSettingsPage() {
 
   const basicsReady = Boolean(profile?.country);
   const deliveryReady = Boolean(profile?.address1 && profile?.city && profile?.zip && profile?.country);
-  const igConnected = Boolean(igStatus?.connected);
   const locationReady = profile?.lat !== null && profile?.lat !== undefined && profile?.lng !== null && profile?.lng !== undefined;
 
   async function useMyLocation() {
@@ -362,58 +264,9 @@ export default function InfluencerSettingsPage() {
                 </div>
 
                 <div className="rounded-lg border bg-muted p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">Instagram connect</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Needed for automated Reel/Feed verification. Stories are best-effort.
-                      </div>
-                      {igStatus?.profileError ? (
-                        <div className="mt-2 text-xs text-danger">{igStatus.profileError}</div>
-                      ) : null}
-                      {igConnected ? (
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          {igStatus?.accountType ? `Account: ${igStatus.accountType}. ` : ""}
-                          {igStatus?.profileSyncedAt
-                            ? `Last sync: ${new Date(igStatus.profileSyncedAt).toLocaleString()}. `
-                            : ""}
-                          {igStatus?.expiresAt
-                            ? `Token expires: ${new Date(igStatus.expiresAt).toLocaleDateString()}.`
-                            : ""}
-                        </div>
-                      ) : null}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {igConnected ? (
-                        <Badge variant="success">
-                          Connected{igStatus?.igUserId ? ` (${igStatus.igUserId})` : ""}
-                        </Badge>
-                      ) : (
-                        <Badge variant="warning">Not connected</Badge>
-                      )}
-                      <a href="/api/meta/instagram/connect">
-                        <Button size="sm" variant="outline">
-                          Connect
-                        </Button>
-                      </a>
-                      {igConnected ? (
-                        <Button
-                          size="sm"
-                          variant="secondary"
-                          onClick={syncInstagramProfile}
-                          disabled={isSyncingIg}
-                        >
-                          {isSyncingIg ? "Syncing..." : "Sync now"}
-                        </Button>
-                      ) : null}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-lg border bg-muted p-4">
                   <div className="text-sm font-semibold">Connected accounts</div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    Connect Instagram or TikTok now, link the other later.
+                    Connect TikTok (and YouTube if needed).
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {socialAccounts.length ? (
@@ -428,11 +281,6 @@ export default function InfluencerSettingsPage() {
                     )}
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <a href="/api/auth/social/instagram/connect?next=%2Finfluencer%2Fsettings">
-                      <Button size="sm" variant="outline" type="button">
-                        Connect Instagram
-                      </Button>
-                    </a>
                     <a href="/api/auth/social/tiktok/connect?next=%2Finfluencer%2Fsettings">
                       <Button size="sm" variant="outline" type="button">
                         Connect TikTok
@@ -452,7 +300,6 @@ export default function InfluencerSettingsPage() {
                     <Input
                       id="username"
                       value={profile.username ?? ""}
-                      disabled={igConnected}
                       onChange={(e) => setProfile((p) => (p ? { ...p, username: e.target.value } : p))}
                     />
                   </div>
@@ -463,7 +310,6 @@ export default function InfluencerSettingsPage() {
                       type="number"
                       min={0}
                       value={profile.followersCount ?? 0}
-                      disabled={igConnected}
                       onChange={(e) =>
                         setProfile((p) =>
                           p ? { ...p, followersCount: Number(e.target.value) } : p,

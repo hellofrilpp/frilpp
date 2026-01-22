@@ -39,7 +39,6 @@ const steps = [
 ];
 
 const platformIcons: Record<string, string> = {
-  INSTAGRAM: "📸",
   TIKTOK: "🎵",
   YOUTUBE: "▶️",
   OTHER: "✨",

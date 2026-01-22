@@ -12,13 +12,13 @@ type ShareKit = {
     id: string;
     title: string;
     deliverableType: string;
-    platforms: Array<"INSTAGRAM" | "TIKTOK" | "YOUTUBE">;
+    platforms: Array<"TIKTOK" | "YOUTUBE">;
     fulfillmentType: "SHOPIFY" | "MANUAL" | null;
     manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY" | null;
     manualFulfillmentNotes: string | null;
     ctaUrl: string | null;
   };
-  brand: { name: string; instagramHandle: string | null; address: string | null; mapsUrl: string | null; website: string | null };
+  brand: { name: string; address: string | null; mapsUrl: string | null; website: string | null };
   deliverable: { status: string | null; dueAt: string } | null;
   shareUrl: string;
   caption: string;
@@ -95,7 +95,6 @@ export default function ShareKitClient(props: { matchId: string }) {
     }
   }
 
-  const canShareInstagram = kit?.offer.platforms.includes("INSTAGRAM") ?? true;
   const canShareTikTok = kit?.offer.platforms.includes("TIKTOK") ?? true;
   const canShareYouTube = kit?.offer.platforms.includes("YOUTUBE") ?? true;
 
@@ -236,11 +235,6 @@ export default function ShareKitClient(props: { matchId: string }) {
                   <div className="rounded-lg border bg-card p-4">
                     <div className="text-xs font-semibold text-muted-foreground">Post now</div>
                     <div className="mt-3 flex flex-wrap gap-2">
-                      <a href="https://www.instagram.com/" target="_blank" rel="noreferrer">
-                        <Button size="sm" variant="outline" type="button" disabled={!canShareInstagram}>
-                          Open Instagram
-                        </Button>
-                      </a>
                       <a href="https://www.tiktok.com/" target="_blank" rel="noreferrer">
                         <Button size="sm" variant="outline" type="button" disabled={!canShareTikTok}>
                           Open TikTok

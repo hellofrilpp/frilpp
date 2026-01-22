@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,6 @@ type MeUser = {
   email: string;
   tosAcceptedAt: string | null;
   privacyAcceptedAt: string | null;
-  igDataAccessAcceptedAt: string | null;
 };
 
 export default function AcceptClient() {
@@ -27,11 +26,9 @@ export default function AcceptClient() {
 
   const needsTerms = me ? !me.tosAcceptedAt : true;
   const needsPrivacy = me ? !me.privacyAcceptedAt : true;
-  const needsIg = useMemo(() => nextPath.startsWith("/api/meta/instagram/connect"), [nextPath]);
 
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
-  const [acceptIg, setAcceptIg] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -48,7 +45,6 @@ export default function AcceptClient() {
         setMe(user);
         setAcceptTerms(Boolean(user?.tosAcceptedAt));
         setAcceptPrivacy(Boolean(user?.privacyAcceptedAt));
-        setAcceptIg(Boolean(user?.igDataAccessAcceptedAt));
         setStatus("idle");
       } catch (err) {
         if (!cancelled) {
@@ -72,7 +68,6 @@ export default function AcceptClient() {
         body: JSON.stringify({
           acceptTerms,
           acceptPrivacy,
-          acceptIgDataAccess: needsIg ? acceptIg : undefined,
         }),
       });
       const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
@@ -121,7 +116,7 @@ export default function AcceptClient() {
             <CardDescription>
               {status === "loading"
                 ? "Loading…"
-                : "You must accept Terms and Privacy to use Frilpp. Instagram data access consent is required only when connecting Instagram."}
+                : "You must accept Terms and Privacy to use Frilpp."}
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
@@ -163,27 +158,9 @@ export default function AcceptClient() {
               </div>
             </label>
 
-            {needsIg ? (
-              <label className="flex items-start gap-3 rounded-lg border bg-card p-4">
-                <input
-                  type="checkbox"
-                  className="mt-1 h-4 w-4"
-                  checked={acceptIg}
-                  onChange={(e) => setAcceptIg(e.target.checked)}
-                />
-                <div className="min-w-0">
-                  <div className="text-sm font-semibold">Instagram data access consent</div>
-                  <div className="mt-1 text-xs text-muted-foreground">
-                    I consent to Frilpp accessing my Instagram professional account metadata
-                    (username, follower count, and recent media captions/permalinks) to verify required deliverables.
-                  </div>
-                </div>
-              </label>
-            ) : null}
-
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-xs text-muted-foreground">
-                {needsTerms || needsPrivacy || needsIg ? (
+                {needsTerms || needsPrivacy ? (
                   <>
                     Next: <span className="font-mono">{nextPath}</span>
                   </>
@@ -194,7 +171,7 @@ export default function AcceptClient() {
               <Button
                 variant="secondary"
                 onClick={submit}
-                disabled={status === "saving" || !acceptTerms || !acceptPrivacy || (needsIg && !acceptIg)}
+                disabled={status === "saving" || !acceptTerms || !acceptPrivacy}
               >
                 {status === "saving" ? "Saving..." : "Continue"}
               </Button>

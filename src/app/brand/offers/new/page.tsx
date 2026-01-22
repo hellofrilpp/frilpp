@@ -30,7 +30,7 @@ type OfferDraft = {
   manualFulfillmentNotes: string;
   locationRadiusKm: number | null;
   ctaUrl: string;
-  platforms: Array<"INSTAGRAM" | "TIKTOK" | "YOUTUBE">;
+  platforms: Array<"TIKTOK" | "YOUTUBE">;
 };
 
 type ShopifyProduct = {
@@ -122,7 +122,7 @@ export default function NewOfferPage() {
     manualFulfillmentNotes: "",
     locationRadiusKm: 25 * 1.609344,
     ctaUrl: "",
-    platforms: ["INSTAGRAM"],
+    platforms: ["TIKTOK"],
     ...templatePresets.REEL,
   }));
 
@@ -1058,7 +1058,7 @@ export default function NewOfferPage() {
                     <div>
                       <div className="text-xs font-semibold text-muted-foreground">Platforms</div>
                       <div className="mt-2 flex flex-wrap gap-2">
-                        {(["INSTAGRAM", "TIKTOK", "YOUTUBE"] as const).map((p) => {
+                        {(["TIKTOK", "YOUTUBE"] as const).map((p) => {
                           const active = draft.platforms.includes(p);
                           const allowed = p === "TIKTOK" ? draft.countriesAllowed.includes("US") : true;
                           return (

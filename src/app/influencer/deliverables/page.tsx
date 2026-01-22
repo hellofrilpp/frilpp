@@ -258,7 +258,7 @@ export default function CreatorDeliverablesPage() {
                                 placeholder={
                                   r.expectedType === "UGC_ONLY"
                                     ? "https://drive.google.com/..."
-                                    : "https://www.instagram.com/..."
+                                    : "https://www.tiktok.com/..."
                                 }
                                 value={draftByMatchId[r.match.id] ?? ""}
                                 onChange={(e) =>

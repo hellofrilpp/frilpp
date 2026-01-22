@@ -1,21 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { sanitizeNextPath } from "@/lib/redirects";
 
 export default function TikTokUnavailableClient() {
   const router = useRouter();
-  const search = useSearchParams();
-
-  const nextPath = sanitizeNextPath(search.get("next"), "/onboarding");
-  const role = search.get("role");
-  const instagramHref = `/api/auth/social/instagram/connect?next=${encodeURIComponent(nextPath)}${
-    role ? `&role=${encodeURIComponent(role)}` : ""
-  }`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -39,16 +31,10 @@ export default function TikTokUnavailableClient() {
           <CardHeader>
             <CardTitle>Try a different option</CardTitle>
             <CardDescription>
-              You can still continue with Instagram and connect TikTok later when it becomes
-              available.
+              TikTok login is currently US-only. Please try again from the US.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            <a href={instagramHref}>
-              <Button className="w-full" variant="secondary" type="button">
-                Continue with Instagram
-              </Button>
-            </a>
             <Button className="w-full" variant="outline" type="button" onClick={() => router.back()}>
               Go back
             </Button>

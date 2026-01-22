@@ -197,9 +197,6 @@ export default function BrandProfileSettingsPage() {
             <Link href="/brand/settings/acceptance">
               <Button variant="outline">Acceptance</Button>
             </Link>
-            <Link href="/brand/settings/instagram">
-              <Button variant="outline">Instagram</Button>
-            </Link>
             <Link href="/brand/offers">
               <Button variant="outline">Offers</Button>
             </Link>

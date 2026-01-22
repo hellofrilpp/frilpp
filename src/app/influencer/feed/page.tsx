@@ -188,9 +188,6 @@ export default function InfluencerFeedPage() {
           if (res.status === 402 && code === "PAYWALL") {
             throw new Error("Subscription required to claim offers. Go to Billing to subscribe.");
           }
-          if (code === "NEEDS_INSTAGRAM_SYNC" || code === "NEEDS_INSTAGRAM_RECONNECT") {
-            throw new Error(`${msg}. Go to Profile → Sync now / Reconnect.`);
-          }
           if (code === "NEEDS_LOCATION") {
             throw new Error(`${msg}. Go to Profile → set your location and try again.`);
           }
@@ -232,7 +229,7 @@ export default function InfluencerFeedPage() {
               Claim offers
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Swipe to claim. Posting offers require Instagram connect for automated verification.
+              Swipe to claim. Some posting offers require a connected social account for verification.
             </p>
           </div>
           <div className="flex gap-2">

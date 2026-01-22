@@ -258,7 +258,7 @@ const InfluencerDeals = () => {
               <Input
                 value={submitUrl}
                 onChange={(event) => setSubmitUrl(event.target.value)}
-                placeholder="https://instagram.com/reel/..."
+                placeholder="https://www.tiktok.com/..."
                 className="mt-2 border-2 border-border font-mono"
               />
             </div>

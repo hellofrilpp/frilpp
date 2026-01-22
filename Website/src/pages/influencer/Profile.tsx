@@ -6,8 +6,6 @@ import {
   AlertTriangle,
   Settings,
   Users,
-  Instagram,
-  ExternalLink
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import InfluencerLayout from "@/components/influencer/InfluencerLayout";
 import LocationPicker from "@/components/LocationPicker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, CreatorDeal, apiUrl, completeCreatorOnboarding, getCreatorDeals, getCreatorProfile, getInstagramStatus, getSocialAccounts, syncInstagramProfile } from "@/lib/api";
+import { ApiError, CreatorDeal, apiUrl, completeCreatorOnboarding, getCreatorDeals, getCreatorProfile, getSocialAccounts } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useToast } from "@/hooks/use-toast";
@@ -23,7 +21,6 @@ import { useToast } from "@/hooks/use-toast";
 const InfluencerProfile = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  const [isSyncing, setIsSyncing] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [profileForm, setProfileForm] = useState({
     fullName: "",
@@ -49,10 +46,6 @@ const InfluencerProfile = () => {
   const { data: socialData } = useQuery({
     queryKey: ["social-accounts"],
     queryFn: getSocialAccounts,
-  });
-  const { data: igStatus } = useQuery({
-    queryKey: ["instagram-status"],
-    queryFn: getInstagramStatus,
   });
   const { achievements, getTotalXP, level, activeStrikes, isLoading: achievementsLoading } = useAchievements();
 
@@ -126,36 +119,6 @@ const InfluencerProfile = () => {
             {handle} {"//"} {followers}
           </p>
           
-          <div className="inline-flex items-center gap-2 px-4 py-2 border-2 border-neon-green bg-neon-green/10">
-            <Instagram className="w-4 h-4 text-neon-green" />
-            <span className="font-mono text-xs text-neon-green">
-              {igStatus?.connected ? "CONNECTED" : "NOT CONNECTED"}
-            </span>
-            <ExternalLink className="w-3 h-3 text-neon-green" />
-          </div>
-          {igStatus?.connected && (
-            <Button
-              variant="outline"
-              size="sm"
-              className="mt-3 border-2 border-neon-green font-mono text-xs"
-              disabled={isSyncing}
-              onClick={async () => {
-                try {
-                  setIsSyncing(true);
-                  await syncInstagramProfile();
-                  await queryClient.invalidateQueries({ queryKey: ["instagram-status"] });
-                  toast({ title: "SYNCED", description: "Instagram profile refreshed." });
-                } catch (err) {
-                  const message = err instanceof ApiError ? err.message : "Failed to sync profile";
-                  toast({ title: "SYNC FAILED", description: message });
-                } finally {
-                  setIsSyncing(false);
-                }
-              }}
-            >
-              {isSyncing ? "SYNCING..." : "SYNC NOW"}
-            </Button>
-          )}
         </div>
 
         {/* Level Progress */}
@@ -196,11 +159,11 @@ const InfluencerProfile = () => {
             <span className="font-pixel text-xs text-neon-purple">[LINKED_SOCIALS]</span>
           </div>
           <div className="space-y-3">
-            {(["INSTAGRAM", "TIKTOK"] as const).map((provider) => {
+            {(["TIKTOK"] as const).map((provider) => {
               const connected = socialData?.accounts?.some(
                 (account) => account.provider === provider,
               );
-              const label = provider === "INSTAGRAM" ? "Instagram" : "TikTok (US only)";
+              const label = "TikTok";
               return (
                 <div key={provider} className="flex items-center justify-between border-2 border-border p-3">
                   <div>
