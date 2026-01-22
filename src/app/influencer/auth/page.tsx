@@ -31,7 +31,7 @@ export default function InfluencerAuthPage() {
             <CardDescription>Claim local deals in minutes.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
-            <a href="/api/auth/social/tiktok/connect?next=%2Finfluencer%2Ffeed&role=creator">
+            <a href="/api/auth/social/tiktok/connect?next=%2Finfluencer%2Fdiscover&role=creator">
               <Button className="w-full" variant="secondary">
                 TikTok
               </Button>
