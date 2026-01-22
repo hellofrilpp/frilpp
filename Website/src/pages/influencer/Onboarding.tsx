@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Instagram, ChevronRight, Check, Gamepad2, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Gamepad2, Sparkles } from "lucide-react";
 import FrilppLogo from "@/components/FrilppLogo";
 import { ApiError, apiUrl, getPicklists, updateCreatorProfile } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -67,14 +67,14 @@ const InfluencerOnboarding = () => {
             FRI<span className="text-neon-pink">L</span>PP
           </span>
         </Link>
-        <span className="text-xs font-pixel text-muted-foreground">STEP {step}/3</span>
+        <span className="text-xs font-pixel text-muted-foreground">STEP {step}/2</span>
       </header>
 
       {/* Progress Bar */}
       <div className="h-2 bg-muted">
-        <div 
+        <div
           className="h-full bg-neon-green transition-all duration-300"
-          style={{ width: `${(step / 3) * 100}%` }}
+          style={{ width: `${(step / 2) * 100}%` }}
         />
       </div>
 
@@ -103,64 +103,11 @@ const InfluencerOnboarding = () => {
             </div>
           )}
 
-          {/* Step 2: Connect Instagram */}
+          {/* Step 2: Select Categories */}
           {step === 2 && (
             <div className="animate-fade-in">
               <div className="text-center mb-8">
-                <span className="text-xs font-pixel text-neon-pink">[STEP 2]</span>
-                <h1 className="text-xl font-pixel mt-2 text-foreground">CONNECT INSTA</h1>
-                <p className="font-mono text-sm text-muted-foreground mt-2">
-                  &gt; Verify account & show brands your stats
-                </p>
-              </div>
-
-              <div className="border-4 border-border p-5 mb-6 bg-card">
-                <div className="flex items-center gap-4 mb-4">
-                  <div className="w-12 h-12 border-2 border-neon-pink bg-neon-pink/10 flex items-center justify-center">
-                    <Instagram className="w-6 h-6 text-neon-pink" />
-                  </div>
-                  <div>
-                    <p className="font-pixel text-xs text-foreground">INSTAGRAM</p>
-                    <p className="font-mono text-xs text-muted-foreground">Connect main account</p>
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  className="w-full bg-neon-pink text-background font-pixel text-xs pixel-btn glow-pink"
-                >
-                  <a href={apiUrl("/api/meta/instagram/connect")}>
-                    <Instagram className="w-4 h-4 mr-2" />
-                    CONNECT
-                  </a>
-                </Button>
-              </div>
-
-              <div className="space-y-2 font-mono text-xs text-muted-foreground mb-8 p-4 border-2 border-dashed border-border">
-                <p className="text-neon-green">✓ READ_ONLY: public profile</p>
-                <p className="text-neon-green">✓ NEVER_POST: on your behalf</p>
-                <p className="text-neon-green">✓ DISCONNECT: anytime</p>
-              </div>
-
-              <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep(1)} className="flex-1 border-2 border-border font-mono text-xs">
-                  BACK
-                </Button>
-                <Button 
-                  onClick={() => setStep(3)}
-                  className="flex-1 bg-primary text-primary-foreground font-pixel text-xs pixel-btn"
-                >
-                  NEXT
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Select Categories */}
-          {step === 3 && (
-            <div className="animate-fade-in">
-              <div className="text-center mb-8">
-                <span className="text-xs font-pixel text-neon-purple">[STEP 3]</span>
+                <span className="text-xs font-pixel text-neon-purple">[STEP 2]</span>
                 <h1 className="text-xl font-pixel mt-2 text-foreground">SELECT NICHE</h1>
                 <p className="font-mono text-sm text-muted-foreground mt-2">
                   &gt; Pick categories you create content about
@@ -223,7 +170,7 @@ const InfluencerOnboarding = () => {
               )}
 
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setStep(2)} className="flex-1 border-2 border-border font-mono text-xs">
+                <Button variant="outline" onClick={() => setStep(1)} className="flex-1 border-2 border-border font-mono text-xs">
                   BACK
                 </Button>
                 <Button 
