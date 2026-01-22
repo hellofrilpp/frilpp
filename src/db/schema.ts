@@ -266,6 +266,7 @@ export const billingSubscriptionStatusEnum = pgEnum("billing_subscription_status
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   email: text("email"),
+  passwordHash: text("password_hash"),
   name: text("name"),
   activeBrandId: text("active_brand_id"),
   tosAcceptedAt: timestamp("tos_accepted_at", { withTimezone: true }),

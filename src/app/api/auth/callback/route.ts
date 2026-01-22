@@ -174,6 +174,24 @@ export async function GET(request: Request) {
   jar.delete("pending_tos");
   jar.delete("pending_privacy");
 
+  if (nextPath.startsWith("/brand/")) {
+    jar.set("frilpp_lane", "brand", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  } else if (nextPath.startsWith("/influencer/")) {
+    jar.set("frilpp_lane", "creator", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+  }
+
   if (!tosAcceptedAt || !privacyAcceptedAt) {
     nextPath = `/legal/accept?next=${encodeURIComponent(nextPath)}`;
   }

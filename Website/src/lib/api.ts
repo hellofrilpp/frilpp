@@ -113,6 +113,28 @@ export async function requestMagicLink(email: string, next?: string) {
   });
 }
 
+export async function continuePasswordAuth(email: string) {
+  return apiFetch<{ ok: boolean; allowPassword: boolean }>("/api/auth/password/continue", {
+    method: "POST",
+    body: JSON.stringify({ email, lane: "brand" }),
+  });
+}
+
+export async function loginWithPassword(email: string, password: string, next?: string) {
+  return apiFetch<{ ok: boolean; nextPath: string }>("/api/auth/password/login", {
+    method: "POST",
+    body: JSON.stringify({ email, password, next, lane: "brand" }),
+  });
+}
+
+export async function setPassword(password: string) {
+  return apiFetch<{ ok: boolean }>("/api/auth/password/set", {
+    method: "POST",
+    body: JSON.stringify({ password }),
+  });
+}
+
+
 export type AuthUser = {
   id: string;
   email: string | null;
@@ -134,6 +156,16 @@ export async function logout() {
     method: "POST",
     body: JSON.stringify({}),
   });
+}
+
+export async function createBrandWorkspace(payload: { name: string; countriesDefault: Array<"US" | "IN"> }) {
+  return apiFetch<{ ok: boolean; brand: { id: string; name: string } }>(
+    "/api/onboarding/brand",
+    {
+      method: "POST",
+      body: JSON.stringify(payload),
+    },
+  );
 }
 
 export type BillingProvider = "STRIPE" | "RAZORPAY";
