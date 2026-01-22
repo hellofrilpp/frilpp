@@ -31,8 +31,6 @@ type MapboxResponse = {
   features?: MapboxFeature[];
 };
 
-const rawToken = (import.meta as ImportMeta & { env?: Record<string, string> }).env?.VITE_MAPBOX_TOKEN;
-const MAPBOX_TOKEN = rawToken ? rawToken.trim() : "";
 
 const normalizeCountry = (code: string | undefined | null) => {
   const upper = (code || "").toUpperCase();
@@ -70,23 +68,22 @@ const toSuggestion = (feature: MapboxFeature): LocationSuggestion => {
 };
 
 export async function searchAddress(query: string): Promise<LocationSuggestion[]> {
-  if (!MAPBOX_TOKEN || !query.trim()) return [];
+  if (!query.trim()) return [];
   const encoded = encodeURIComponent(query.trim());
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encoded}.json?autocomplete=true&types=address,place,locality,postcode,region,country&limit=5&access_token=${MAPBOX_TOKEN}`;
-  const res = await fetch(url);
+  const res = await fetch(`/api/location/search?q=${encoded}`);
   if (!res.ok) return [];
-  const json = (await res.json().catch(() => null)) as MapboxResponse | null;
-  const features = json?.features ?? [];
+  const json = (await res.json().catch(() => null)) as { ok?: boolean; data?: MapboxResponse | null } | null;
+  if (!json?.ok) return [];
+  const features = json?.data?.features ?? [];
   return features.map(toSuggestion);
 }
 
 export async function reverseGeocode(lat: number, lng: number): Promise<LocationSuggestion | null> {
-  if (!MAPBOX_TOKEN) return null;
-  const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${lng},${lat}.json?types=address,place,locality,postcode,region,country&limit=1&access_token=${MAPBOX_TOKEN}`;
-  const res = await fetch(url);
+  const res = await fetch(`/api/location/reverse?lat=${encodeURIComponent(lat)}&lng=${encodeURIComponent(lng)}`);
   if (!res.ok) return null;
-  const json = (await res.json().catch(() => null)) as MapboxResponse | null;
-  const feature = json?.features?.[0];
+  const json = (await res.json().catch(() => null)) as { ok?: boolean; data?: MapboxResponse | null } | null;
+  if (!json?.ok) return null;
+  const feature = json?.data?.features?.[0];
   if (!feature) return null;
   return toSuggestion(feature);
 }
