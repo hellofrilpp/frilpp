@@ -174,6 +174,28 @@ export const matches = pgTable(
   }),
 );
 
+export const creatorOfferRejections = pgTable(
+  "creator_offer_rejections",
+  {
+    id: text("id").primaryKey(),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    offerId: text("offer_id")
+      .notNull()
+      .references(() => offers.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    creatorOfferUnique: uniqueIndex("creator_offer_rejections_creator_offer_unique").on(
+      t.creatorId,
+      t.offerId,
+    ),
+  }),
+);
+
 export const deliverables = pgTable("deliverables", {
   id: text("id").primaryKey(),
   matchId: text("match_id")

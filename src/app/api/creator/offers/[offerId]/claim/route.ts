@@ -2,7 +2,7 @@ import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { getShopifyStoreForBrand } from "@/db/shopify";
-import { brands, creatorMeta, deliverables, matches, offers, offerProducts, matchDiscounts, userSocialAccounts } from "@/db/schema";
+import { brands, creatorMeta, creatorOfferRejections, deliverables, matches, offers, offerProducts, matchDiscounts, userSocialAccounts } from "@/db/schema";
 import { requireCreatorContext } from "@/lib/auth";
 import { generateCampaignCode } from "@/lib/campaign-code";
 import { decryptSecret } from "@/lib/crypto";
@@ -112,6 +112,18 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     }
 
     const creator = creatorCtx.creator;
+
+    const rejectedRows = await db
+      .select({ id: creatorOfferRejections.id })
+      .from(creatorOfferRejections)
+      .where(and(eq(creatorOfferRejections.offerId, offerId), eq(creatorOfferRejections.creatorId, creator.id)))
+      .limit(1);
+    if (rejectedRows[0]) {
+      return Response.json(
+        { ok: false, error: "Offer rejected", code: "OFFER_REJECTED" },
+        { status: 409 },
+      );
+    }
 
     try {
       const creatorPerMinute = Number(process.env.RATE_LIMIT_CLAIMS_PER_CREATOR_PER_MINUTE ?? "12");

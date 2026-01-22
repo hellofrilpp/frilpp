@@ -1,6 +1,6 @@
 import { and, desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, offers } from "@/db/schema";
+import { brands, creatorOfferRejections, matches, offers } from "@/db/schema";
 import { requireCreatorContext } from "@/lib/auth";
 import { getActiveStrikeCount, getCreatorFollowerRange, getStrikeLimit } from "@/lib/eligibility";
 
@@ -84,13 +84,27 @@ export async function GET(request: Request) {
       }
     }
 
-    const whereClause =
+    const baseWhere =
       country === "US" || country === "IN"
         ? and(
             eq(offers.status, "PUBLISHED"),
             sql`${offers.countriesAllowed} @> ARRAY[${country}]::text[]`,
           )
         : eq(offers.status, "PUBLISHED");
+
+    const whereClause = and(
+      baseWhere,
+      sql`NOT EXISTS (
+        SELECT 1 FROM ${matches}
+        WHERE ${matches.offerId} = ${offers.id}
+          AND ${matches.creatorId} = ${creator.id}
+      )`,
+      sql`NOT EXISTS (
+        SELECT 1 FROM ${creatorOfferRejections}
+        WHERE ${creatorOfferRejections.offerId} = ${offers.id}
+          AND ${creatorOfferRejections.creatorId} = ${creator.id}
+      )`,
+    );
 
     const rows = await db
       .select({

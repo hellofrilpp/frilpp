@@ -211,6 +211,13 @@ export default function InfluencerFeedPage() {
 
   function onSkip() {
     if (!current) return;
+    fetch(`/api/creator/offers/${encodeURIComponent(current.id)}/reject`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({}),
+    }).catch(() => {
+      // ignore rejection tracking failures
+    });
     setSkippedIds((ids) => [...ids, current.id]);
     setIndex((i) => i + 1);
   }

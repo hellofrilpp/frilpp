@@ -13,7 +13,7 @@ import { useConfetti } from "@/hooks/useConfetti";
 import { useAchievements } from "@/hooks/useAchievements";
 import { AchievementToast } from "@/components/AchievementToast";
 import { useToast } from "@/hooks/use-toast";
-import { ApiError, apiUrl, claimOffer, getCreatorFeed } from "@/lib/api";
+import { ApiError, apiUrl, claimOffer, getCreatorFeed, rejectOffer } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
 type OfferCard = {
@@ -123,6 +123,11 @@ const InfluencerDiscover = () => {
         }
       }
     } else {
+      try {
+        await rejectOffer(currentOffer.id);
+      } catch {
+        // ignore rejection tracking failures
+      }
       feedback.swipeLeft();
     }
 

@@ -580,6 +580,13 @@ export async function claimOffer(offerId: string) {
   });
 }
 
+export async function rejectOffer(offerId: string) {
+  return apiFetch<{ ok: boolean }>(`/api/creator/offers/${offerId}/reject`, {
+    method: "POST",
+    body: JSON.stringify({}),
+  });
+}
+
 export type CreatorProfile = {
   id: string;
   username: string | null;
