@@ -118,8 +118,19 @@ const InfluencerProfile = () => {
           <p className="font-mono text-xs text-muted-foreground mb-4">
             {handle} {"//"} {followers}
           </p>
-          
         </div>
+
+        {profile && !profile.email ? (
+          <div className="border-2 border-neon-yellow bg-neon-yellow/10 p-4 mb-8">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-neon-yellow" />
+              <span className="font-pixel text-xs text-neon-yellow">EMAIL_REQUIRED</span>
+            </div>
+            <p className="mt-2 font-mono text-xs text-muted-foreground">
+              Add an email below to enable billing, receipts, and account recovery.
+            </p>
+          </div>
+        ) : null}
 
         {/* Level Progress */}
         <div className="border-4 border-neon-yellow bg-neon-yellow/10 p-5 mb-8">

@@ -209,6 +209,12 @@ export default function InfluencerSettingsPage() {
           </div>
         ) : null}
 
+        {profile && !profile.email ? (
+          <div className="mt-6 rounded-lg border border-border bg-muted p-4 text-sm text-muted-foreground">
+            Add an email to enable billing, receipts, and account recovery.
+          </div>
+        ) : null}
+
         <Card className="mt-8">
           <CardHeader>
               <CardTitle>Profile</CardTitle>

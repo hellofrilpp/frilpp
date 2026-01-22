@@ -13,6 +13,7 @@ export default function CreatorBillingPage() {
   const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
   const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "error">("idle");
   const [message, setMessage] = useState<string | null>(null);
+  const [emailRequired, setEmailRequired] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -37,6 +38,7 @@ export default function CreatorBillingPage() {
   async function subscribe() {
     setCheckoutStatus("loading");
     setMessage(null);
+    setEmailRequired(false);
     try {
       const res = await fetch("/api/billing/checkout", {
         method: "POST",
@@ -45,7 +47,13 @@ export default function CreatorBillingPage() {
       });
       const data = (await res.json().catch(() => null)) as
         | { ok: true; checkoutUrl: string }
-        | { ok: false; error?: string };
+        | { ok: false; error?: string; code?: string };
+      if (res.status === 409 && data && "ok" in data && data.ok === false && data.code === "EMAIL_REQUIRED") {
+        setCheckoutStatus("idle");
+        setEmailRequired(true);
+        setMessage("Add your email in settings to start billing.");
+        return;
+      }
       if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
         throw new Error(
           data && "error" in data && typeof data.error === "string"
@@ -87,7 +95,17 @@ export default function CreatorBillingPage() {
 
         {message ? (
           <div className="mt-6 rounded-lg border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
-            {message}
+            {emailRequired ? (
+              <span>
+                {message}{" "}
+                <Link className="underline" href="/influencer/settings">
+                  Update email
+                </Link>
+                .
+              </span>
+            ) : (
+              message
+            )}
           </div>
         ) : null}
 
@@ -116,4 +134,3 @@ export default function CreatorBillingPage() {
     </div>
   );
 }
-
