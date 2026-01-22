@@ -41,10 +41,15 @@ const steps = [
 const platformIcons: Record<string, string> = {
   TIKTOK: "🎵",
   YOUTUBE: "▶️",
+  INSTAGRAM: "📸",
   OTHER: "✨",
 };
 
-const allowedCreatorPlatformIds = new Set(["TIKTOK", "YOUTUBE"]);
+const allowedCreatorPlatformIds = new Set(["TIKTOK"]);
+const comingSoonPlatforms = [
+  { id: "YOUTUBE", label: "YouTube" },
+  { id: "INSTAGRAM", label: "Instagram" },
+];
 
 const contentTypeXp: Record<string, number> = {
   REEL: 50,
@@ -966,25 +971,38 @@ const CampaignCreator = () => {
                       </div>
                     </div>
                   )}
-                  <div className="space-y-2">
-                    <Label className="font-mono text-sm">WHERE_CREATORS_POST</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {availablePlatforms.map((platform) => (
-                        <button
-                          key={platform.id}
-                          onClick={() => toggleArrayField('platforms', platform.id)}
-                          className={`p-4 border-2 text-center transition-all pixel-btn ${
-                            formData.platforms.includes(platform.id)
-                              ? 'border-neon-pink bg-neon-pink/20' 
-                              : 'border-border hover:border-neon-pink'
-                          }`}
-                        >
-                          <span className="text-2xl mb-2 block">{platformIcons[platform.id] ?? "✨"}</span>
-                          <span className="font-mono text-xs">{platform.label}</span>
-                        </button>
-                      ))}
-                    </div>
+                <div className="space-y-2">
+                  <Label className="font-mono text-sm">WHERE_CREATORS_POST</Label>
+                  <div className="grid grid-cols-2 gap-3">
+                      {[...availablePlatforms, ...comingSoonPlatforms.filter((p) => !availablePlatforms.find((a) => a.id === p.id))].map((platform) => {
+                        const enabled = platform.id === "TIKTOK";
+                        const isActive = formData.platforms.includes(platform.id);
+                        return (
+                          <button
+                            key={platform.id}
+                            type="button"
+                            disabled={!enabled}
+                            onClick={enabled ? () => toggleArrayField('platforms', platform.id) : undefined}
+                            className={`p-4 border-2 text-center transition-all pixel-btn ${
+                              enabled
+                                ? isActive
+                                  ? 'border-neon-pink bg-neon-pink/20'
+                                  : 'border-border hover:border-neon-pink'
+                                : 'border-border bg-muted/40 text-muted-foreground opacity-60 cursor-not-allowed'
+                            }`}
+                          >
+                            <span className="text-2xl mb-2 block">{platformIcons[platform.id] ?? "✨"}</span>
+                            <span className="font-mono text-xs">{platform.label}</span>
+                            {!enabled ? (
+                              <span className="mt-1 block font-mono text-[10px] text-muted-foreground">
+                                COMING SOON
+                              </span>
+                            ) : null}
+                          </button>
+                        );
+                      })}
                   </div>
+                </div>
 
                   <div className="space-y-2">
                     <Label className="font-mono text-sm">CONTENT_TYPES (select multiple)</Label>
