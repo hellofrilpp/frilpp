@@ -126,6 +126,7 @@ const InfluencerDiscover = () => {
             title: "CONNECT SOCIAL",
             description: "Connect a social account to claim this offer.",
           });
+          window.location.href = apiUrl("/api/auth/social/tiktok/connect?next=/influencer/discover");
         } else {
           const message = err instanceof ApiError ? err.message : "Unable to claim offer";
           toast({ title: "CLAIM FAILED", description: message });

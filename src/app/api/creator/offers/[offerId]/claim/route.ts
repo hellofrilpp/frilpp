@@ -65,6 +65,10 @@ function getMetaProfileStaleDays() {
   return Number.isFinite(days) && days > 0 ? Math.floor(days) : 7;
 }
 
+function isInstagramEnabled() {
+  return process.env.INSTAGRAM_ENABLED === "true";
+}
+
 export async function POST(request: Request, context: { params: Promise<{ offerId: string }> }) {
   if (!process.env.DATABASE_URL) {
     return Response.json(
@@ -252,8 +256,12 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
       const platforms = Array.isArray(metadata?.platforms)
         ? metadata!.platforms!.map((p) => String(p).toUpperCase())
         : [];
-      const allowInstagram = platforms.length === 0 || platforms.includes("INSTAGRAM");
-      const allowTikTok = platforms.length === 0 || platforms.includes("TIKTOK");
+      const instagramEnabled = isInstagramEnabled();
+      const allowInstagram = instagramEnabled && (platforms.length === 0 || platforms.includes("INSTAGRAM"));
+      const allowTikTok =
+        platforms.length === 0 ||
+        platforms.includes("TIKTOK") ||
+        (!instagramEnabled && platforms.includes("INSTAGRAM"));
 
       let igReady = false;
       let igError: { code: string; message: string; data?: Record<string, unknown> } | null = null;
