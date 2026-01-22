@@ -40,7 +40,6 @@ const BrandSetup = () => {
     lng: null as number | null,
   });
   const [brandName, setBrandName] = useState("");
-  const [countriesDefault, setCountriesDefault] = useState<Array<"US" | "IN">>(["US"]);
   const [password, setPasswordValue] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [hasBrand, setHasBrand] = useState(false);
@@ -115,7 +114,8 @@ const BrandSetup = () => {
     setSaving(true);
     try {
       if (!hasBrand) {
-        await createBrandWorkspace({ name: brandName.trim(), countriesDefault });
+        const defaultCountry: "US" | "IN" = profile.country === "IN" ? "IN" : "US";
+        await createBrandWorkspace({ name: brandName.trim(), countriesDefault: [defaultCountry] });
       }
 
       await updateBrandProfile({
@@ -223,57 +223,12 @@ const BrandSetup = () => {
                     placeholder="Awesome Brand Inc."
                   />
                 </div>
-                <div>
-                  <Label className="font-mono text-xs">DEFAULT COUNTRIES</Label>
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {(["US", "IN"] as const).map((cc) => {
-                      const active = countriesDefault.includes(cc);
-                      return (
-                        <Button
-                          key={cc}
-                          size="sm"
-                          variant={active ? "default" : "outline"}
-                          onClick={() =>
-                            setCountriesDefault((prev) =>
-                              active ? prev.filter((c) => c !== cc) : [...prev, cc],
-                            )
-                          }
-                        >
-                          {cc === "US" ? "United States" : "India"}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
               </div>
             ) : null}
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label className="font-mono text-xs">LOCATION</Label>
-                <Input
-                  value={profile.location}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, location: event.target.value }))}
-                  className="mt-2 border-2 border-border font-mono"
-                />
-              </div>
-              <div>
-                <Label className="font-mono text-xs">COUNTRY</Label>
-                <Input
-                  value={profile.country}
-                  onChange={(event) =>
-                    setProfile((prev) => ({
-                      ...prev,
-                      country: event.target.value === "IN" ? "IN" : "US",
-                    }))
-                  }
-                  className="mt-2 border-2 border-border font-mono"
-                />
-              </div>
-            </div>
-
             <LocationPicker
-              label="AUTO_FILL_ADDRESS"
+              label="Address"
+              showUseMyLocation={false}
               onSelect={(location) =>
                 setProfile((prev) => ({
                   ...prev,

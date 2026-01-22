@@ -194,18 +194,11 @@ const BrandSettings = () => {
                   className="mt-2 border-2 border-border font-mono"
                 />
               </div>
-              <div>
-                <Label className="font-mono text-xs">LOCATION</Label>
-                <Input
-                  value={profile.location}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, location: event.target.value }))}
-                  className="mt-2 border-2 border-border font-mono"
-                />
-              </div>
             </div>
 
             <LocationPicker
-              label="AUTO_FILL_ADDRESS"
+              label="Address"
+              showUseMyLocation={false}
               onSelect={(location) =>
                 setProfile((prev) => ({
                   ...prev,
@@ -264,25 +257,6 @@ const BrandSettings = () => {
                   onChange={(event) => setProfile((prev) => ({ ...prev, zip: event.target.value }))}
                   className="mt-2 border-2 border-border font-mono"
                 />
-              </div>
-            </div>
-
-            <div>
-              <Label className="font-mono text-xs">COUNTRY</Label>
-              <div className="mt-2 flex gap-2">
-                {(["US", "IN"] as const).map((option) => (
-                  <button
-                    key={option}
-                    onClick={() => setProfile((prev) => ({ ...prev, country: option }))}
-                    className={`px-3 py-2 border-2 text-xs font-mono transition-all pixel-btn ${
-                      profile.country === option
-                        ? "border-neon-green bg-neon-green/20 text-neon-green"
-                        : "border-border hover:border-neon-green"
-                    }`}
-                  >
-                    {option === "US" ? "UNITED STATES" : "INDIA"}
-                  </button>
-                ))}
               </div>
             </div>
 

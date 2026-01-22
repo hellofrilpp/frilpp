@@ -8,9 +8,10 @@ import { LocationSuggestion, reverseGeocode, searchAddress } from "@/lib/locatio
 type LocationPickerProps = {
   label?: string;
   onSelect: (location: LocationSuggestion) => void;
+  showUseMyLocation?: boolean;
 };
 
-const LocationPicker = ({ label = "LOCATION_SEARCH", onSelect }: LocationPickerProps) => {
+const LocationPicker = ({ label = "Address", onSelect, showUseMyLocation = true }: LocationPickerProps) => {
   const { toast } = useToast();
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<LocationSuggestion[]>([]);
@@ -66,15 +67,17 @@ const LocationPicker = ({ label = "LOCATION_SEARCH", onSelect }: LocationPickerP
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <Label className="font-mono text-xs">{label}</Label>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={handleUseLocation}
-          className="border-2 border-border font-mono text-xs"
-        >
-          USE_MY_LOCATION
-        </Button>
+        {showUseMyLocation ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={handleUseLocation}
+            className="border-2 border-border font-mono text-xs"
+          >
+            USE_MY_LOCATION
+          </Button>
+        ) : null}
       </div>
       <Input
         value={query}
