@@ -449,7 +449,20 @@ const CampaignCreator = () => {
         setDraftOfferId(res.offerId);
         toast.success("Draft saved");
       } else {
-        await updateBrandOffer(draftOfferId, basePayload);
+        try {
+          await updateBrandOffer(draftOfferId, basePayload);
+        } catch (err) {
+          if (err instanceof ApiError && err.status === 404) {
+            const toastId = toast.loading("Recreating draft...");
+            setDraftOfferId(null);
+            const res = await createBrandOffer(basePayload);
+            toast.dismiss(toastId);
+            setDraftOfferId(res.offerId);
+            toast.success("Draft recreated");
+          } else {
+            throw err;
+          }
+        }
       }
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Draft save failed";
@@ -525,12 +538,24 @@ const CampaignCreator = () => {
       metadata,
     };
 
-    const publish =
-      draftOfferId
-        ? updateBrandOffer(draftOfferId, publishPayload)
-        : createBrandOffer(publishPayload);
+    const publish = async () => {
+      if (!draftOfferId) {
+        await createBrandOffer(publishPayload);
+        return;
+      }
+      try {
+        await updateBrandOffer(draftOfferId, publishPayload);
+      } catch (err) {
+        if (err instanceof ApiError && err.status === 404) {
+          setDraftOfferId(null);
+          await createBrandOffer(publishPayload);
+          return;
+        }
+        throw err;
+      }
+    };
 
-    publish
+    publish()
       .then(() => {
         toast.dismiss(toastId);
         toast.success("🎮 Campaign launched! Let the matching begin!", {
