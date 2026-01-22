@@ -100,16 +100,31 @@ const InfluencerDiscover = () => {
         feedback.swipeRight();
         fireMatch();
       } catch (err) {
-        if (err instanceof ApiError && err.code === "NEEDS_INSTAGRAM_CONNECT") {
+        if (err instanceof ApiError && err.code === "NEEDS_TIKTOK_CONNECT") {
           toast({
-            title: "CONNECT INSTAGRAM",
-            description: "Link your Instagram to claim this offer.",
+            title: "CONNECT TIKTOK",
+            description: "Link your TikTok to claim this offer.",
           });
-          window.location.href = apiUrl("/api/meta/instagram/connect");
-        } else if (err instanceof ApiError && err.code === "NEEDS_INSTAGRAM_SYNC") {
+          window.location.href = apiUrl("/api/auth/social/tiktok/connect?next=/influencer/discover");
+        } else if (err instanceof ApiError && err.code === "NEEDS_TIKTOK_RECONNECT") {
           toast({
-            title: "SYNC REQUIRED",
-            description: "Sync your Instagram profile before claiming.",
+            title: "RECONNECT TIKTOK",
+            description: "Your TikTok token expired. Reconnect to claim.",
+          });
+        } else if (
+          err instanceof ApiError &&
+          (err.code === "NEEDS_INSTAGRAM_CONNECT" ||
+            err.code === "NEEDS_INSTAGRAM_RECONNECT" ||
+            err.code === "NEEDS_INSTAGRAM_SYNC")
+        ) {
+          toast({
+            title: "INSTAGRAM TEMPORARILY DISABLED",
+            description: "Instagram connect is unavailable right now. Try another offer.",
+          });
+        } else if (err instanceof ApiError && err.code === "NEEDS_SOCIAL_CONNECT") {
+          toast({
+            title: "CONNECT SOCIAL",
+            description: "Connect a social account to claim this offer.",
           });
         } else {
           const message = err instanceof ApiError ? err.message : "Unable to claim offer";

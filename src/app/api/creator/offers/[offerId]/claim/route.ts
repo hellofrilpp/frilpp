@@ -253,7 +253,7 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
         ? metadata!.platforms!.map((p) => String(p).toUpperCase())
         : [];
       const allowInstagram = platforms.length === 0 || platforms.includes("INSTAGRAM");
-      const allowTikTok = platforms.includes("TIKTOK");
+      const allowTikTok = platforms.length === 0 || platforms.includes("TIKTOK");
 
       let igReady = false;
       let igError: { code: string; message: string; data?: Record<string, unknown> } | null = null;
