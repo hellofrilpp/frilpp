@@ -92,6 +92,13 @@
       "when": 1768039256126,
       "tag": "0019_prod_catchup",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1769067148196,
+      "tag": "0020_users_email_nullable",
+      "breakpoints": true
     }
   ]
 }

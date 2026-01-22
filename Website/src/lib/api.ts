@@ -115,7 +115,7 @@ export async function requestMagicLink(email: string, next?: string) {
 
 export type AuthUser = {
   id: string;
-  email: string;
+  email: string | null;
   name: string | null;
   activeBrandId: string | null;
   tosAcceptedAt: string | null;

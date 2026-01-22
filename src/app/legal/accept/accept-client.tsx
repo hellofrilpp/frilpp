@@ -10,7 +10,7 @@ import { sanitizeNextPath } from "@/lib/redirects";
 
 type MeUser = {
   id: string;
-  email: string;
+  email: string | null;
   tosAcceptedAt: string | null;
   privacyAcceptedAt: string | null;
 };
@@ -96,7 +96,7 @@ export default function AcceptClient() {
               Accept terms to continue
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              {me ? `Signed in as ${me.email}.` : "Sign in to accept legal terms."}
+              {me ? (me.email ? `Signed in as ${me.email}.` : "Signed in.") : "Sign in to accept legal terms."}
             </p>
           </div>
           <Link href="/">

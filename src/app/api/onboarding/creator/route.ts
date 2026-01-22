@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { db } from "@/db";
-import { creatorMeta, creators, userSocialAccounts } from "@/db/schema";
+import { creatorMeta, creators, userSocialAccounts, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { and, eq } from "drizzle-orm";
 import { CREATOR_CATEGORIES } from "@/lib/picklists";
@@ -65,7 +65,7 @@ export async function POST(request: Request) {
   const existing = await db.select({ id: creators.id }).from(creators).where(eq(creators.id, userId)).limit(1);
   const now = new Date();
 
-  const resolvedEmail = parsed.data.email ?? userEmail;
+  const resolvedEmail = parsed.data.email ?? userEmail ?? null;
 
   if (existing[0]) {
     await db
@@ -94,6 +94,10 @@ export async function POST(request: Request) {
       createdAt: now,
       updatedAt: now,
     });
+  }
+
+  if (parsed.data.email !== undefined) {
+    await db.update(users).set({ email: parsed.data.email, updatedAt: now }).where(eq(users.id, userId));
   }
 
   const metaRows = await db

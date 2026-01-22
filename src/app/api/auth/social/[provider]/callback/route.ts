@@ -51,11 +51,6 @@ async function createSession(userId: string) {
   }
 }
 
-function buildPlaceholderEmail(providerId: string, providerUserId: string) {
-  const safeProvider = providerId.toLowerCase();
-  return `${safeProvider}+${providerUserId}@frilpp.local`;
-}
-
 export async function GET(request: Request, context: { params: Promise<{ provider: string }> }) {
   if (!process.env.DATABASE_URL) {
     return Response.json(
@@ -251,12 +246,11 @@ export async function GET(request: Request, context: { params: Promise<{ provide
 
   if (roleCookie === "creator") {
     const now = new Date();
-    const placeholderEmail = buildPlaceholderEmail(providerId, providerUserId);
     const userId = crypto.randomUUID();
 
     await db.insert(users).values({
       id: userId,
-      email: placeholderEmail,
+      email: null,
       name: username,
       createdAt: now,
       updatedAt: now,
@@ -297,6 +291,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     jar.delete("social_oauth_provider");
     jar.delete("social_oauth_next");
     jar.delete("social_oauth_role");
+    jar.delete("pending_social_id");
 
     return Response.redirect(new URL(nextPath, origin), 302);
   }

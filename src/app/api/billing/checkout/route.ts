@@ -142,6 +142,12 @@ export async function POST(request: Request) {
   }
 
   const email = session.user.email;
+  if (!email) {
+    return Response.json(
+      { ok: false, error: "Email required to start billing.", code: "EMAIL_REQUIRED" },
+      { status: 409 },
+    );
+  }
 
   if (lane === "brand") {
     const ctx = await requireBrandContext(request);

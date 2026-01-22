@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { creators } from "@/db/schema";
+import { creators, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { CREATOR_CATEGORIES } from "@/lib/picklists";
 
@@ -110,12 +110,14 @@ export async function PATCH(request: Request) {
   const userId = sessionOrResponse.user.id;
   const existing = await db.select({ id: creators.id }).from(creators).where(eq(creators.id, userId)).limit(1);
 
+  const now = new Date();
+
   if (existing[0]) {
     await db
       .update(creators)
       .set({
         ...parsed.data,
-        updatedAt: new Date(),
+        updatedAt: now,
       })
       .where(eq(creators.id, userId));
   } else {
@@ -135,9 +137,13 @@ export async function PATCH(request: Request) {
       city: parsed.data.city ?? null,
       province: parsed.data.province ?? null,
       zip: parsed.data.zip ?? null,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: now,
+      updatedAt: now,
     });
+  }
+
+  if (parsed.data.email !== undefined) {
+    await db.update(users).set({ email: parsed.data.email, updatedAt: now }).where(eq(users.id, userId));
   }
 
   const updatedRows = await db.select().from(creators).where(eq(creators.id, userId)).limit(1);

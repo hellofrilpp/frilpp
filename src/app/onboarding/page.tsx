@@ -11,7 +11,7 @@ import { sanitizeNextPath } from "@/lib/redirects";
 
 type Me = {
   id: string;
-  email: string;
+  email: string | null;
   name: string | null;
   activeBrandId: string | null;
   tosAcceptedAt: string | null;
