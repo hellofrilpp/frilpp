@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { offerProducts, offers } from "@/db/schema";
+import { brands, offerProducts, offers } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -16,6 +16,19 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
   const ctx = await requireBrandContext(request);
   if (ctx instanceof Response) return ctx;
   const { offerId } = await context.params;
+
+  const brandRows = await db
+    .select({ lat: brands.lat, lng: brands.lng })
+    .from(brands)
+    .where(eq(brands.id, ctx.brandId))
+    .limit(1);
+  const brand = brandRows[0] ?? null;
+  if (brand?.lat === null || brand?.lat === undefined || brand?.lng === null || brand?.lng === undefined) {
+    return Response.json(
+      { ok: false, error: "Set your brand location to continue", code: "NEEDS_LOCATION" },
+      { status: 409 },
+    );
+  }
 
   const offerRows = await db
     .select()

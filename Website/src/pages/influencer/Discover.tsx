@@ -111,6 +111,18 @@ const InfluencerDiscover = () => {
             title: "RECONNECT TIKTOK",
             description: "Your TikTok token expired. Reconnect to claim.",
           });
+        } else if (err instanceof ApiError && err.code === "NEEDS_LOCATION") {
+          toast({
+            title: "SET LOCATION",
+            description: "Add your location to claim offers.",
+          });
+          window.location.href = "/influencer/profile";
+        } else if (err instanceof ApiError && err.code === "NEEDS_ADDRESS") {
+          toast({
+            title: "ADD ADDRESS",
+            description: "Add your delivery address to claim this offer.",
+          });
+          window.location.href = "/influencer/profile";
         } else if (err instanceof ApiError && err.code === "NEEDS_SOCIAL_CONNECT") {
           toast({
             title: "CONNECT SOCIAL",

@@ -144,6 +144,19 @@ export async function POST(request: Request) {
 
     log("debug", "brand offer create authed", { errorId, ms: Date.now() - t0 });
 
+    const brandRows = await db
+      .select({ lat: brands.lat, lng: brands.lng })
+      .from(brands)
+      .where(eq(brands.id, ctx.brandId))
+      .limit(1);
+    const brand = brandRows[0] ?? null;
+    if (brand?.lat === null || brand?.lat === undefined || brand?.lng === null || brand?.lng === undefined) {
+      return Response.json(
+        { ok: false, error: "Set your brand location to continue", code: "NEEDS_LOCATION" },
+        { status: 409 },
+      );
+    }
+
     if (desiredStatus === "PUBLISHED") {
       phase = "billing";
       const subscribed = await hasActiveSubscription({

@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { deliverables, manualShipments, matches, offerProducts, offers, shopifyOrders } from "@/db/schema";
+import { brands, deliverables, manualShipments, matches, offerProducts, offers, shopifyOrders } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 import { hasActiveSubscription } from "@/lib/billing";
 import { templateToDeliverableType, type OfferTemplateId } from "@/lib/offer-template";
@@ -110,6 +110,19 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
   const patch = parsed.data;
   if (!Object.keys(patch).length) {
     return Response.json({ ok: false, error: "No changes" }, { status: 400 });
+  }
+
+  const brandRows = await db
+    .select({ lat: brands.lat, lng: brands.lng })
+    .from(brands)
+    .where(eq(brands.id, ctx.brandId))
+    .limit(1);
+  const brand = brandRows[0] ?? null;
+  if (brand?.lat === null || brand?.lat === undefined || brand?.lng === null || brand?.lng === undefined) {
+    return Response.json(
+      { ok: false, error: "Set your brand location to continue", code: "NEEDS_LOCATION" },
+      { status: 409 },
+    );
   }
 
   const existingRows = await db

@@ -112,6 +112,12 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     }
 
     const creator = creatorCtx.creator;
+    if (creator.lat === null || creator.lng === null) {
+      return Response.json(
+        { ok: false, error: "Set your location to claim offers", code: "NEEDS_LOCATION" },
+        { status: 409 },
+      );
+    }
 
     const rejectedRows = await db
       .select({ id: creatorOfferRejections.id })

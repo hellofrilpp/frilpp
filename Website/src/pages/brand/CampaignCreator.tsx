@@ -465,6 +465,11 @@ const CampaignCreator = () => {
         }
       }
     } catch (err) {
+      if (err instanceof ApiError && err.code === "NEEDS_LOCATION") {
+        toast.error("Set your brand location before creating campaigns.");
+        window.location.href = "/brand/settings";
+        return;
+      }
       const message = err instanceof ApiError ? err.message : "Draft save failed";
       toast.error(message);
       if (err instanceof ApiError && err.status === 401) {
@@ -567,6 +572,11 @@ const CampaignCreator = () => {
       })
       .catch((err) => {
         toast.dismiss(toastId);
+        if (err instanceof ApiError && err.code === "NEEDS_LOCATION") {
+          toast.error("Set your brand location before launching campaigns.");
+          window.location.href = "/brand/settings";
+          return;
+        }
         const errorId =
           err instanceof ApiError && err.data && typeof err.data.errorId === "string"
             ? err.data.errorId
