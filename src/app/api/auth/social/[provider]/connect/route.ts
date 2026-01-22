@@ -76,6 +76,12 @@ export async function GET(request: Request, context: { params: Promise<{ provide
         ? process.env.YOUTUBE_REDIRECT_URL
         : defaultRedirectUri;
 
+  const redirectOrigin = new URL(redirectUri).origin;
+  if (redirectOrigin !== url.origin) {
+    const canonicalUrl = new URL(url.pathname + url.search, redirectOrigin);
+    return Response.redirect(canonicalUrl.toString(), 302);
+  }
+
   const state = crypto.randomUUID();
   const jar = await cookies();
   jar.set("social_oauth_state", state, {
