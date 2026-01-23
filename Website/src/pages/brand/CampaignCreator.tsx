@@ -452,6 +452,7 @@ const CampaignCreator = () => {
 
   const buildOfferTemplate = () => {
     const types = formData.contentTypes;
+    if (types.includes("REVIEW_VIDEO")) return "REEL";
     if (types.includes("REEL") && types.includes("STORY")) return "REEL_PLUS_STORY";
     if (types.includes("REEL")) return "REEL";
     if (types.includes("FEED_POST")) return "FEED";

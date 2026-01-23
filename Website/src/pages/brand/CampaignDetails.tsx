@@ -37,6 +37,38 @@ const BrandCampaignDetails = () => {
   }, [error]);
 
   const offer = data?.offer;
+  const metadata = (offer?.metadata ?? {}) as Record<string, unknown>;
+
+  const presetLabel = useMemo(() => {
+    if (!metadata.presetId || typeof metadata.presetId !== "string") return null;
+    const map: Record<string, string> = {
+      TIKTOK_REVIEW: "TikTok Review",
+      UGC_ONLY: "UGC Only",
+    };
+    return map[metadata.presetId] ?? metadata.presetId;
+  }, [metadata.presetId]);
+
+  const listFromMeta = (key: string) => {
+    const raw = metadata[key];
+    return Array.isArray(raw) ? raw.filter((item): item is string => typeof item === "string") : [];
+  };
+
+  const platforms = listFromMeta("platforms");
+  const contentTypes = listFromMeta("contentTypes");
+  const niches = listFromMeta("niches");
+  const hashtags = typeof metadata.hashtags === "string" ? metadata.hashtags : null;
+  const guidelines = typeof metadata.guidelines === "string" ? metadata.guidelines : null;
+  const fulfillmentType = typeof metadata.fulfillmentType === "string" ? metadata.fulfillmentType : null;
+  const manualMethod =
+    typeof metadata.manualFulfillmentMethod === "string" ? metadata.manualFulfillmentMethod : null;
+  const manualNotes =
+    typeof metadata.manualFulfillmentNotes === "string" ? metadata.manualFulfillmentNotes : null;
+  const locationRadiusKm =
+    typeof metadata.locationRadiusKm === "number" && Number.isFinite(metadata.locationRadiusKm)
+      ? metadata.locationRadiusKm
+      : null;
+  const locationRadiusMiles = locationRadiusKm ? Math.round((locationRadiusKm / 1.609344) * 10) / 10 : null;
+  const ctaUrl = typeof metadata.ctaUrl === "string" ? metadata.ctaUrl : null;
 
   const statusLabel = useMemo(() => {
     if (!offer) return "";
@@ -200,6 +232,9 @@ const BrandCampaignDetails = () => {
             <div className="grid md:grid-cols-2 gap-4 font-mono text-xs text-muted-foreground">
               <div className="space-y-2">
                 <div>
+                  <span className="text-foreground">Preset:</span> {presetLabel ?? "—"}
+                </div>
+                <div>
                   <span className="text-foreground">Template:</span> {offer?.template ?? "—"}
                 </div>
                 <div>
@@ -231,6 +266,58 @@ const BrandCampaignDetails = () => {
             </div>
           )}
         </div>
+
+        {offer ? (
+          <div className="border-4 border-border bg-card p-6 space-y-4">
+            <div className="text-sm font-pixel text-neon-green">CONTENT DETAILS</div>
+            <div className="grid md:grid-cols-2 gap-4 font-mono text-xs text-muted-foreground">
+              <div className="space-y-2">
+                <div>
+                  <span className="text-foreground">Platforms:</span>{" "}
+                  {platforms.length ? platforms.join(", ") : "—"}
+                </div>
+                <div>
+                  <span className="text-foreground">Content types:</span>{" "}
+                  {contentTypes.length ? contentTypes.join(", ") : "—"}
+                </div>
+                <div>
+                  <span className="text-foreground">Niches:</span>{" "}
+                  {niches.length ? niches.join(", ") : "—"}
+                </div>
+                <div>
+                  <span className="text-foreground">Hashtags:</span>{" "}
+                  {hashtags?.trim() ? hashtags : "—"}
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div>
+                  <span className="text-foreground">Guidelines:</span>{" "}
+                  {guidelines?.trim() ? guidelines : "—"}
+                </div>
+                <div>
+                  <span className="text-foreground">Fulfillment:</span>{" "}
+                  {fulfillmentType ? fulfillmentType : "—"}
+                </div>
+                <div>
+                  <span className="text-foreground">Manual method:</span>{" "}
+                  {manualMethod ?? "—"}
+                </div>
+                <div>
+                  <span className="text-foreground">Manual notes:</span>{" "}
+                  {manualNotes?.trim() ? manualNotes : "—"}
+                </div>
+                <div>
+                  <span className="text-foreground">Radius:</span>{" "}
+                  {locationRadiusMiles ? `${locationRadiusMiles} mi` : "Global"}
+                </div>
+                <div>
+                  <span className="text-foreground">CTA URL:</span>{" "}
+                  {ctaUrl?.trim() ? ctaUrl : "—"}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent className="border-4 border-border bg-card">
