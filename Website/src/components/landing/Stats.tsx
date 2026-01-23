@@ -8,7 +8,7 @@ const Stats = () => {
     {
       icon: Zap,
       title: "FAST SETUP",
-      body: "Sign up with social login. Add email later in settings.",
+      body: "Sign up with TikTok. Add email later in settings.",
     },
     {
       icon: Target,

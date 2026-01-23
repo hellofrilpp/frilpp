@@ -9,7 +9,7 @@ import {
 const faqs = [
   {
     question: "How does the barter system work?",
-    answer: "Businesses post an offer (usually product-for-content). Creators apply, then get accepted automatically by rules or manually by the business. After fulfillment, creators share from Frilpp so the post can be verified and tracked.",
+    answer: "Businesses post an offer (usually product-for-content). Creators apply, then get accepted automatically by rules or manually by the business. After fulfillment, creators share to TikTok from Frilpp so the post can be verified and tracked.",
   },
   {
     question: "What happens if an influencer doesn't post?",
@@ -17,7 +17,7 @@ const faqs = [
   },
   {
     question: "How are influencers verified?",
-    answer: "Creators connect via social OAuth so brands can trust account ownership. We also use basic signals to reduce spam and low-quality accounts.",
+    answer: "Creators connect via TikTok OAuth so brands can trust account ownership. We also use basic signals to reduce spam and low-quality accounts.",
   },
   {
     question: "Can I choose specific influencers?",

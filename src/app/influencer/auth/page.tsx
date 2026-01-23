@@ -17,7 +17,7 @@ export default function InfluencerAuthPage() {
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Get started</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Sign in to get started.
+              Sign in with TikTok to get started.
             </p>
           </div>
           <Link href="/">
@@ -27,13 +27,13 @@ export default function InfluencerAuthPage() {
 
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Continue</CardTitle>
+            <CardTitle>Continue with</CardTitle>
             <CardDescription>Claim local deals in minutes.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <a href="/api/auth/social/tiktok/connect?next=%2Finfluencer%2Fdiscover&role=creator">
               <Button className="w-full" variant="secondary">
-                Continue
+                TikTok
               </Button>
             </a>
           </CardContent>

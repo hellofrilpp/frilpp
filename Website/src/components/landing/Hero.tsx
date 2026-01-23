@@ -131,7 +131,7 @@ const Hero = () => {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, delay: 0.6 }}
             >
-              &gt; Local businesses find nearby creators — without DM chaos
+              &gt; Local businesses find nearby IG/TikTok creators — without DM chaos
               <br />
               &gt; Post an offer, set a local radius, and track clicks + redemptions.
               <br />
@@ -181,7 +181,7 @@ const Hero = () => {
               transition={{ duration: 0.5, delay: 0.9 }}
             >
               {[
-                { value: `SOCIAL`, label: "SIGNUP", color: "text-neon-green" },
+                { value: `IG/TikTok`, label: "SIGNUP", color: "text-neon-green" },
                 { value: `${radiusExample}${unit}`, label: "LOCAL_RADIUS", color: "text-neon-pink" },
                 { value: "CLICKS+REDEEM", label: "ROI", color: "text-neon-yellow" },
               ].map((stat, i) => (

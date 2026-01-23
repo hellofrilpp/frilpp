@@ -24,7 +24,7 @@ export default function LoginClient() {
               Sign in
             </h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Continue with social login. You’ll add an email after signing in.
+              Continue with TikTok. You’ll add an email after social login.
             </p>
           </div>
           <Link href="/">
@@ -34,7 +34,7 @@ export default function LoginClient() {
 
         <Card className="mt-8">
           <CardHeader>
-            <CardTitle>Continue</CardTitle>
+            <CardTitle>Continue with</CardTitle>
             <CardDescription>
               Choose how you want to sign in. You can link the other platform later in settings.
             </CardDescription>
@@ -43,7 +43,7 @@ export default function LoginClient() {
             <div className="grid gap-2">
               <a href={`/api/auth/social/tiktok/connect?next=${encodeURIComponent(nextPath)}`}>
                 <Button className="w-full" variant="secondary" type="button">
-                  Continue
+                  TikTok
                 </Button>
               </a>
             </div>

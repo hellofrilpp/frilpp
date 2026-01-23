@@ -32,7 +32,7 @@ const perks = [
   {
     icon: Clock,
     title: "EASY PROOF",
-    description: "Share from the app for verified posting + tracking.",
+    description: "Share to IG/TikTok from the app for verified posting + tracking.",
     color: "neon-purple",
   },
 ];
@@ -142,7 +142,7 @@ const ForInfluencers = () => {
             <p className="font-mono text-sm text-muted-foreground mb-10 leading-relaxed max-w-lg">
               &gt; No more cold emails or awkward pitches<br />
               &gt; Claim nearby offers and build your creator status<br />
-              <span className="text-neon-pink">&gt; SHARE_FROM_APP: TRUE</span>
+              <span className="text-neon-pink">&gt; SHARE_TO_IG_TIKTOK: TRUE</span>
             </p>
 
             {/* Perks Grid */}

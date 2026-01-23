@@ -16,7 +16,7 @@ const Pricing = () => {
       icon: Zap,
       color: "neon-green",
       features: [
-        "Social onboarding",
+        "TikTok onboarding",
         "Local radius + auto-accept threshold",
         "Pickup / local delivery / shipping",
         "Clicks + redemptions ROI",
@@ -34,7 +34,7 @@ const Pricing = () => {
       icon: Rocket,
       color: "neon-pink",
       features: [
-        "Social signup (email optional)",
+        "TikTok-only signup (email optional)",
         "Local deals feed",
         "One-tap claim + share-kit",
         "Achievements + streaks",

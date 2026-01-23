@@ -20,7 +20,7 @@ const steps = [
     number: "03",
     icon: Camera,
     title: "CREATE WIN",
-    description: "Creators share from the app so brands can verify + track ROI.",
+    description: "Creators share to IG/TikTok from the app so brands can verify + track ROI.",
     color: "neon-yellow",
   },
 ];

@@ -32,7 +32,7 @@ const VerifyEmail = () => {
     } catch (err) {
       let message = err instanceof ApiError ? err.message : "Verification failed";
       if (err instanceof ApiError && err.code === "SOCIAL_REQUIRED") {
-        message = "Connect a social account first, then verify email.";
+        message = "Connect TikTok first, then verify email.";
       }
       if (err instanceof ApiError && err.code === "SOCIAL_EXPIRED") {
         message = "Social connection expired. Please reconnect and try again.";
