@@ -14,7 +14,6 @@ type GeoapifyFeature = {
     city?: string;
     state?: string;
     postcode?: string;
-    country_code?: string;
     lat?: number;
     lon?: number;
   };
@@ -31,7 +30,6 @@ type LocationSuggestion = {
   city: string;
   province: string;
   zip: string;
-  country: "US" | "IN" | null;
   lat: number;
   lng: number;
 };
@@ -39,13 +37,6 @@ type LocationSuggestion = {
 function resolveToken() {
   const direct = process.env.GEOAPIFY_API_KEY;
   return typeof direct === "string" && direct.trim() ? direct.trim() : null;
-}
-
-function normalizeCountry(code?: string | null) {
-  const upper = (code || "").toUpperCase();
-  if (upper === "US" || upper === "USA") return "US";
-  if (upper === "IN" || upper === "IND") return "IN";
-  return null;
 }
 
 function toSuggestion(feature: GeoapifyFeature): LocationSuggestion | null {
@@ -60,7 +51,6 @@ function toSuggestion(feature: GeoapifyFeature): LocationSuggestion | null {
     city: props.city || "",
     province: props.state || "",
     zip: props.postcode || "",
-    country: normalizeCountry(props.country_code),
     lat: props.lat,
     lng: props.lon,
   };

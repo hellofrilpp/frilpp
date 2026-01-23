@@ -60,7 +60,6 @@ const contentTypeXp: Record<string, number> = {
   OTHER: 30,
 };
 
-type CampaignRegion = "US" | "IN" | "US_IN";
 type FulfillmentType = "" | "SHOPIFY" | "MANUAL";
 
 type CampaignFormData = {
@@ -82,7 +81,6 @@ type CampaignFormData = {
   maxFollowers: string;
   niches: string[];
   nicheOther: string;
-  region: CampaignRegion;
   locationRadiusMiles: string;
   campaignName: string;
   quantity: string;
@@ -107,7 +105,6 @@ const initialFormData: CampaignFormData = {
   maxFollowers: "50000",
   niches: [],
   nicheOther: "",
-  region: "US_IN",
   locationRadiusMiles: "",
   campaignName: "",
   quantity: "10",
@@ -127,7 +124,6 @@ type OfferMetadata = Partial<{
   guidelines: string;
   niches: unknown;
   nicheOther: string;
-  region: CampaignRegion;
   presetId: string;
   fulfillmentType: FulfillmentType;
   locationRadiusKm: number | string;
@@ -143,8 +139,6 @@ type StringArrayField = {
 
 const asStringArray = (value: unknown): string[] =>
   Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-
-const emptyPlatformsByCountry = { US: [], IN: [] };
 
 const DRAFT_KEY = "frilpp:brandCampaignDraft:v1";
 
@@ -288,7 +282,6 @@ const CampaignCreator = () => {
           guidelines: meta.guidelines || "",
           niches: asStringArray(meta.niches),
           nicheOther: meta.nicheOther || "",
-          region: prev.region,
           campaignName: meta.campaignName || offer.title || "",
           quantity: String(offer.maxClaims ?? prev.quantity),
           minFollowers: String(offer.acceptanceFollowersThreshold ?? prev.minFollowers),
@@ -340,9 +333,9 @@ const CampaignCreator = () => {
   const campaignCategories = picklists?.campaignCategories ?? [];
   const creatorCategories = picklists?.creatorCategories ?? [];
   const contentTypeOptions = picklists?.contentTypes ?? [];
-  const platformsByCountry = picklists?.platformsByCountry ?? emptyPlatformsByCountry;
+  const platformOptions = picklists?.platforms ?? [];
   const offerPresets = picklists?.offerPresets ?? [];
-  const countriesAllowed = useMemo(() => ["US", "IN"] as Array<"US" | "IN">, []);
+  const countriesAllowed = useMemo(() => [] as Array<"US" | "IN">, []);
 
   const offerDraftPayload = useMemo(() => {
     const minFollowers = Number(formData.minFollowers || 0);
@@ -390,16 +383,10 @@ const CampaignCreator = () => {
       });
   }, [currentStep, offerDraftKey, refetchDraftRecommendations]);
 
-  const availablePlatforms = useMemo(() => {
-    const merged = new Map<string, { id: string; label: string }>();
-    platformsByCountry.US.forEach((item) => {
-      merged.set(item.id, item);
-    });
-    platformsByCountry.IN.forEach((item) => {
-      if (!merged.has(item.id)) merged.set(item.id, item);
-    });
-    return Array.from(merged.values()).filter((item) => allowedCreatorPlatformIds.has(item.id));
-  }, [platformsByCountry]);
+  const availablePlatforms = useMemo(
+    () => platformOptions.filter((item) => allowedCreatorPlatformIds.has(item.id)),
+    [platformOptions],
+  );
 
   useEffect(() => {
     const allowed = new Set(availablePlatforms.map((item) => item.id));
@@ -477,7 +464,6 @@ const CampaignCreator = () => {
       guidelines: formData.guidelines || null,
       niches: formData.niches,
       nicheOther: formData.niches.includes("OTHER") ? formData.nicheOther.trim() || null : null,
-      region: null,
       campaignName: formData.campaignName || null,
       fulfillmentType,
       locationRadiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : null,
@@ -736,7 +722,6 @@ const CampaignCreator = () => {
         guidelines: meta.guidelines || "",
         niches: asStringArray(meta.niches),
         nicheOther: meta.nicheOther || "",
-        region: prev.region,
         campaignName: meta.campaignName || last.title || "",
         quantity: String(last.maxClaims ?? prev.quantity),
         minFollowers: String(last.acceptanceFollowersThreshold ?? prev.minFollowers),

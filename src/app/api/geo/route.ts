@@ -1,6 +1,6 @@
 export const runtime = "nodejs";
 
-function getCountryFromHeaders(request: Request) {
+function getMarketFromHeaders(request: Request) {
   const candidates = [
     "x-vercel-ip-country",
     "x-country-code",
@@ -9,14 +9,12 @@ function getCountryFromHeaders(request: Request) {
   ] as const;
   for (const key of candidates) {
     const value = request.headers.get(key);
-    if (value && value.trim()) return value.trim().toUpperCase();
+    if (value && value.trim().toUpperCase() === "IN") return "IN" as const;
   }
-  return null;
+  return "US" as const;
 }
 
 export async function GET(request: Request) {
-  const country = getCountryFromHeaders(request);
-  const market = country === "IN" ? "IN" : "US";
-  return Response.json({ ok: true, country: country ?? null, market });
+  const market = getMarketFromHeaders(request);
+  return Response.json({ ok: true, market });
 }
-

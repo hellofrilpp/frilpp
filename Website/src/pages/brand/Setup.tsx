@@ -112,7 +112,7 @@ const BrandSetup = () => {
     setSaving(true);
     try {
       if (!hasBrand) {
-        await createBrandWorkspace({ name: brandName.trim(), countriesDefault: ["US", "IN"] });
+        await createBrandWorkspace({ name: brandName.trim() });
       }
 
       await updateBrandProfile({

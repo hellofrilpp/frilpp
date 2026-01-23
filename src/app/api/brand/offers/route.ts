@@ -19,7 +19,7 @@ const createOfferSchema = z.object({
   title: z.string().min(3).max(160),
   template: z.enum(["REEL", "FEED", "REEL_PLUS_STORY", "UGC_ONLY"]),
   status: z.enum(["DRAFT", "PUBLISHED"]).optional(),
-  countriesAllowed: z.array(z.enum(["US", "IN"])).min(1),
+  countriesAllowed: z.array(z.enum(["US", "IN"])).default([]),
   maxClaims: z.number().int().min(1).max(10000),
   deadlineDaysAfterDelivery: z.number().int().min(1).max(365),
   followersThreshold: z.number().int().min(0).max(100_000_000),
@@ -147,10 +147,7 @@ export async function POST(request: Request) {
     const storedMetadata =
       desiredStatus === "PUBLISHED"
         ? (() => {
-            const validated = validatePublishMetadata({
-              raw: input.metadata ?? {},
-              countriesAllowed: input.countriesAllowed,
-            });
+            const validated = validatePublishMetadata({ raw: input.metadata ?? {} });
             if (!validated.ok) return validated.response;
             return validated.metadata;
           })()

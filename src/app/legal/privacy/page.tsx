@@ -76,8 +76,8 @@ export default function PrivacyPage() {
 
             <div className="text-sm font-semibold">International processing</div>
             <p className="text-muted-foreground">
-              Frilpp currently serves users in the United States and India. If you use the service,
-              you understand that your information may be processed in those countries.
+              Frilpp serves users globally. Your information may be processed in the countries
+              where Frilpp or its service providers operate.
             </p>
 
             <div className="text-sm font-semibold">Security</div>

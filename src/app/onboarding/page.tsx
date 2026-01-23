@@ -29,7 +29,6 @@ export default function OnboardingPage() {
   const [requestedNextPath, setRequestedNextPath] = useState<string | null>(null);
 
   const [brandName, setBrandName] = useState("My brand");
-  const [brandCountries] = useState<Array<"US" | "IN">>(["US", "IN"]);
 
   const [creatorForm, setCreatorForm] = useState({
     username: "",
@@ -125,7 +124,7 @@ export default function OnboardingPage() {
       const res = await fetch("/api/onboarding/brand", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ name: brandName, countriesDefault: brandCountries }),
+        body: JSON.stringify({ name: brandName }),
       });
       const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
       if (!res.ok || !data || !("ok" in data) || data.ok !== true) {

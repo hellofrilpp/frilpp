@@ -3,8 +3,7 @@ import {
   CAMPAIGN_CATEGORIES,
   CONTENT_TYPES,
   CREATOR_CATEGORIES,
-  PLATFORMS_BY_COUNTRY,
-  REGION_OPTIONS,
+  PLATFORMS,
 } from "@/lib/picklists";
 
 const milesToKm = (miles: number) => miles * 1.609344;
@@ -15,7 +14,7 @@ export const offerMetadataSchema = z
     category: z.enum(CAMPAIGN_CATEGORIES).nullable().optional(),
     categoryOther: z.string().trim().min(2).max(64).nullable().optional(),
     description: z.string().trim().max(800).nullable().optional(),
-    platforms: z.array(z.enum(PLATFORMS_BY_COUNTRY.US)).max(6).optional().default([]),
+    platforms: z.array(z.enum(PLATFORMS)).max(6).optional().default([]),
     platformOther: z.string().trim().min(2).max(64).nullable().optional(),
     contentTypes: z.array(z.enum(CONTENT_TYPES)).max(6).optional().default([]),
     contentTypeOther: z.string().trim().min(2).max(64).nullable().optional(),
@@ -23,7 +22,6 @@ export const offerMetadataSchema = z
     guidelines: z.string().trim().max(800).nullable().optional(),
     niches: z.array(z.enum(CREATOR_CATEGORIES)).max(8).optional().default([]),
     nicheOther: z.string().trim().min(2).max(64).nullable().optional(),
-    region: z.enum(REGION_OPTIONS).nullable().optional(),
     campaignName: z.string().trim().max(160).nullable().optional(),
     fulfillmentType: z.enum(["SHOPIFY", "MANUAL"]).nullable().optional(),
     manualFulfillmentMethod: z.enum(["PICKUP", "LOCAL_DELIVERY"]).nullable().optional(),
@@ -117,10 +115,7 @@ export function coerceDraftMetadata(raw: unknown) {
   return next;
 }
 
-export function validatePublishMetadata(params: {
-  raw: unknown;
-  countriesAllowed: Array<"US" | "IN">;
-}) {
+export function validatePublishMetadata(params: { raw: unknown }) {
   const parsed = offerMetadataSchema.safeParse(params.raw ?? {});
   if (!parsed.success) {
     return {

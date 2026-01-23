@@ -32,15 +32,7 @@ export const CONTENT_TYPES = [
   "OTHER",
 ] as const;
 
-export const PLATFORMS_BY_COUNTRY = {
-  US: ["TIKTOK", "YOUTUBE", "OTHER"],
-  IN: ["TIKTOK", "YOUTUBE", "OTHER"],
-} as const;
-
-export const REGION_OPTIONS = ["US", "IN", "US_IN"] as const;
-export const ALL_PLATFORMS = Array.from(
-  new Set([...PLATFORMS_BY_COUNTRY.US, ...PLATFORMS_BY_COUNTRY.IN]),
-) as (typeof PLATFORMS_BY_COUNTRY)["US"][number][];
+export const PLATFORMS = ["TIKTOK", "YOUTUBE", "OTHER"] as const;
 
 export const OFFER_PRESETS = [
   {
@@ -64,8 +56,7 @@ export const OFFER_PRESETS = [
 export type CreatorCategoryId = (typeof CREATOR_CATEGORIES)[number];
 export type CampaignCategoryId = (typeof CAMPAIGN_CATEGORIES)[number];
 export type ContentTypeId = (typeof CONTENT_TYPES)[number];
-export type PlatformId = (typeof ALL_PLATFORMS)[number];
-export type RegionId = (typeof REGION_OPTIONS)[number];
+export type PlatformId = (typeof PLATFORMS)[number];
 
 export const LABELS: Record<string, string> = {
   BEAUTY: "Beauty",
@@ -88,25 +79,7 @@ export const LABELS: Record<string, string> = {
   REVIEW_VIDEO: "Review Video",
   TIKTOK: "TikTok",
   YOUTUBE: "YouTube",
-  US: "United States",
-  IN: "India",
-  US_IN: "US + India",
 };
 
 export const toItems = (values: readonly string[]) =>
   values.map((value) => ({ id: value, label: LABELS[value] ?? value }));
-
-export const platformsForCountries = (countries: Array<keyof typeof PLATFORMS_BY_COUNTRY>) => {
-  const unique = Array.from(new Set(countries));
-  if (!unique.length) return [] as PlatformId[];
-  let allowed = new Set<PlatformId>(
-    (PLATFORMS_BY_COUNTRY[unique[0]] as unknown as PlatformId[]).slice(),
-  );
-  for (const country of unique.slice(1)) {
-    const next = new Set<PlatformId>(
-      (PLATFORMS_BY_COUNTRY[country] as unknown as PlatformId[]).slice(),
-    );
-    allowed = new Set([...allowed].filter((value) => next.has(value)));
-  }
-  return Array.from(allowed) as PlatformId[];
-};

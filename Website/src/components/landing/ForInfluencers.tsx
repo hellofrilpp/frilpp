@@ -9,7 +9,6 @@ import {
   Heart,
   Sparkles
 } from "lucide-react";
-import { useMarket } from "@/components/landing/market";
 
 const perks = [
   {
@@ -39,8 +38,7 @@ const perks = [
 ];
 
 const ForInfluencers = () => {
-  const { market } = useMarket();
-  const moneyExample = market === "IN" ? "₹1,500" : "$50";
+  const moneyExample = "50 USD";
   return (
     <section id="for-influencers" className="py-24 border-t-4 border-border overflow-hidden bg-background relative">
       {/* Grid background */}

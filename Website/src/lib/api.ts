@@ -158,7 +158,7 @@ export async function logout() {
   });
 }
 
-export async function createBrandWorkspace(payload: { name: string; countriesDefault: Array<"US" | "IN"> }) {
+export async function createBrandWorkspace(payload: { name: string; countriesDefault?: Array<"US" | "IN"> }) {
   return apiFetch<{ ok: boolean; brand: { id: string; name: string } }>(
     "/api/onboarding/brand",
     {
@@ -743,10 +743,8 @@ export type PicklistsResponse = {
   campaignCategories: PicklistItem[];
   campaignNiches: PicklistItem[];
   contentTypes: PicklistItem[];
-  platformsByCountry: { US: PicklistItem[]; IN: PicklistItem[] };
-  regions: PicklistItem[];
+  platforms: PicklistItem[];
   offerPresets: OfferPreset[];
-  countries: string[];
 };
 
 export async function getPicklists() {

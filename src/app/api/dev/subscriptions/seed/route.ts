@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { billingSubscriptions, brands, creators } from "@/db/schema";
 import { ensureBillingSchema } from "@/lib/billing-schema";
-import { planKeyFor } from "@/lib/billing";
+import { marketFromRequest, planKeyFor } from "@/lib/billing";
 import { upsertBillingSubscriptionBySubject } from "@/lib/billing-store";
 
 export const runtime = "nodejs";
@@ -17,16 +17,6 @@ const querySchema = z.object({
     .optional()
     .transform((v) => v === "1" || v === "true"),
 });
-
-function inferMarketFromBrandCountries(countriesDefault: string[] | null | undefined) {
-  const list = (countriesDefault ?? []).map((c) => c.toUpperCase());
-  if (list.length === 1 && list[0] === "IN") return "IN" as const;
-  return "US" as const;
-}
-
-function inferMarketFromCreatorCountry(country: string | null | undefined) {
-  return country?.toUpperCase() === "IN" ? ("IN" as const) : ("US" as const);
-}
 
 function isSeedSubscription(providerSubscriptionId: string | null | undefined) {
   if (!providerSubscriptionId) return false;
@@ -61,6 +51,7 @@ export async function GET(request: Request) {
 
   const now = new Date();
   const farFuture = new Date(Date.now() + 365 * 24 * 60 * 60 * 1000);
+  const market = marketFromRequest(request);
 
   const result = {
     ok: true as const,
@@ -74,15 +65,8 @@ export async function GET(request: Request) {
   };
 
   const brandRows = parsed.data.brandId
-    ? await db
-        .select({ id: brands.id, countriesDefault: brands.countriesDefault })
-        .from(brands)
-        .where(eq(brands.id, parsed.data.brandId))
-        .limit(1)
-    : await db
-        .select({ id: brands.id, countriesDefault: brands.countriesDefault })
-        .from(brands)
-        .limit(10_000);
+    ? await db.select({ id: brands.id }).from(brands).where(eq(brands.id, parsed.data.brandId)).limit(1)
+    : await db.select({ id: brands.id }).from(brands).limit(10_000);
 
   for (const brand of brandRows) {
     const existing = await db
@@ -111,7 +95,6 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const market = inferMarketFromBrandCountries(brand.countriesDefault);
     const provider = market === "IN" ? "RAZORPAY" : "STRIPE";
 
     await upsertBillingSubscriptionBySubject({
@@ -131,15 +114,8 @@ export async function GET(request: Request) {
   }
 
   const creatorRows = parsed.data.creatorId
-    ? await db
-        .select({ id: creators.id, country: creators.country })
-        .from(creators)
-        .where(eq(creators.id, parsed.data.creatorId))
-        .limit(1)
-    : await db
-        .select({ id: creators.id, country: creators.country })
-        .from(creators)
-        .limit(10_000);
+    ? await db.select({ id: creators.id }).from(creators).where(eq(creators.id, parsed.data.creatorId)).limit(1)
+    : await db.select({ id: creators.id }).from(creators).limit(10_000);
 
   for (const creator of creatorRows) {
     const existing = await db
@@ -173,7 +149,6 @@ export async function GET(request: Request) {
       continue;
     }
 
-    const market = inferMarketFromCreatorCountry(creator.country);
     const provider = market === "IN" ? "RAZORPAY" : "STRIPE";
 
     await upsertBillingSubscriptionBySubject({

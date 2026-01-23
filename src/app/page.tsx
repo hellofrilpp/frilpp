@@ -45,19 +45,16 @@ const offerCards = [
   {
     title: "Free $50 skincare set",
     detail: "1 Reel + tag",
-    region: "US + India",
     followers: "2k+",
   },
   {
     title: "Coffee sampler pack",
     detail: "2 Stories",
-    region: "US",
     followers: "1k+",
   },
   {
     title: "Haircare trio",
     detail: "1 Feed post",
-    region: "India",
     followers: "3k+",
   },
 ];
@@ -313,7 +310,7 @@ export default function Home() {
             <span>Aisha claimed GlowBar · 2 minutes ago</span>
             <span>3 creators shipped today</span>
             <span>12 posts verified this week</span>
-            <span>US + India offers open</span>
+            <span>Global offers open</span>
           </div>
         </section>
 
@@ -338,7 +335,6 @@ export default function Home() {
                   >
                     <div className="flex items-center justify-between text-sm">
                       <span className="font-semibold">{offer.title}</span>
-                      <span className="text-xs text-muted-foreground">{offer.region}</span>
                     </div>
                     <div className="mt-2 text-xs text-muted-foreground">{offer.detail}</div>
                     <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">

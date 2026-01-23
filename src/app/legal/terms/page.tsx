@@ -43,7 +43,7 @@ export default function TermsPage() {
             <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
               <li>You must be at least 18 years old to use Frilpp.</li>
               <li>You must have authority to act on behalf of a brand or creator you represent.</li>
-              <li>Frilpp is currently available only in the United States and India.</li>
+              <li>Frilpp is available globally; specific offers may limit fulfillment or shipping.</li>
             </ul>
 
             <div className="text-sm font-semibold">Accounts and security</div>

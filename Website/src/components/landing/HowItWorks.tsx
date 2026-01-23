@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { Package, Sparkles, Camera, ArrowRight, Gamepad2 } from "lucide-react";
-import { useMarket } from "@/components/landing/market";
 
 const steps = [
   {
@@ -56,8 +55,7 @@ const cardVariants = {
 };
 
 const HowItWorks = () => {
-  const { market } = useMarket();
-  const unit = market === "IN" ? "km" : "mi";
+  const unit = "km";
   return (
     <section id="how-it-works" className="py-24 border-t-4 border-border bg-background relative overflow-hidden">
       {/* Background decorations */}

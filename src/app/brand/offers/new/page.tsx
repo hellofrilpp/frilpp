@@ -112,7 +112,7 @@ export default function NewOfferPage() {
 
   const [draft, setDraft] = useState<OfferDraft>(() => ({
     title: "Free $50 skincare set for 1 Reel",
-    countriesAllowed: ["US", "IN"],
+    countriesAllowed: [],
     followersThreshold: 5000,
     aboveThresholdAutoAccept: true,
     usageRightsRequired: false,

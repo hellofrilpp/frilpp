@@ -230,7 +230,7 @@ export default function InfluencerFeedPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Creator</Badge>
               <Badge variant="secondary">Swipe feed</Badge>
-              <Badge variant="secondary">US + India</Badge>
+              <Badge variant="secondary">Global</Badge>
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">
               Claim offers

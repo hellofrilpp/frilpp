@@ -105,7 +105,7 @@ const BrandBilling = () => {
               </div>
               <div>
                 <p className="font-pixel text-sm text-neon-green">GROWTH_PLAN</p>
-                <p className="text-xs font-mono text-muted-foreground">Monthly subscription · {resolvedMarket}</p>
+                <p className="text-xs font-mono text-muted-foreground">Monthly subscription · Global</p>
               </div>
             </div>
             <div className="font-mono text-sm text-neon-yellow">{priceLabel}</div>

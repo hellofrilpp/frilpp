@@ -11,18 +11,6 @@ export const runtime = "nodejs";
 const providerSchema = z.enum(["instagram", "tiktok", "youtube"]);
 const roleSchema = z.enum(["brand", "creator"]);
 
-function restrictTikTokToUsOnly() {
-  return process.env.TIKTOK_US_ONLY === "true";
-}
-
-function isUsCountry(request: Request) {
-  const country = request.headers.get("x-vercel-ip-country") ||
-    request.headers.get("x-country-code") ||
-    "";
-  if (!country) return true;
-  return country.toUpperCase() === "US";
-}
-
 export async function GET(request: Request, context: { params: Promise<{ provider: string }> }) {
   if (!process.env.DATABASE_URL) {
     return Response.json(
@@ -52,20 +40,6 @@ export async function GET(request: Request, context: { params: Promise<{ provide
         { status: 401 },
       );
     }
-  }
-
-  if (provider === "tiktok" && restrictTikTokToUsOnly() && !isUsCountry(request)) {
-    const accept = request.headers.get("accept") ?? "";
-    if (accept.includes("text/html")) {
-      const brandedUrl = new URL(`${origin}/login/tiktok-unavailable`);
-      brandedUrl.searchParams.set("next", nextPath);
-      if (role) brandedUrl.searchParams.set("role", role);
-      return Response.redirect(brandedUrl.toString(), 302);
-    }
-    return Response.json(
-      { ok: false, error: "TikTok login is only available in the US" },
-      { status: 403 },
-    );
   }
 
   const defaultRedirectUri = `${origin}/api/auth/social/${provider}/callback`;

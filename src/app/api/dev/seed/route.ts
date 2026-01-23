@@ -62,9 +62,9 @@ export async function GET(request: Request) {
   if (!creatorRows[0]) {
     await db.execute(sql`
       insert into "creators"
-        ("id", "ig_user_id", "username", "followers_count", "country", "created_at", "updated_at")
+        ("id", "ig_user_id", "username", "followers_count", "created_at", "updated_at")
       values
-        (${creatorUserId}, ${null}, ${"dev_creator"}, ${2500}, ${"US"}, ${now}, ${now})
+        (${creatorUserId}, ${null}, ${"dev_creator"}, ${2500}, ${now}, ${now})
       on conflict ("id") do nothing
     `);
   }
@@ -86,7 +86,7 @@ export async function GET(request: Request) {
         (
           ${brandId},
           ${"Dev Brand"},
-          ARRAY[${"US"}]::text[],
+          ARRAY[]::text[],
           ${"devbrand"},
           ${5000},
           ${true},

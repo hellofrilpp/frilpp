@@ -5,7 +5,6 @@ export type LocationSuggestion = {
   city: string;
   province: string;
   zip: string;
-  country: "US" | "IN" | null;
   lat: number;
   lng: number;
 };

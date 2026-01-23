@@ -8,7 +8,7 @@ export const runtime = "nodejs";
 
 const bodySchema = z.object({
   name: z.string().min(2).max(80),
-  countriesDefault: z.array(z.enum(["US", "IN"])).min(1),
+  countriesDefault: z.array(z.enum(["US", "IN"])).default([]),
 });
 
 export async function POST(request: Request) {

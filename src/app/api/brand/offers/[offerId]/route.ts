@@ -14,7 +14,7 @@ const patchSchema = z
   .object({
     title: z.string().min(3).max(160).optional(),
     template: z.enum(["REEL", "FEED", "REEL_PLUS_STORY", "UGC_ONLY"]).optional(),
-    countriesAllowed: z.array(z.enum(["US", "IN"])).min(1).optional(),
+    countriesAllowed: z.array(z.enum(["US", "IN"])).optional(),
     maxClaims: z.number().int().min(1).max(10000).optional(),
     deadlineDaysAfterDelivery: z.number().int().min(1).max(365).optional(),
     followersThreshold: z.number().int().min(0).max(100_000_000).optional(),
@@ -139,7 +139,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
     if (publishing) {
       const validated = validatePublishMetadata({
         raw: patch.metadata ?? existing.metadata,
-        countriesAllowed: nextCountriesAllowed as Array<"US" | "IN">,
       });
       if (!validated.ok) return validated.response;
       return validated.metadata;

@@ -1,13 +1,11 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Check, ArrowRight, Zap, Crown, Rocket } from "lucide-react";
-import { useMarket } from "@/components/landing/market";
 
 const Pricing = () => {
-  const { market } = useMarket();
-  const currency = market === "IN" ? "₹" : "$";
-  const businessPrice = market === "IN" ? 299 : 29;
-  const creatorPrice = market === "IN" ? 100 : 10;
+  const currency = "USD ";
+  const businessPrice = 29;
+  const creatorPrice = 10;
 
   const plans = [
     {
@@ -111,7 +109,7 @@ const Pricing = () => {
             <span className="text-foreground"> RESULTS</span>
           </h2>
           <p className="font-mono text-sm text-muted-foreground">
-            &gt; Simple monthly pricing that matches your market. Cancel anytime.
+            &gt; Simple monthly pricing. Cancel anytime.
           </p>
         </div>
 

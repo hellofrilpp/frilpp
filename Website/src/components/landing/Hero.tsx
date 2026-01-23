@@ -3,7 +3,6 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Sparkles, Zap } from "lucide-react";
 import InteractiveSwipeDemo from "./InteractiveSwipeDemo";
-import { useMarket } from "@/components/landing/market";
 
 const floatingElements = [
   { delay: 0, x: "10%", y: "20%", rotate: 45 },
@@ -14,10 +13,9 @@ const floatingElements = [
 ];
 
 const Hero = () => {
-  const { market } = useMarket();
-  const unit = market === "IN" ? "km" : "mi";
-  const radiusExample = market === "IN" ? 8 : 5;
-  const moneyExample = market === "IN" ? "₹1,500" : "$50";
+  const unit = "km";
+  const radiusExample = 8;
+  const moneyExample = "50 USD";
 
   return (
     <section className="relative min-h-screen flex items-center overflow-x-hidden pt-20 pb-16 bg-grid">

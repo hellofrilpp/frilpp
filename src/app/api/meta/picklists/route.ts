@@ -3,8 +3,7 @@ import {
   CONTENT_TYPES,
   CREATOR_CATEGORIES,
   OFFER_PRESETS,
-  PLATFORMS_BY_COUNTRY,
-  REGION_OPTIONS,
+  PLATFORMS,
   toItems,
 } from "@/lib/picklists";
 
@@ -17,12 +16,7 @@ export async function GET() {
     campaignCategories: toItems(CAMPAIGN_CATEGORIES),
     campaignNiches: toItems(CAMPAIGN_CATEGORIES),
     contentTypes: toItems(CONTENT_TYPES),
-    platformsByCountry: {
-      US: toItems(PLATFORMS_BY_COUNTRY.US),
-      IN: toItems(PLATFORMS_BY_COUNTRY.IN),
-    },
-    regions: toItems(REGION_OPTIONS),
+    platforms: toItems(PLATFORMS),
     offerPresets: OFFER_PRESETS,
-    countries: ["US", "IN"],
   });
 }

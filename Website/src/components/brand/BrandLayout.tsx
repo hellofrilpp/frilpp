@@ -120,7 +120,7 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
       setGateSubmitting(true);
       apiFetch<{ ok: boolean }>("/api/onboarding/brand", {
         method: "POST",
-        body: JSON.stringify({ name: pendingName, countriesDefault: ["US", "IN"] }),
+        body: JSON.stringify({ name: pendingName }),
       })
         .then(() => {
           localStorage.removeItem("pendingBrandName");
@@ -167,8 +167,6 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
     setGateMode("select");
   }, [authLoading, currentPath, memberships, queryClient, user]);
 
-  const resolvedCountries = useMemo(() => ["US", "IN"] as Array<"US" | "IN">, []);
-
   const blockChildren = gateSubmitting || gateMode !== "none";
 
   return (
@@ -206,7 +204,7 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
                       setGateSubmitting(true);
                       await apiFetch<{ ok: boolean }>("/api/onboarding/brand", {
                         method: "POST",
-                        body: JSON.stringify({ name: gateBrandName.trim(), countriesDefault: resolvedCountries }),
+                        body: JSON.stringify({ name: gateBrandName.trim() }),
                       });
                       localStorage.removeItem("pendingBrandName");
                       await queryClient.invalidateQueries({ queryKey: ["auth-me"] });

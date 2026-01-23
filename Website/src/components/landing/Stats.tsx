@@ -1,10 +1,8 @@
 import { motion } from "framer-motion";
 import { ShieldCheck, Target, Zap, Lock } from "lucide-react";
-import { useMarket } from "@/components/landing/market";
 
 const Stats = () => {
-  const { market } = useMarket();
-  const unit = market === "IN" ? "km" : "mi";
+  const unit = "km";
 
   const highlights = [
     {

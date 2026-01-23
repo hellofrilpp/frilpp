@@ -1,6 +1,5 @@
 import { motion } from "framer-motion";
 import { Package, Heart, Truck, Camera, Star, ArrowRight, Sparkles } from "lucide-react";
-import { useMarket } from "@/components/landing/market";
 
 const steps = [
   {
@@ -63,8 +62,7 @@ const floatingParticles = Array.from({ length: 20 }, (_, index) => ({
 }));
 
 const ProductExplainer = () => {
-  const { market } = useMarket();
-  const unit = market === "IN" ? "km" : "mi";
+  const unit = "km";
   return (
     <section className="py-24 bg-card border-t-4 border-border relative overflow-hidden">
       {/* Animated background */}

@@ -76,7 +76,7 @@ export default function CreatorBillingPage() {
             <div className="flex flex-wrap items-center gap-2">
               <Badge variant="secondary">Creator</Badge>
               <Badge variant="secondary">Billing</Badge>
-              <Badge variant="secondary">{market === "IN" ? "India" : "US"}</Badge>
+              <Badge variant="secondary">Global</Badge>
             </div>
             <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Subscribe</h1>
             <p className="mt-2 text-sm text-muted-foreground">
@@ -112,7 +112,7 @@ export default function CreatorBillingPage() {
         <Card className="mt-8">
           <CardHeader>
             <CardTitle>Creator plan</CardTitle>
-            <CardDescription>{status === "loading" ? "Detecting market…" : "Monthly subscription"}</CardDescription>
+            <CardDescription>{status === "loading" ? "Checking billing details…" : "Monthly subscription"}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             <div className="flex items-baseline justify-between">

@@ -9,7 +9,6 @@ import {
   Check,
   Terminal
 } from "lucide-react";
-import { useMarket } from "@/components/landing/market";
 
 const benefits = [
   {
@@ -48,8 +47,7 @@ const features = [
 ];
 
 const ForBrands = () => {
-  const { market } = useMarket();
-  const unit = market === "IN" ? "km" : "mi";
+  const unit = "km";
   return (
     <section id="for-brands" className="py-24 bg-card border-t-4 border-border relative overflow-hidden">
       {/* Grid background */}
