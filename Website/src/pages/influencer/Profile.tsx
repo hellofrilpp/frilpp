@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 import InfluencerLayout from "@/components/influencer/InfluencerLayout";
 import LocationPicker from "@/components/LocationPicker";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, CreatorDeal, apiUrl, completeCreatorOnboarding, getCreatorDeals, getCreatorProfile, getSocialAccounts } from "@/lib/api";
+import { ApiError, CreatorDeal, apiUrl, getCreatorDeals, getCreatorProfile, getSocialAccounts, updateCreatorProfile } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
 import { useAchievements } from "@/hooks/useAchievements";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +31,7 @@ const InfluencerProfile = () => {
     city: "",
     province: "",
     zip: "",
-    country: "US" as "US" | "IN",
+    country: "" as "" | "US" | "IN",
     lat: null as number | null,
     lng: null as number | null,
   });
@@ -69,7 +69,7 @@ const InfluencerProfile = () => {
       city: profileData.creator.city ?? "",
       province: profileData.creator.province ?? "",
       zip: profileData.creator.zip ?? "",
-      country: (profileData.creator.country as "US" | "IN") ?? "US",
+      country: (profileData.creator.country as "US" | "IN") ?? "",
       lat: profileData.creator.lat ?? null,
       lng: profileData.creator.lng ?? null,
     });
@@ -302,27 +302,10 @@ const InfluencerProfile = () => {
                   className="mt-2 border-2 border-border font-mono"
                 />
               </div>
-            <div>
-              <Label className="font-mono text-xs">COUNTRY</Label>
-              <div className="mt-2 flex gap-2">
-                  {(["US", "IN"] as const).map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setProfileForm((prev) => ({ ...prev, country: option }))}
-                      className={`px-3 py-2 border-2 text-xs font-mono transition-all pixel-btn ${
-                        profileForm.country === option
-                          ? "border-neon-green bg-neon-green/20 text-neon-green"
-                          : "border-border hover:border-neon-green"
-                      }`}
-                    >
-                      {option === "US" ? "UNITED STATES" : "INDIA"}
-                    </button>
-                  ))}
-                </div>
-              </div>
             </div>
             <LocationPicker
-              label="AUTO_FILL_ADDRESS"
+              label="Address"
+              showUseMyLocation={false}
               onSelect={(location) =>
                 setProfileForm((prev) => ({
                   ...prev,
@@ -392,31 +375,25 @@ const InfluencerProfile = () => {
               className="w-full bg-neon-green text-background font-pixel text-xs pixel-btn glow-green"
               disabled={savingProfile}
               onClick={async () => {
-                if (
-                  !profileForm.fullName.trim() ||
-                  !profileForm.email.trim() ||
-                  !profileForm.address1.trim() ||
-                  !profileForm.city.trim() ||
-                  !profileForm.zip.trim()
-                ) {
-                  toast({ title: "MISSING INFO", description: "Fill all required fields." });
-                  return;
-                }
                 try {
                   setSavingProfile(true);
-                    await completeCreatorOnboarding({
-                      country: profileForm.country,
-                      fullName: profileForm.fullName,
-                      email: profileForm.email,
-                      phone: profileForm.phone || undefined,
-                      address1: profileForm.address1,
-                      address2: profileForm.address2 || undefined,
-                      city: profileForm.city,
-                      province: profileForm.province || undefined,
-                      zip: profileForm.zip,
-                      lat: profileForm.lat ?? undefined,
-                      lng: profileForm.lng ?? undefined,
-                    });
+                  const normalizeOptional = (value: string) => {
+                    const trimmed = value.trim();
+                    return trimmed.length ? trimmed : null;
+                  };
+                  await updateCreatorProfile({
+                    fullName: normalizeOptional(profileForm.fullName),
+                    email: normalizeOptional(profileForm.email),
+                    phone: normalizeOptional(profileForm.phone),
+                    address1: normalizeOptional(profileForm.address1),
+                    address2: normalizeOptional(profileForm.address2),
+                    city: normalizeOptional(profileForm.city),
+                    province: normalizeOptional(profileForm.province),
+                    zip: normalizeOptional(profileForm.zip),
+                    country: profileForm.country ? (profileForm.country as "US" | "IN") : null,
+                    lat: profileForm.lat,
+                    lng: profileForm.lng,
+                  });
                   await queryClient.invalidateQueries({ queryKey: ["creator-profile"] });
                   toast({ title: "SAVED", description: "Shipping profile updated." });
                 } catch (err) {
