@@ -81,6 +81,7 @@ export async function GET(request: Request, context: { params: Promise<{ offerId
       usageRightsScope: offer.usageRightsScope ?? null,
       acceptanceFollowersThreshold: offer.acceptanceFollowersThreshold,
       acceptanceAboveThresholdAutoAccept: offer.acceptanceAboveThresholdAutoAccept,
+      metadata: offer.metadata ?? {},
       publishedAt: offer.publishedAt?.toISOString() ?? null,
       createdAt: offer.createdAt.toISOString(),
       updatedAt: offer.updatedAt.toISOString(),

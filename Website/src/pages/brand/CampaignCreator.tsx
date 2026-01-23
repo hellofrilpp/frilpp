@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { 
   ArrowLeft, 
   ArrowRight, 
@@ -24,6 +24,7 @@ import {
   createBrandOffer,
   updateBrandOffer,
   getCreatorRecommendations,
+  getBrandOffer,
   getBrandOffers,
   getPicklists,
   getShopifyProducts,
@@ -161,6 +162,9 @@ const CampaignCreator = () => {
   const [launching, setLaunching] = useState(false);
   const [draftOfferId, setDraftOfferId] = useState<string | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [searchParams] = useSearchParams();
+  const offerIdParam = searchParams.get("offerId");
+  const isEditingDraft = Boolean(offerIdParam);
   const restoredRef = useRef(false);
   const draftReadyRef = useRef(false);
   const aiCheckKeyRef = useRef<string | null>(null);
@@ -169,6 +173,11 @@ const CampaignCreator = () => {
   useEffect(() => {
     if (restoredRef.current) return;
     restoredRef.current = true;
+
+    if (offerIdParam) {
+      draftReadyRef.current = true;
+      return;
+    }
 
     const raw = localStorage.getItem(DRAFT_KEY);
     if (!raw) {
@@ -225,7 +234,87 @@ const CampaignCreator = () => {
     } finally {
       draftReadyRef.current = true;
     }
-  }, []);
+  }, [offerIdParam]);
+
+  useEffect(() => {
+    if (!offerIdParam) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await getBrandOffer(offerIdParam);
+        if (cancelled) return;
+        const offer = res.offer;
+        const meta = (offer.metadata ?? {}) as OfferMetadata;
+        const region =
+          meta.region ||
+          (offer.countriesAllowed?.length === 2
+            ? "US_IN"
+            : offer.countriesAllowed?.[0] === "IN"
+              ? "IN"
+              : "US");
+        const radiusKm = (() => {
+          const kmRaw = meta.locationRadiusKm;
+          const km =
+            typeof kmRaw === "number"
+              ? kmRaw
+              : typeof kmRaw === "string" && kmRaw.trim()
+                ? Number(kmRaw)
+                : null;
+          if (km !== null && Number.isFinite(km) && km > 0) return km;
+          const milesRaw = meta.locationRadiusMiles;
+          const miles =
+            typeof milesRaw === "number"
+              ? milesRaw
+              : typeof milesRaw === "string" && milesRaw.trim()
+                ? Number(milesRaw)
+                : null;
+          if (miles !== null && Number.isFinite(miles) && miles > 0) return milesToKm(miles);
+          return null;
+        })();
+        const radiusInput =
+          region === "IN" ? radiusKm : radiusKm !== null ? kmToMiles(radiusKm) : null;
+
+        setDraftOfferId(offer.id);
+        setProductQuantity(offer.products?.[0]?.quantity ?? 1);
+        setSelectedProduct(null);
+        setSelectedVariantId(offer.products?.[0]?.shopifyVariantId ?? null);
+        setFormData((prev) => ({
+          ...prev,
+          productName: meta.campaignName || offer.title || prev.productName,
+          productValue:
+            meta.productValue !== null && meta.productValue !== undefined
+              ? String(meta.productValue)
+              : prev.productValue,
+          category: meta.category || prev.category,
+          categoryOther: meta.categoryOther || "",
+          description: meta.description || "",
+          platforms: asStringArray(meta.platforms),
+          platformOther: meta.platformOther || "",
+          contentTypes: asStringArray(meta.contentTypes),
+          contentTypeOther: meta.contentTypeOther || "",
+          hashtags: meta.hashtags || "",
+          guidelines: meta.guidelines || "",
+          niches: asStringArray(meta.niches),
+          nicheOther: meta.nicheOther || "",
+          region: region || prev.region,
+          campaignName: meta.campaignName || offer.title || "",
+          quantity: String(offer.maxClaims ?? prev.quantity),
+          minFollowers: String(offer.acceptanceFollowersThreshold ?? prev.minFollowers),
+          presetId: meta.presetId || "",
+          fulfillmentType: meta.fulfillmentType || prev.fulfillmentType,
+          locationRadiusMiles: radiusInput !== null ? String(Math.round(radiusInput * 10) / 10) : "",
+        }));
+        toast.success("Draft loaded");
+      } catch (err) {
+        const message = err instanceof ApiError ? err.message : "Failed to load draft";
+        toast.error(message);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [offerIdParam]);
 
   useEffect(() => {
     if (!draftReadyRef.current) return;
@@ -707,8 +796,12 @@ const CampaignCreator = () => {
                   <ArrowLeft className="w-4 h-4" />
                 </Button>
                 <div>
-                  <span className="text-xs font-pixel text-neon-purple">[NEW_CAMPAIGN]</span>
-                  <h1 className="text-lg font-pixel text-foreground">CREATE OFFER</h1>
+                  <span className="text-xs font-pixel text-neon-purple">
+                    {isEditingDraft ? "[EDIT_DRAFT]" : "[NEW_CAMPAIGN]"}
+                  </span>
+                  <h1 className="text-lg font-pixel text-foreground">
+                    {isEditingDraft ? "CONTINUE DRAFT" : "CREATE OFFER"}
+                  </h1>
                 </div>
               </div>
               <div className="flex items-center gap-2 px-4 py-2 bg-muted border-2 border-neon-yellow">

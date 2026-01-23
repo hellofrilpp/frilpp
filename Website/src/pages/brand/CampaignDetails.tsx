@@ -111,19 +111,31 @@ const BrandCampaignDetails = () => {
             </Link>
           </Button>
           <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              className="border-2 font-mono text-xs"
-              onClick={handlePauseResume}
-              disabled={!offer || isLoading}
-            >
-              {offer?.status === "ARCHIVED" ? (
+            {offer?.status === "DRAFT" ? (
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs"
+                onClick={() => navigate(`/brand/campaigns/new?offerId=${encodeURIComponent(offerId ?? "")}`)}
+                disabled={!offer || isLoading}
+              >
                 <Play className="w-4 h-4 mr-2" />
-              ) : (
-                <Pause className="w-4 h-4 mr-2" />
-              )}
-              {offer?.status === "ARCHIVED" ? "RESUME" : "PAUSE"}
-            </Button>
+                CONTINUE DRAFT
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs"
+                onClick={handlePauseResume}
+                disabled={!offer || isLoading}
+              >
+                {offer?.status === "ARCHIVED" ? (
+                  <Play className="w-4 h-4 mr-2" />
+                ) : (
+                  <Pause className="w-4 h-4 mr-2" />
+                )}
+                {offer?.status === "ARCHIVED" ? "RESUME" : "PAUSE"}
+              </Button>
+            )}
             <Button
               variant="outline"
               className="border-2 font-mono text-xs"

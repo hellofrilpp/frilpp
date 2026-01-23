@@ -225,6 +225,7 @@ export type BrandOfferDetails = {
   usageRightsScope: string | null;
   acceptanceFollowersThreshold: number;
   acceptanceAboveThresholdAutoAccept: boolean;
+  metadata: Record<string, unknown>;
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
