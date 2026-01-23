@@ -309,6 +309,92 @@ const BrandPipeline = () => {
     }
   };
 
+  const handleApprove = async (matchId: string) => {
+    try {
+      await approveBrandMatch(matchId);
+      setInfluencersList((prev) =>
+        prev.map((inf) => (inf.id === matchId ? { ...inf, stage: "approved" } : inf)),
+      );
+      toast({ title: "APPROVED", description: "Creator approved." });
+      await queryClient.invalidateQueries({ queryKey: ["brand-matches", "pending"] });
+      await queryClient.invalidateQueries({ queryKey: ["brand-matches", "accepted"] });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Approve failed";
+      toast({ title: "APPROVE FAILED", description: message });
+    }
+  };
+
+  const handleReject = async (matchId: string) => {
+    try {
+      await rejectBrandMatch(matchId);
+      setInfluencersList((prev) => prev.filter((inf) => inf.id !== matchId));
+      toast({ title: "REJECTED", description: "Creator rejected." });
+      await queryClient.invalidateQueries({ queryKey: ["brand-matches", "pending"] });
+      await queryClient.invalidateQueries({ queryKey: ["brand-matches", "accepted"] });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Reject failed";
+      toast({ title: "REJECT FAILED", description: message });
+    }
+  };
+
+  const handleMarkShipped = async (matchId: string) => {
+    const shipment = manualShipmentByMatch.get(matchId);
+    if (!shipment) {
+      toast({ title: "NO MANUAL SHIPMENT", description: "Use Shipments for Shopify orders." });
+      return;
+    }
+    try {
+      const payload = manualForms[shipment.id] ?? {
+        carrier: "",
+        trackingNumber: "",
+        trackingUrl: "",
+      };
+      await updateManualShipment(shipment.id, {
+        status: "SHIPPED",
+        carrier: payload.carrier || undefined,
+        trackingNumber: payload.trackingNumber || undefined,
+        trackingUrl: payload.trackingUrl || undefined,
+      });
+      toast({ title: "SHIPPED", description: "Tracking saved." });
+      await queryClient.invalidateQueries({ queryKey: ["brand-shipments"] });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Update failed";
+      toast({ title: "UPDATE FAILED", description: message });
+    }
+  };
+
+  const handleVerifyPost = async (matchId: string) => {
+    const deliverable = deliverableByMatch.get(matchId);
+    if (!deliverable || !deliverable.submittedPermalink) {
+      toast({ title: "MISSING LINK", description: "Creator has not provided a permalink." });
+      return;
+    }
+    try {
+      await verifyBrandDeliverable(deliverable.deliverableId, {
+        permalink: deliverable.submittedPermalink ?? undefined,
+      });
+      toast({ title: "VERIFIED", description: "Deliverable approved." });
+      await queryClient.invalidateQueries({ queryKey: ["brand-deliverables"] });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Verify failed";
+      toast({ title: "VERIFY FAILED", description: message });
+    }
+  };
+
+  const handleRejectPost = async (matchId: string) => {
+    const deliverable = deliverableByMatch.get(matchId);
+    if (!deliverable) return;
+    const reason = window.prompt("Reason for rejection?", "Missing brand tag") ?? undefined;
+    try {
+      await failBrandDeliverable(deliverable.deliverableId, { reason: reason || undefined });
+      toast({ title: "REJECTED", description: "Deliverable rejected." });
+      await queryClient.invalidateQueries({ queryKey: ["brand-deliverables"] });
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Reject failed";
+      toast({ title: "REJECT FAILED", description: message });
+    }
+  };
+
   const filteredInfluencers = influencersList.filter(inf =>
     inf.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     inf.handle.toLowerCase().includes(searchQuery.toLowerCase())
@@ -385,7 +471,12 @@ const BrandPipeline = () => {
                         </div>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onMouseDown={(event) => event.stopPropagation()}
+                            >
                               <MoreVertical className="w-4 h-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -399,19 +490,7 @@ const BrandPipeline = () => {
                                 className="font-mono text-xs"
                                 onSelect={(event) => {
                                   event.preventDefault();
-                                  approveBrandMatch(influencer.id)
-                                    .then(() => {
-                                      setInfluencersList((prev) =>
-                                        prev.map((inf) =>
-                                          inf.id === influencer.id ? { ...inf, stage: "approved" } : inf,
-                                        ),
-                                      );
-                                      toast({ title: "APPROVED", description: "Creator approved." });
-                                    })
-                                    .catch((err) => {
-                                      const message = err instanceof ApiError ? err.message : "Approve failed";
-                                      toast({ title: "APPROVE FAILED", description: message });
-                                    });
+                                  void handleApprove(influencer.id);
                                 }}
                               >
                                 <CheckCircle className="w-4 h-4 mr-2" />
@@ -423,32 +502,7 @@ const BrandPipeline = () => {
                                 className="font-mono text-xs"
                                 onSelect={async (event) => {
                                   event.preventDefault();
-                                  const shipment = manualShipmentByMatch.get(influencer.id);
-                                  if (!shipment) {
-                                    toast({
-                                      title: "NO MANUAL SHIPMENT",
-                                      description: "Use Shipments for Shopify orders.",
-                                    });
-                                    return;
-                                  }
-                                  try {
-                                    const payload = manualForms[shipment.id] ?? {
-                                      carrier: "",
-                                      trackingNumber: "",
-                                      trackingUrl: "",
-                                    };
-                                    await updateManualShipment(shipment.id, {
-                                      status: "SHIPPED",
-                                      carrier: payload.carrier || undefined,
-                                      trackingNumber: payload.trackingNumber || undefined,
-                                      trackingUrl: payload.trackingUrl || undefined,
-                                    });
-                                    toast({ title: "SHIPPED", description: "Tracking saved." });
-                                    await queryClient.invalidateQueries({ queryKey: ["brand-shipments"] });
-                                  } catch (err) {
-                                    const message = err instanceof ApiError ? err.message : "Update failed";
-                                    toast({ title: "UPDATE FAILED", description: message });
-                                  }
+                                  await handleMarkShipped(influencer.id);
                                 }}
                               >
                                 <Package className="w-4 h-4 mr-2" />
@@ -461,25 +515,7 @@ const BrandPipeline = () => {
                                   className="font-mono text-xs"
                                   onSelect={async (event) => {
                                     event.preventDefault();
-                                    const deliverable = deliverableByMatch.get(influencer.id);
-                                    if (!deliverable) return;
-                                    if (!deliverable.submittedPermalink) {
-                                      toast({
-                                        title: "MISSING LINK",
-                                        description: "Creator has not provided a permalink.",
-                                      });
-                                      return;
-                                    }
-                                    try {
-                                      await verifyBrandDeliverable(deliverable.deliverableId, {
-                                        permalink: deliverable.submittedPermalink ?? undefined,
-                                      });
-                                      toast({ title: "VERIFIED", description: "Deliverable approved." });
-                                      await queryClient.invalidateQueries({ queryKey: ["brand-deliverables"] });
-                                    } catch (err) {
-                                      const message = err instanceof ApiError ? err.message : "Verify failed";
-                                      toast({ title: "VERIFY FAILED", description: message });
-                                    }
+                                    await handleVerifyPost(influencer.id);
                                   }}
                                 >
                                   <CheckCircle className="w-4 h-4 mr-2" />
@@ -489,20 +525,7 @@ const BrandPipeline = () => {
                                   className="font-mono text-xs text-destructive"
                                   onSelect={async (event) => {
                                     event.preventDefault();
-                                    const deliverable = deliverableByMatch.get(influencer.id);
-                                    if (!deliverable) return;
-                                    const reason =
-                                      window.prompt("Reason for rejection?", "Missing brand tag") ?? undefined;
-                                    try {
-                                      await failBrandDeliverable(deliverable.deliverableId, {
-                                        reason: reason || undefined,
-                                      });
-                                      toast({ title: "REJECTED", description: "Deliverable rejected." });
-                                      await queryClient.invalidateQueries({ queryKey: ["brand-deliverables"] });
-                                    } catch (err) {
-                                      const message = err instanceof ApiError ? err.message : "Reject failed";
-                                      toast({ title: "REJECT FAILED", description: message });
-                                    }
+                                    await handleRejectPost(influencer.id);
                                   }}
                                 >
                                   <XCircle className="w-4 h-4 mr-2" />
@@ -514,10 +537,7 @@ const BrandPipeline = () => {
                               className="font-mono text-xs text-destructive"
                               onSelect={(event) => {
                                 event.preventDefault();
-                                rejectBrandMatch(influencer.id).catch((err) => {
-                                  const message = err instanceof ApiError ? err.message : "Reject failed";
-                                  toast({ title: "REJECT FAILED", description: message });
-                                });
+                                void handleReject(influencer.id);
                               }}
                             >
                               <XCircle className="w-4 h-4 mr-2" />
@@ -544,6 +564,66 @@ const BrandPipeline = () => {
                       <div className="px-2 py-1 bg-muted text-xs font-mono inline-block">
                         {influencer.campaign}
                       </div>
+
+                      {influencer.stage === "applied" && (
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-2 font-mono text-[10px]"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={() => void handleApprove(influencer.id)}
+                          >
+                            APPROVE
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-2 font-mono text-[10px] text-destructive"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={() => void handleReject(influencer.id)}
+                          >
+                            REJECT
+                          </Button>
+                        </div>
+                      )}
+
+                      {influencer.stage === "approved" && (
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-2 font-mono text-[10px]"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={() => void handleMarkShipped(influencer.id)}
+                          >
+                            MARK_SHIPPED
+                          </Button>
+                        </div>
+                      )}
+
+                      {influencer.stage === "posted" && (
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-2 font-mono text-[10px]"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={() => void handleVerifyPost(influencer.id)}
+                          >
+                            VERIFY
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-2 font-mono text-[10px] text-destructive"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={() => void handleRejectPost(influencer.id)}
+                          >
+                            REJECT
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
