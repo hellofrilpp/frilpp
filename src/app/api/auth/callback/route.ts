@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { loginTokens, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
@@ -14,7 +14,7 @@ const tokenSchema = z.object({
 
 type RedeemResult =
   | { ok: true; nextPath: string }
-  | { ok: false; error: string; status: number };
+  | { ok: false; error: string; status: number; code?: string };
 
 async function redeemToken(token: string): Promise<RedeemResult> {
   const tokenHash = hashLoginToken(token);
@@ -23,10 +23,26 @@ async function redeemToken(token: string): Promise<RedeemResult> {
   const tokenRows = await db
     .select()
     .from(loginTokens)
-    .where(and(eq(loginTokens.tokenHash, tokenHash), isNull(loginTokens.usedAt), gt(loginTokens.expiresAt, now)))
+    .where(eq(loginTokens.tokenHash, tokenHash))
     .limit(1);
   const tokenRow = tokenRows[0];
-  if (!tokenRow) return { ok: false, error: "Invalid or expired token", status: 400 };
+  if (!tokenRow) return { ok: false, error: "Invalid token", status: 400, code: "TOKEN_INVALID" };
+  if (tokenRow.usedAt) {
+    return {
+      ok: false,
+      error: "This link has already been used to sign in.",
+      status: 409,
+      code: "TOKEN_USED",
+    };
+  }
+  if (tokenRow.expiresAt && tokenRow.expiresAt <= now) {
+    return {
+      ok: false,
+      error: "This link has expired. Request a new sign-in link.",
+      status: 410,
+      code: "TOKEN_EXPIRED",
+    };
+  }
 
   await db.update(loginTokens).set({ usedAt: now }).where(eq(loginTokens.id, tokenRow.id));
 
@@ -222,7 +238,10 @@ export async function POST(request: Request) {
 
   const result = await redeemToken(parsed.data.token);
   if (!result.ok) {
-    return Response.json({ ok: false, error: result.error }, { status: result.status });
+    return Response.json(
+      { ok: false, error: result.error, code: result.code },
+      { status: result.status },
+    );
   }
 
   return Response.json({ ok: true, nextPath: result.nextPath });
