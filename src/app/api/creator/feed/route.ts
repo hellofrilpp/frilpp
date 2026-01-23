@@ -151,8 +151,8 @@ export async function GET(request: Request) {
           r.brandLng !== null
             ? haversineKm(creatorLat, creatorLng, r.brandLat, r.brandLng)
             : null;
-        const locationRadius = radiusKm !== null ? (unit === "KM" ? radiusKm : kmToMiles(radiusKm)) : null;
-        const distance = distanceKm !== null ? (unit === "KM" ? distanceKm : kmToMiles(distanceKm)) : null;
+        const locationRadius = radiusKm !== null ? kmToMiles(radiusKm) : null;
+        const distance = distanceKm !== null ? kmToMiles(distanceKm) : null;
         return {
           id: r.id,
           brandName: r.brandName,
