@@ -1,10 +1,19 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { ArrowLeft, Copy, Pause, Play, Trash2 } from "lucide-react";
 
 import BrandLayout from "@/components/brand/BrandLayout";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ApiError, deleteBrandOffer, duplicateBrandOffer, getBrandOffer, updateBrandOffer } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,6 +27,8 @@ const BrandCampaignDetails = () => {
     queryFn: () => getBrandOffer(offerId as string),
     enabled: Boolean(offerId),
   });
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
 
   useEffect(() => {
     if (error instanceof ApiError && error.status === 401) {
@@ -78,8 +89,7 @@ const BrandCampaignDetails = () => {
 
   const handlePermanentDelete = async () => {
     if (!offerId) return;
-    const confirm = window.prompt('Type DELETE to permanently delete this draft campaign.', '');
-    if (confirm?.trim() !== "DELETE") return;
+    if (deleteConfirm.trim() !== "DELETE") return;
     try {
       await deleteBrandOffer(offerId);
       toast({ title: "DELETED", description: "Draft campaign permanently deleted." });
@@ -87,6 +97,9 @@ const BrandCampaignDetails = () => {
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Delete failed";
       toast({ title: "DELETE FAILED", description: message });
+    } finally {
+      setDeleteConfirm("");
+      setDeleteOpen(false);
     }
   };
 
@@ -158,7 +171,7 @@ const BrandCampaignDetails = () => {
               <Button
                 variant="outline"
                 className="border-2 font-mono text-xs text-destructive"
-                onClick={handlePermanentDelete}
+                onClick={() => setDeleteOpen(true)}
                 disabled={isLoading}
               >
                 <Trash2 className="w-4 h-4 mr-2" />
@@ -223,6 +236,46 @@ const BrandCampaignDetails = () => {
           )}
         </div>
       </div>
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent className="border-4 border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-pixel text-sm text-neon-pink">
+              DELETE DRAFT CAMPAIGN
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-xs">
+              This permanently deletes the draft campaign. Type DELETE to confirm.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="mt-3">
+            <Input
+              value={deleteConfirm}
+              onChange={(event) => setDeleteConfirm(event.target.value)}
+              placeholder="DELETE"
+              className="border-2 border-border font-mono text-xs"
+            />
+          </div>
+          <AlertDialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              className="border-2 font-mono text-xs"
+              onClick={() => {
+                setDeleteConfirm("");
+                setDeleteOpen(false);
+              }}
+            >
+              CANCEL
+            </Button>
+            <Button
+              variant="outline"
+              className="border-2 font-mono text-xs text-destructive"
+              onClick={handlePermanentDelete}
+              disabled={deleteConfirm.trim() !== "DELETE"}
+            >
+              DELETE PERMANENTLY
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </BrandLayout>
   );
 };
