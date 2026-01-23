@@ -167,7 +167,7 @@ const BrandPipeline = () => {
         match.matchId,
         buildInfluencer(
           match.matchId,
-          match.creator.username ?? "Creator",
+          match.creator.fullName ?? match.creator.username ?? "Creator",
           match.creator.username ?? null,
           match.creator.followersCount,
           match.offer.title,
@@ -183,7 +183,7 @@ const BrandPipeline = () => {
         match.matchId,
         buildInfluencer(
           match.matchId,
-          match.creator.username ?? "Creator",
+          match.creator.fullName ?? match.creator.username ?? "Creator",
           match.creator.username ?? null,
           match.creator.followersCount,
           match.offer.title,
@@ -204,7 +204,7 @@ const BrandPipeline = () => {
         shipment.match.id,
         buildInfluencer(
           shipment.match.id,
-          shipment.creator.username ?? "Creator",
+          shipment.creator.fullName ?? shipment.creator.username ?? "Creator",
           shipment.creator.username ?? null,
           null,
           shipment.offer.title,
@@ -221,7 +221,7 @@ const BrandPipeline = () => {
         deliverable.match.id,
         buildInfluencer(
           deliverable.match.id,
-          deliverable.creator.username ?? "Creator",
+          deliverable.creator.fullName ?? deliverable.creator.username ?? "Creator",
           deliverable.creator.username ?? null,
           deliverable.creator.followersCount,
           deliverable.offer.title,
@@ -237,7 +237,7 @@ const BrandPipeline = () => {
         deliverable.match.id,
         buildInfluencer(
           deliverable.match.id,
-          deliverable.creator.username ?? "Creator",
+          deliverable.creator.fullName ?? deliverable.creator.username ?? "Creator",
           deliverable.creator.username ?? null,
           deliverable.creator.followersCount,
           deliverable.offer.title,

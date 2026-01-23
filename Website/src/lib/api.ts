@@ -359,7 +359,7 @@ export type BrandShipment = {
   updatedAt: string;
   match: { id: string; campaignCode: string };
   offer: { title: string };
-  creator: { id: string; username: string | null; email: string | null };
+  creator: { id: string; username: string | null; fullName?: string | null; email: string | null };
 };
 
 export async function getBrandShipments() {
@@ -396,7 +396,13 @@ export type BrandDeliverable = {
   failureReason: string | null;
   match: { id: string; campaignCode: string };
   offer: { title: string; usageRightsRequired: boolean; usageRightsScope: string | null };
-  creator: { id: string; username: string | null; followersCount: number | null; email: string | null };
+  creator: {
+    id: string;
+    username: string | null;
+    fullName?: string | null;
+    followersCount: number | null;
+    email: string | null;
+  };
 };
 
 export async function getBrandDeliverables(status?: BrandDeliverable["status"]) {

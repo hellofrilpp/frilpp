@@ -82,6 +82,7 @@ export async function GET(request: Request) {
             offerMetadata: offers.metadata,
             creatorId: creators.id,
             creatorUsername: creators.username,
+            creatorFullName: creators.fullName,
             creatorEmail: creators.email,
           })
           .from(shopifyOrders)
@@ -114,6 +115,7 @@ export async function GET(request: Request) {
             offerMetadata: offers.metadata,
             creatorId: creators.id,
             creatorUsername: creators.username,
+            creatorFullName: creators.fullName,
             creatorEmail: creators.email,
           })
           .from(manualShipments)
@@ -142,6 +144,7 @@ export async function GET(request: Request) {
       creator: {
         id: r.creatorId,
         username: r.creatorUsername,
+        fullName: r.creatorFullName ?? null,
         email: r.creatorEmail ?? null,
       },
     })),
@@ -163,6 +166,7 @@ export async function GET(request: Request) {
       creator: {
         id: r.creatorId,
         username: r.creatorUsername,
+        fullName: r.creatorFullName ?? null,
         email: r.creatorEmail ?? null,
       },
     })),

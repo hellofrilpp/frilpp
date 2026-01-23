@@ -51,6 +51,7 @@ export async function GET(request: Request) {
       creatorId: creators.id,
       creatorUsername: creators.username,
       creatorFollowers: creators.followersCount,
+      creatorFullName: creators.fullName,
       creatorEmail: creators.email,
     })
     .from(deliverables)
@@ -86,6 +87,7 @@ export async function GET(request: Request) {
         id: r.creatorId,
         username: r.creatorUsername,
         followersCount: r.creatorFollowers ?? null,
+        fullName: r.creatorFullName ?? null,
         email: r.creatorEmail ?? null,
       },
     })),
