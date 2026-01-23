@@ -6,8 +6,7 @@ import {
   Link as LinkIcon,
   CreditCard,
   Save,
-  Settings,
-  Truck
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -369,30 +368,6 @@ const BrandSettings = () => {
                 </p>
               </div>
               <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
-            </div>
-          </div>
-        </section>
-
-        {/* Integrations */}
-        <section className="mb-8 border-4 border-border bg-card">
-          <div className="p-4 border-b-4 border-border flex items-center gap-3">
-            <LinkIcon className="w-5 h-5 text-neon-purple" />
-            <h2 className="font-pixel text-sm text-neon-purple">[INTEGRATIONS]</h2>
-          </div>
-          <div className="divide-y-2 divide-border">
-            <div className="p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
-              <div className="flex items-center gap-4">
-                <div className="w-10 h-10 border-2 border-neon-yellow bg-neon-yellow/10 flex items-center justify-center">
-                  <Truck className="w-5 h-5 text-neon-yellow" />
-                </div>
-                <div>
-                  <p className="font-mono text-sm">SHIPSTATION</p>
-                  <p className="text-xs font-mono text-muted-foreground">Automated shipping labels</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" className="border-2 border-primary text-primary font-mono text-xs">
-                CONNECT
-              </Button>
             </div>
           </div>
         </section>

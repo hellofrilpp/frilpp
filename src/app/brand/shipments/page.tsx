@@ -29,7 +29,7 @@ type ShipmentRow = {
   creator: { id: string; username: string | null; email: string | null };
 };
 
-type Filter = "ALL" | "PENDING" | "SHIPPED" | "ERROR" | "FULFILLED" | "COMPLETED" | "CANCELED" | "DRAFT_CREATED";
+type Filter = "ALL" | "PENDING" | "SHIPPED";
 
 export default function BrandShipmentsPage() {
   const [rows, setRows] = useState<ShipmentRow[]>([]);
@@ -57,7 +57,7 @@ export default function BrandShipmentsPage() {
           data && "error" in data && typeof data.error === "string" ? data.error : "Failed to load",
         );
       }
-      setRows(data.shipments);
+      setRows(data.shipments.filter((shipment) => shipment.fulfillmentType === "MANUAL"));
       setCarrierDraft((prev) => {
         const next = { ...prev };
         for (const r of data.shipments) {
@@ -98,7 +98,6 @@ export default function BrandShipmentsPage() {
       return (
         r.offer.title.toLowerCase().includes(q) ||
         (r.creator.username ?? "").toLowerCase().includes(q) ||
-        (r.shopifyOrderName ?? "").toLowerCase().includes(q) ||
         (r.trackingNumber ?? "").toLowerCase().includes(q) ||
         r.match.campaignCode.toLowerCase().includes(q)
       );
@@ -190,9 +189,7 @@ export default function BrandShipmentsPage() {
                 onChange={(e) => setQuery(e.target.value)}
               />
               <div className="flex flex-wrap gap-2">
-                {(
-                  ["ALL", "PENDING", "SHIPPED", "DRAFT_CREATED", "COMPLETED", "FULFILLED", "ERROR", "CANCELED"] as const
-                ).map((f) => (
+                {(["ALL", "PENDING", "SHIPPED"] as const).map((f) => (
                   <Button
                     key={f}
                     size="sm"
@@ -226,7 +223,6 @@ export default function BrandShipmentsPage() {
                           <span className="font-mono text-foreground">{r.match.campaignCode}</span>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge variant="secondary">{r.fulfillmentType}</Badge>
                           <Badge
                             variant={
                               r.status === "FULFILLED"
@@ -240,9 +236,6 @@ export default function BrandShipmentsPage() {
                           >
                             {r.status}
                           </Badge>
-                          {r.shopifyOrderName ? (
-                            <Badge variant="secondary">Order: {r.shopifyOrderName}</Badge>
-                          ) : null}
                           {r.trackingNumber ? (
                             <Badge variant="secondary">Tracking: {r.trackingNumber}</Badge>
                           ) : null}

@@ -19,16 +19,12 @@ import { toast } from "sonner";
 import BrandLayout from "@/components/brand/BrandLayout";
 import {
   ApiError,
-  ShopifyProduct,
-  apiUrl,
   createBrandOffer,
   updateBrandOffer,
   getCreatorRecommendations,
   getBrandOffer,
   getBrandOffers,
   getPicklists,
-  getShopifyProducts,
-  getShopifyStatus,
 } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 
@@ -148,10 +144,6 @@ const CampaignCreator = () => {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState<CampaignFormData>(initialFormData);
-  const [productSearch, setProductSearch] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<ShopifyProduct | null>(null);
-  const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
-  const [productQuantity, setProductQuantity] = useState(1);
   const [copying, setCopying] = useState(false);
   const [launching, setLaunching] = useState(false);
   const [draftOfferId, setDraftOfferId] = useState<string | null>(null);
@@ -189,8 +181,6 @@ const CampaignCreator = () => {
       const draft = parsed as Partial<{
         currentStep: unknown;
         formData: Partial<CampaignFormData> | null;
-        productQuantity: unknown;
-        selectedVariantId: unknown;
         draftOfferId: unknown;
       }>;
 
@@ -208,14 +198,6 @@ const CampaignCreator = () => {
       if (typeof draft.currentStep === "number" && Number.isFinite(draft.currentStep)) {
         const step = Math.max(1, Math.min(4, Math.floor(draft.currentStep)));
         setCurrentStep(step);
-      }
-
-      if (typeof draft.productQuantity === "number" && Number.isFinite(draft.productQuantity)) {
-        setProductQuantity(Math.max(1, Math.floor(draft.productQuantity)));
-      }
-
-      if (typeof draft.selectedVariantId === "string" || draft.selectedVariantId === null) {
-        setSelectedVariantId(draft.selectedVariantId);
       }
 
       if (typeof draft.draftOfferId === "string" || draft.draftOfferId === null) {
@@ -261,9 +243,6 @@ const CampaignCreator = () => {
         const radiusInput = radiusKm !== null ? kmToMiles(radiusKm) : null;
 
         setDraftOfferId(offer.id);
-        setProductQuantity(offer.products?.[0]?.quantity ?? 1);
-        setSelectedProduct(null);
-        setSelectedVariantId(offer.products?.[0]?.shopifyVariantId ?? null);
         setFormData((prev) => ({
           ...prev,
           productName: meta.campaignName || offer.title || prev.productName,
@@ -306,24 +285,11 @@ const CampaignCreator = () => {
     const payload = {
       currentStep,
       formData,
-      productQuantity,
-      selectedVariantId,
       draftOfferId,
       updatedAt: Date.now(),
     };
     localStorage.setItem(DRAFT_KEY, JSON.stringify(payload));
-  }, [currentStep, formData, productQuantity, selectedVariantId, draftOfferId]);
-
-  const { data: shopifyStatus } = useQuery({
-    queryKey: ["shopify-status"],
-    queryFn: getShopifyStatus,
-  });
-
-  const { data: productsData, isLoading: productsLoading } = useQuery({
-    queryKey: ["shopify-products", productSearch],
-    queryFn: () => getShopifyProducts(productSearch, 10),
-    enabled: Boolean(shopifyStatus?.connected),
-  });
+  }, [currentStep, formData, draftOfferId]);
 
   const { data: picklists } = useQuery({
     queryKey: ["picklists"],
@@ -403,17 +369,6 @@ const CampaignCreator = () => {
     });
   }, [availablePlatforms]);
 
-  useEffect(() => {
-    if (!shopifyStatus) return;
-    setFormData((prev) => {
-      if (prev.fulfillmentType) return { ...prev, fulfillmentType: "MANUAL" };
-      return {
-        ...prev,
-        fulfillmentType: "MANUAL",
-      };
-    });
-  }, [shopifyStatus]);
-
   const updateField = <Key extends keyof CampaignFormData>(field: Key, value: CampaignFormData[Key]) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
   };
@@ -471,16 +426,7 @@ const CampaignCreator = () => {
     };
   };
 
-  const buildOfferProducts = (fulfillmentType: "SHOPIFY" | "MANUAL") => {
-    if (fulfillmentType !== "SHOPIFY" || !selectedProduct || !selectedVariantId) return [];
-    return [
-      {
-        shopifyProductId: selectedProduct.id,
-        shopifyVariantId: selectedVariantId,
-        quantity: Math.max(1, productQuantity || 1),
-      },
-    ];
-  };
+  const buildOfferProducts = () => [];
 
   const saveDraftToServer = async () => {
     if (savingDraft) return;
@@ -500,7 +446,7 @@ const CampaignCreator = () => {
       deadlineDaysAfterDelivery: 14,
       followersThreshold: Number.isFinite(minFollowers) ? minFollowers : 0,
       aboveThresholdAutoAccept: true,
-      products: buildOfferProducts(fulfillmentType),
+      products: buildOfferProducts(),
       metadata: buildOfferMetadata(fulfillmentType),
     };
 
@@ -588,7 +534,7 @@ const CampaignCreator = () => {
     const allowedCountries = countriesAllowed;
     const fulfillmentType: FulfillmentType = "MANUAL";
 
-    const products = buildOfferProducts(fulfillmentType);
+    const products = buildOfferProducts();
     const metadata = buildOfferMetadata(fulfillmentType);
 
     const toastId = toast.loading("Launching campaign...");
@@ -729,8 +675,6 @@ const CampaignCreator = () => {
         fulfillmentType: meta.fulfillmentType || prev.fulfillmentType,
         locationRadiusMiles: radiusInput !== null ? String(Math.round(radiusInput * 10) / 10) : "",
       }));
-      setSelectedProduct(null);
-      setSelectedVariantId(null);
       toast.success("Last offer copied");
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Copy failed";
@@ -839,9 +783,6 @@ const CampaignCreator = () => {
                       onClick={() => {
                         localStorage.removeItem(DRAFT_KEY);
                         setFormData(initialFormData);
-                        setSelectedProduct(null);
-                        setSelectedVariantId(null);
-                        setProductQuantity(1);
                         setCurrentStep(1);
                         toast.success("Draft cleared");
                       }}
@@ -863,91 +804,6 @@ const CampaignCreator = () => {
                     />
                   </div>
 
-                  {false ? (
-                    <div className="space-y-2">
-                    <Label className="font-mono text-sm">STORE_PRODUCT</Label>
-                    {shopifyStatus?.connected ? (
-                      <>
-                        <Input
-                          value={productSearch}
-                          onChange={(event) => setProductSearch(event.target.value)}
-                          placeholder="Search connected products..."
-                          className="border-2 border-border font-mono focus:border-primary"
-                        />
-                        <div className="border-2 border-border bg-muted/30 max-h-48 overflow-y-auto">
-                          {productsLoading ? (
-                            <div className="p-3 text-xs font-mono text-muted-foreground">Loading products...</div>
-                          ) : (
-                            (productsData?.products ?? []).map((product) => (
-                              <button
-                                key={product.id}
-                                type="button"
-                                onClick={() => {
-                                  setSelectedProduct(product);
-                                  setSelectedVariantId(product.variants[0]?.id ?? null);
-                                  if (!formData.productName) {
-                                    updateField("productName", product.title);
-                                  }
-                                }}
-                                className={`w-full text-left p-3 border-b-2 border-border font-mono text-xs transition-all ${
-                                  selectedProduct?.id === product.id
-                                    ? "bg-primary text-primary-foreground"
-                                    : "hover:bg-muted"
-                                }`}
-                              >
-                                {product.title}
-                              </button>
-                            ))
-                          )}
-                          {!productsLoading && (productsData?.products?.length ?? 0) === 0 && (
-                            <div className="p-3 text-xs font-mono text-muted-foreground">
-                              No products found.
-                            </div>
-                          )}
-                        </div>
-                        {selectedProduct && (
-                          <div className="grid md:grid-cols-2 gap-3">
-                            <div>
-                              <Label className="font-mono text-xs">VARIANT</Label>
-                              <select
-                                value={selectedVariantId ?? ""}
-                                onChange={(event) => setSelectedVariantId(event.target.value)}
-                                className="mt-2 w-full border-2 border-border bg-background px-3 py-2 text-xs font-mono"
-                              >
-                                {selectedProduct.variants.map((variant) => (
-                                  <option key={variant.id} value={variant.id}>
-                                    {variant.title}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div>
-                              <Label className="font-mono text-xs">QUANTITY</Label>
-                              <Input
-                                type="number"
-                                min={1}
-                                value={productQuantity}
-                                onChange={(event) => setProductQuantity(Number(event.target.value))}
-                                className="mt-2 border-2 border-border font-mono"
-                              />
-                            </div>
-                          </div>
-                        )}
-                      </>
-                    ) : (
-                      <div className="border-2 border-border p-4 text-xs font-mono text-muted-foreground">
-                        Connect your store to pull product details.
-                        <Button
-                          asChild
-                          size="sm"
-                          className="ml-3 bg-primary text-primary-foreground font-pixel text-xs"
-                        >
-                          <a href={apiUrl("/api/shopify/install")}>CONNECT STORE</a>
-                        </Button>
-                      </div>
-                    )}
-                    </div>
-                  ) : null}
                   <div className="space-y-2">
                     <Label className="font-mono text-sm">FULFILLMENT</Label>
                     <div className="grid gap-3">

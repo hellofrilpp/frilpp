@@ -341,7 +341,7 @@ const BrandPipeline = () => {
   const handleMarkShipped = async (matchId: string) => {
     const shipment = manualShipmentByMatch.get(matchId);
     if (!shipment) {
-      toast({ title: "NO MANUAL SHIPMENT", description: "Use Shipments for Shopify orders." });
+      toast({ title: "NO MANUAL SHIPMENT", description: "Add a manual shipment in Shipments first." });
       return;
     }
     try {
