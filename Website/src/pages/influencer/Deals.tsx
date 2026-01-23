@@ -24,7 +24,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, CreatorDeal, CreatorDeliverable, apiUrl, getCreatorDeals, getCreatorDeliverables, submitCreatorDeliverable } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
-type DealStatus = "pending" | "approved" | "shipped" | "post_required" | "complete";
+type DealStatus = "pending" | "approved" | "shipped" | "post_required" | "posted" | "complete";
 
 interface Deal {
   id: string;
@@ -42,6 +42,7 @@ const statusConfig: Record<DealStatus, { label: string; icon: React.ElementType;
   approved: { label: "APPROVED", icon: CheckCircle, color: "border-neon-blue text-neon-blue" },
   shipped: { label: "SHIPPED", icon: Truck, color: "border-neon-yellow text-neon-yellow bg-neon-yellow/10" },
   post_required: { label: "POST NOW", icon: Camera, color: "bg-neon-pink text-background" },
+  posted: { label: "POSTED", icon: Camera, color: "border-neon-pink text-neon-pink" },
   complete: { label: "COMPLETE", icon: Star, color: "bg-neon-green text-background" },
 };
 
@@ -146,7 +147,7 @@ const InfluencerDeals = () => {
 
         {/* Filters */}
         <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
-          {(["all", "pending", "approved", "shipped", "post_required", "complete"] as const).map((status) => (
+          {(["all", "pending", "approved", "shipped", "posted", "complete"] as const).map((status) => (
             <Button
               key={status}
               variant="outline"
@@ -214,7 +215,7 @@ const InfluencerDeals = () => {
                           <span className="text-xs font-mono">DUE: {deal.deadline}</span>
                         </div>
                       )}
-                      {deal.status === "post_required" &&
+                      {(deal.status === "post_required" || deal.status === "posted") &&
                         deliverableByMatch.get(deal.id)?.submittedAt && (
                           <div className="mt-3 text-xs font-mono text-neon-green">
                             SUBMITTED · Awaiting review

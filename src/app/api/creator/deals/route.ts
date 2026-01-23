@@ -16,6 +16,7 @@ function mapDealStatus(params: {
   if (params.matchStatus !== "ACCEPTED") return "pending";
 
   if (params.deliverableStatus === "VERIFIED") return "complete";
+  if (params.submittedAt) return "posted";
   if (params.deliverableStatus === "DUE") return "post_required";
 
   const shippedStatuses = new Set(["DRAFT_CREATED", "COMPLETED", "FULFILLED"]);

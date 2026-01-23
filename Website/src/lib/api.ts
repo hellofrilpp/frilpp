@@ -723,7 +723,7 @@ export type CreatorDeal = {
   brand: string;
   product: string;
   valueUsd: number | null;
-  status: "pending" | "approved" | "shipped" | "post_required" | "complete";
+  status: "pending" | "approved" | "shipped" | "post_required" | "posted" | "complete";
   matchDate: string;
   deadline: string | null;
   trackingNumber: string | null;
