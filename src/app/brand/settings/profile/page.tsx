@@ -27,7 +27,6 @@ export default function BrandProfileSettingsPage() {
   const [profile, setProfile] = useState<BrandProfile | null>(null);
   const [status, setStatus] = useState<"loading" | "idle" | "saving" | "saved" | "error">("loading");
   const [message, setMessage] = useState<string | null>(null);
-  const [isLocating, setIsLocating] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleteStatus, setDeleteStatus] = useState<"idle" | "deleting" | "done" | "error">("idle");
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
@@ -88,34 +87,6 @@ export default function BrandProfileSettingsPage() {
     } catch (err) {
       setStatus("error");
       setMessage(err instanceof Error ? err.message : "Save failed");
-    }
-  }
-
-  async function useMyLocation() {
-    if (!profile) return;
-    setIsLocating(true);
-    setMessage(null);
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10_000,
-        });
-      });
-      setProfile((p) =>
-        p
-          ? {
-              ...p,
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-            }
-          : p,
-      );
-      setMessage("Location captured. Click Save.");
-    } catch {
-      setMessage("Failed to get location (check browser permissions).");
-    } finally {
-      setIsLocating(false);
     }
   }
 
@@ -316,24 +287,6 @@ export default function BrandProfileSettingsPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="country">Country</Label>
-                    <Input
-                      id="country"
-                      placeholder="US"
-                      value={profile.country ?? ""}
-                      onChange={(e) =>
-                        setProfile((p) =>
-                          p
-                            ? {
-                                ...p,
-                                country: (e.target.value.toUpperCase() as BrandProfile["country"]) || null,
-                              }
-                            : p,
-                        )
-                      }
-                    />
-                  </div>
-                  <div className="grid gap-2">
                     <Label htmlFor="locationLabel">Location label (optional)</Label>
                     <Input
                       id="locationLabel"
@@ -390,9 +343,6 @@ export default function BrandProfileSettingsPage() {
                 </div>
 
                 <div className="flex flex-wrap gap-2">
-                  <Button variant="outline" type="button" onClick={useMyLocation} disabled={isLocating}>
-                    {isLocating ? "Locating..." : "Use my current location"}
-                  </Button>
                   <Button onClick={save} disabled={status === "saving"}>
                     Save
                   </Button>
