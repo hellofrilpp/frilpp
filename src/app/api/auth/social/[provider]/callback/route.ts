@@ -17,6 +17,8 @@ const callbackSchema = z.object({
   state: z.string().min(1),
 });
 
+const creatorDashboardPath = "/influencer/discover";
+
 async function createSession(userId: string) {
   const sessionId = crypto.randomUUID();
   const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
@@ -51,6 +53,12 @@ async function createSession(userId: string) {
   }
 }
 
+function redirectWithError(origin: string, message: string) {
+  const target = new URL("/auth/callback", origin);
+  target.searchParams.set("error", message);
+  return Response.redirect(target, 302);
+}
+
 export async function GET(request: Request, context: { params: Promise<{ provider: string }> }) {
   if (!process.env.DATABASE_URL) {
     return Response.json(
@@ -59,21 +67,21 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     );
   }
 
+  const url = new URL(request.url);
   const params = await context.params;
   const providerParsed = providerSchema.safeParse(params.provider);
   if (!providerParsed.success) {
-    return Response.json({ ok: false, error: "Unsupported provider" }, { status: 404 });
+    return redirectWithError(url.origin, "Unsupported provider");
   }
 
   const provider = providerParsed.data;
   const providerId = provider === "instagram" ? "INSTAGRAM" : provider === "tiktok" ? "TIKTOK" : "YOUTUBE";
-  const url = new URL(request.url);
   const parsed = callbackSchema.safeParse({
     code: url.searchParams.get("code"),
     state: url.searchParams.get("state"),
   });
   if (!parsed.success) {
-    return Response.json({ ok: false, error: "Invalid callback" }, { status: 400 });
+    return redirectWithError(url.origin, "Invalid callback");
   }
 
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? url.origin;
@@ -98,7 +106,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const nextPath = sanitizeNextPath(nextCookie, "/onboarding");
 
   if (!stateCookie || stateCookie !== parsed.data.state || providerCookie !== provider) {
-    return Response.json({ ok: false, error: "Invalid state" }, { status: 400 });
+    return redirectWithError(url.origin, "Invalid state");
   }
 
 
@@ -116,7 +124,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
 
     const ig = await discoverInstagramAccount({ accessToken: exchanged.accessToken });
     if (!ig?.igUserId) {
-      return Response.json({ ok: false, error: "Instagram account not found" }, { status: 400 });
+      return redirectWithError(url.origin, "Instagram account not found");
     }
     providerUserId = ig.igUserId;
 
@@ -148,7 +156,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   }
 
   if (!providerUserId) {
-    return Response.json({ ok: false, error: "Unable to identify account" }, { status: 400 });
+    return redirectWithError(url.origin, "Unable to identify account");
   }
 
   const session = await getSessionUser(request);
@@ -157,9 +165,9 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     jar.delete("social_oauth_provider");
     jar.delete("social_oauth_next");
     jar.delete("social_oauth_role");
-    return Response.json(
-      { ok: false, error: "YouTube connect requires an existing account (settings-only)" },
-      { status: 401 },
+    return redirectWithError(
+      url.origin,
+      "YouTube connect requires an existing account (settings-only)",
     );
   }
   const existingSocial = await db
@@ -172,7 +180,22 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const existing = existingSocial[0] ?? null;
 
   if (session && existing && existing.userId !== session.user.id) {
-    return Response.json({ ok: false, error: "Social account already linked" }, { status: 409 });
+    await createSession(existing.userId);
+    jar.set("frilpp_lane", "creator", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
+    jar.delete("social_oauth_state");
+    jar.delete("social_oauth_provider");
+    jar.delete("social_oauth_next");
+    jar.delete("social_oauth_role");
+    jar.delete("pending_social_id");
+
+    return Response.redirect(new URL(creatorDashboardPath, origin), 302);
   }
 
   if (session) {
@@ -226,22 +249,20 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   if (existing) {
     await createSession(existing.userId);
 
-    if (roleCookie === "brand" || roleCookie === "creator") {
-      jar.set("frilpp_lane", roleCookie, {
-        httpOnly: false,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        path: "/",
-        maxAge: 60 * 60 * 24 * 30,
-      });
-    }
+    jar.set("frilpp_lane", "creator", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
 
     jar.delete("social_oauth_state");
     jar.delete("social_oauth_provider");
     jar.delete("social_oauth_next");
     jar.delete("social_oauth_role");
 
-    return Response.redirect(new URL(nextPath, origin), 302);
+    return Response.redirect(new URL(creatorDashboardPath, origin), 302);
   }
 
   if (roleCookie === "creator") {
