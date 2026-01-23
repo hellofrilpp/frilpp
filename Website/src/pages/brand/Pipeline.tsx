@@ -52,6 +52,7 @@ const stages: { key: Stage; label: string; icon: React.ElementType; color: strin
 
 const BrandPipeline = () => {
   const [searchQuery, setSearchQuery] = useState("");
+  const [stageFilter, setStageFilter] = useState<Stage | "all">("all");
   const [draggedInfluencer, setDraggedInfluencer] = useState<Influencer | null>(null);
   const [influencersList, setInfluencersList] = useState<Influencer[]>([]);
   const [manualForms, setManualForms] = useState<Record<string, { carrier: string; trackingNumber: string; trackingUrl: string }>>({});
@@ -395,13 +396,16 @@ const BrandPipeline = () => {
     }
   };
 
-  const filteredInfluencers = influencersList.filter(inf =>
-    inf.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    inf.handle.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredInfluencers = influencersList.filter(
+    (inf) =>
+      inf.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      inf.handle.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
-  const getInfluencersByStage = (stage: Stage) => 
-    filteredInfluencers.filter(inf => inf.stage === stage);
+  const getInfluencersByStage = (stage: Stage) => {
+    if (stageFilter !== "all" && stageFilter !== stage) return [];
+    return filteredInfluencers.filter((inf) => inf.stage === stage);
+  };
 
   return (
     <BrandLayout>
@@ -438,17 +442,23 @@ const BrandPipeline = () => {
                 onDrop={() => handleDrop(stage.key)}
               >
                 {/* Column Header */}
-                <div className={`p-4 border-4 ${stage.color} mb-4 bg-card`}>
+                <button
+                  type="button"
+                  className={`w-full text-left p-4 border-4 ${stage.color} mb-4 bg-card ${
+                    stageFilter === stage.key ? "ring-2 ring-primary/60" : ""
+                  }`}
+                  onClick={() => setStageFilter((prev) => (prev === stage.key ? "all" : stage.key))}
+                >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
                       <stage.icon className="w-4 h-4" />
                       <span className="text-xs font-pixel">{stage.label}</span>
                     </div>
                     <span className="text-xs font-mono text-muted-foreground px-2 py-1 bg-muted">
-                      {getInfluencersByStage(stage.key).length}
+                      {filteredInfluencers.filter((inf) => inf.stage === stage.key).length}
                     </span>
                   </div>
-                </div>
+                </button>
 
                 {/* Cards */}
                 <div className="space-y-3">
