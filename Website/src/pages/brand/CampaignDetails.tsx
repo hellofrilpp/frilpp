@@ -14,7 +14,14 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ApiError, deleteBrandOffer, duplicateBrandOffer, getBrandOffer, updateBrandOffer } from "@/lib/api";
+import {
+  ApiError,
+  deleteBrandOffer,
+  duplicateBrandOffer,
+  getBrandMatchesByOffer,
+  getBrandOffer,
+  updateBrandOffer,
+} from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 const BrandCampaignDetails = () => {
@@ -25,6 +32,11 @@ const BrandCampaignDetails = () => {
   const { data, error, refetch, isLoading } = useQuery({
     queryKey: ["brand-offer", offerId],
     queryFn: () => getBrandOffer(offerId as string),
+    enabled: Boolean(offerId),
+  });
+  const { data: matchesData, error: matchesError, isLoading: matchesLoading } = useQuery({
+    queryKey: ["brand-offer-matches", offerId],
+    queryFn: () => getBrandMatchesByOffer(offerId as string),
     enabled: Boolean(offerId),
   });
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -38,6 +50,16 @@ const BrandCampaignDetails = () => {
 
   const offer = data?.offer;
   const metadata = (offer?.metadata ?? {}) as Record<string, unknown>;
+  const matches = matchesData?.matches ?? [];
+
+  const pendingCount = useMemo(
+    () => matches.filter((match) => match.status === "PENDING_APPROVAL").length,
+    [matches],
+  );
+  const acceptedCount = useMemo(
+    () => matches.filter((match) => match.status === "ACCEPTED").length,
+    [matches],
+  );
 
   const presetLabel = useMemo(() => {
     if (!metadata.presetId || typeof metadata.presetId !== "string") return null;
@@ -76,6 +98,30 @@ const BrandCampaignDetails = () => {
     if (offer.status === "ARCHIVED") return "PAUSED";
     return "DRAFT";
   }, [offer]);
+
+  const formatFollowers = (count?: number | null) => {
+    if (!count) return "—";
+    if (count >= 1_000_000) return `${(count / 1_000_000).toFixed(1)}M`;
+    if (count >= 1_000) return `${(count / 1_000).toFixed(1)}K`;
+    return `${count}`;
+  };
+
+  const formatStatus = (status?: string) => {
+    switch (status) {
+      case "PENDING_APPROVAL":
+        return "PENDING";
+      case "ACCEPTED":
+        return "APPROVED";
+      case "CLAIMED":
+        return "CLAIMED";
+      case "REVOKED":
+        return "REVOKED";
+      case "CANCELED":
+        return "CANCELED";
+      default:
+        return status ?? "—";
+    }
+  };
 
   const handlePauseResume = async () => {
     if (!offerId || !offer) return;
@@ -318,6 +364,53 @@ const BrandCampaignDetails = () => {
             </div>
           </div>
         ) : null}
+
+        <div className="border-4 border-border bg-card p-6 space-y-4">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div className="text-sm font-pixel text-neon-pink">APPLICANTS</div>
+            <div className="font-mono text-xs text-muted-foreground">
+              {matches.length} total · {pendingCount} pending · {acceptedCount} approved
+            </div>
+          </div>
+          {matchesLoading ? (
+            <p className="font-mono text-xs text-muted-foreground">Loading applicants...</p>
+          ) : matchesError ? (
+            <p className="font-mono text-xs text-destructive">
+              {matchesError instanceof ApiError ? matchesError.message : "Failed to load applicants"}
+            </p>
+          ) : matches.length ? (
+            <div className="grid gap-3">
+              {matches.map((match) => (
+                <div
+                  key={match.matchId}
+                  className="border-2 border-border bg-background/60 p-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between"
+                >
+                  <div className="space-y-1">
+                    <div className="font-pixel text-xs text-foreground">
+                      {match.creator.username ? `@${match.creator.username}` : "Creator"}
+                    </div>
+                    <div className="font-mono text-[11px] text-muted-foreground">
+                      Followers: {formatFollowers(match.creator.followersCount)}
+                    </div>
+                    <div className="font-mono text-[11px] text-muted-foreground">
+                      Shipping: {match.creator.shippingReady ? "ready" : "needs address"}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-1 text-[10px] font-pixel border-2 border-border">
+                      {formatStatus(match.status)}
+                    </span>
+                    <span className="font-mono text-[11px] text-muted-foreground">
+                      {new Date(match.createdAt).toLocaleDateString()}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="font-mono text-xs text-muted-foreground">No applications yet.</p>
+          )}
+        </div>
       </div>
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent className="border-4 border-border bg-card">

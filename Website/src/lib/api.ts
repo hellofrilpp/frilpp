@@ -315,6 +315,16 @@ export async function getBrandMatches(status?: BrandMatch["status"]) {
   return apiFetch<{ ok: boolean; matches: BrandMatch[] }>(`/api/brand/matches${query}`);
 }
 
+export async function getBrandMatchesByOffer(offerId: string, status?: BrandMatch["status"]) {
+  const params = new URLSearchParams();
+  params.set("offerId", offerId);
+  if (status) {
+    params.set("status", status);
+  }
+  const query = params.toString();
+  return apiFetch<{ ok: boolean; matches: BrandMatch[] }>(`/api/brand/matches?${query}`);
+}
+
 export async function approveBrandMatch(matchId: string) {
   return apiFetch<{ ok: boolean }>(`/api/brand/matches/${matchId}/approve`, {
     method: "POST",

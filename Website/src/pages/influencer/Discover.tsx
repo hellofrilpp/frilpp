@@ -14,7 +14,7 @@ import { useAchievements } from "@/hooks/useAchievements";
 import { AchievementToast } from "@/components/AchievementToast";
 import { useToast } from "@/hooks/use-toast";
 import { ApiError, apiUrl, claimOffer, getCreatorFeed, rejectOffer } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type OfferCard = {
   id: string;
@@ -41,6 +41,7 @@ const requirementLabel = (deliverable: string) => {
 
 const InfluencerDiscover = () => {
   const { toast } = useToast();
+  const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuery({
     queryKey: ["creator-feed"],
     queryFn: () => getCreatorFeed(),
@@ -49,6 +50,7 @@ const InfluencerDiscover = () => {
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [matchedOffers, setMatchedOffers] = useState<string[]>([]);
+  const [hiddenOfferIds, setHiddenOfferIds] = useState<string[]>([]);
   const feedback = useFeedback();
   const { fireMatch, fireLevelUp } = useConfetti();
   const { recentUnlock, refreshAchievements } = useAchievements();
@@ -68,6 +70,22 @@ const InfluencerDiscover = () => {
     }));
   }, [data]);
 
+  const visibleOffers = useMemo(() => {
+    if (!offers.length) return [];
+    const hiddenSet = new Set(hiddenOfferIds);
+    return offers.filter((offer) => !hiddenSet.has(offer.id));
+  }, [offers, hiddenOfferIds]);
+
+  useEffect(() => {
+    if (visibleOffers.length === 0 && currentIndex !== 0) {
+      setCurrentIndex(0);
+      return;
+    }
+    if (currentIndex >= visibleOffers.length && visibleOffers.length > 0) {
+      setCurrentIndex(visibleOffers.length - 1);
+    }
+  }, [currentIndex, visibleOffers.length]);
+
   useEffect(() => {
     if (error instanceof ApiError && error.code === "NEEDS_CREATOR_PROFILE") {
       window.location.href = "/influencer/onboarding";
@@ -77,8 +95,8 @@ const InfluencerDiscover = () => {
     }
   }, [error]);
 
-  const currentOffer = offers[currentIndex];
-  const hasMoreOffers = currentIndex < offers.length;
+  const currentOffer = visibleOffers[currentIndex];
+  const hasMoreOffers = currentIndex < visibleOffers.length;
 
   const handleSwipe = async (direction: "left" | "right") => {
     setSwipeDirection(direction);
@@ -87,7 +105,8 @@ const InfluencerDiscover = () => {
       setSwipeDirection(null);
       return;
     }
-    
+    let shouldRemove = false;
+
     if (direction === "right") {
       try {
         await claimOffer(currentOffer.id);
@@ -98,6 +117,7 @@ const InfluencerDiscover = () => {
         refreshAchievements();
         feedback.swipeRight();
         fireMatch();
+        shouldRemove = true;
       } catch (err) {
         if (err instanceof ApiError && err.code === "NEEDS_TIKTOK_CONNECT") {
           toast({
@@ -144,7 +164,18 @@ const InfluencerDiscover = () => {
 
     setTimeout(() => {
       setSwipeDirection(null);
-      setCurrentIndex(prev => prev + 1);
+      if (shouldRemove) {
+        const removalId = currentOffer.id;
+        setHiddenOfferIds((prev) => (prev.includes(removalId) ? prev : [...prev, removalId]));
+        setCurrentIndex((prev) => {
+          const nextLength = Math.max(visibleOffers.length - 1, 0);
+          if (nextLength === 0) return 0;
+          return Math.min(prev, nextLength - 1);
+        });
+        queryClient.invalidateQueries({ queryKey: ["creator-feed"] });
+      } else {
+        setCurrentIndex((prev) => prev + 1);
+      }
     }, 400);
   };
 
@@ -176,7 +207,7 @@ const InfluencerDiscover = () => {
               : blocked
                 ? "Offers paused"
                 : hasMoreOffers 
-                  ? `${offers.length - currentIndex} offers remaining`
+                  ? `${visibleOffers.length - currentIndex} offers remaining`
                   : "All caught up!"
             }
           </p>
@@ -196,10 +227,10 @@ const InfluencerDiscover = () => {
         ) : hasMoreOffers ? (
           <div className="relative w-full max-w-sm">
             {/* Background Cards */}
-            {currentIndex + 2 < offers.length && (
+            {currentIndex + 2 < visibleOffers.length && (
               <div className="absolute top-4 left-4 right-4 h-[420px] bg-muted border-4 border-neon-purple transform rotate-3 opacity-60" />
             )}
-            {currentIndex + 1 < offers.length && (
+            {currentIndex + 1 < visibleOffers.length && (
               <div className="absolute top-2 left-2 right-2 h-[420px] bg-card border-4 border-neon-blue transform -rotate-2 opacity-80" />
             )}
 

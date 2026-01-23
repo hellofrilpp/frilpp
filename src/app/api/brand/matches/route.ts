@@ -12,6 +12,7 @@ const querySchema = z.object({
   status: z
     .enum(["PENDING_APPROVAL", "ACCEPTED", "REVOKED", "CANCELED", "CLAIMED"])
     .optional(),
+  offerId: z.string().min(1).optional(),
 });
 
 const haversineKm = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -35,7 +36,10 @@ export async function GET(request: Request) {
   }
 
   const url = new URL(request.url);
-  const parsed = querySchema.safeParse({ status: url.searchParams.get("status") ?? undefined });
+  const parsed = querySchema.safeParse({
+    status: url.searchParams.get("status") ?? undefined,
+    offerId: url.searchParams.get("offerId") ?? undefined,
+  });
   if (!parsed.success) {
     return Response.json({ ok: false, error: "Invalid query" }, { status: 400 });
   }
@@ -43,7 +47,8 @@ export async function GET(request: Request) {
   const ctx = await requireBrandContext(request);
   if (ctx instanceof Response) return ctx;
 
-  const status = parsed.data.status ?? "PENDING_APPROVAL";
+  const status = parsed.data.status;
+  const offerId = parsed.data.offerId;
 
   const brandRows = await db
     .select({ lat: brands.lat, lng: brands.lng })
@@ -53,6 +58,16 @@ export async function GET(request: Request) {
   const brand = brandRows[0];
   const brandLat = brand?.lat ?? null;
   const brandLng = brand?.lng ?? null;
+
+  const filters = [eq(offers.brandId, ctx.brandId)];
+  if (status) {
+    filters.push(eq(matches.status, status));
+  }
+  if (offerId) {
+    filters.push(eq(matches.offerId, offerId));
+  }
+
+  const whereClause = filters.length > 1 ? and(...filters) : filters[0];
 
   const rows = await db
     .select({
@@ -75,7 +90,7 @@ export async function GET(request: Request) {
     .from(matches)
     .innerJoin(offers, eq(matches.offerId, offers.id))
     .innerJoin(creators, eq(matches.creatorId, creators.id))
-    .where(and(eq(offers.brandId, ctx.brandId), eq(matches.status, status)))
+    .where(whereClause)
     .orderBy(desc(matches.createdAt))
     .limit(100);
 
