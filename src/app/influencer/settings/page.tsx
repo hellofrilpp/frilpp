@@ -29,7 +29,6 @@ export default function InfluencerSettingsPage() {
   const [profile, setProfile] = useState<CreatorProfile | null>(null);
   const [status, setStatus] = useState<"idle" | "loading" | "saving" | "saved" | "error">("loading");
   const [error, setError] = useState<string | null>(null);
-  const [isLocating, setIsLocating] = useState(false);
   const [socialAccounts, setSocialAccounts] = useState<
     Array<{ provider: string; username: string | null; providerUserId: string }>
   >([]);
@@ -117,36 +116,7 @@ export default function InfluencerSettingsPage() {
     }
   }
 
-  const basicsReady = Boolean(profile?.country);
-  const deliveryReady = Boolean(profile?.address1 && profile?.city && profile?.zip && profile?.country);
-  const locationReady = profile?.lat !== null && profile?.lat !== undefined && profile?.lng !== null && profile?.lng !== undefined;
-
-  async function useMyLocation() {
-    if (!profile) return;
-    setIsLocating(true);
-    setError(null);
-    try {
-      const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: true,
-          timeout: 10_000,
-        });
-      });
-      setProfile((p) =>
-        p
-          ? {
-              ...p,
-              lat: pos.coords.latitude,
-              lng: pos.coords.longitude,
-            }
-          : p,
-      );
-    } catch {
-      setError("Failed to get location (check browser permissions).");
-    } finally {
-      setIsLocating(false);
-    }
-  }
+  const deliveryReady = Boolean(profile?.address1 && profile?.city && profile?.zip);
 
   async function deleteAccount() {
     if (deleteConfirm.trim() !== "DELETE") return;
@@ -225,13 +195,11 @@ export default function InfluencerSettingsPage() {
                     ? "Saving…"
                     : status === "saved"
                       ? "Saved."
-                      : basicsReady
-                        ? locationReady
-                          ? deliveryReady
-                            ? "Ready to claim pickup + delivery offers."
-                            : "Ready for pickup offers. Add address for delivery offers."
-                          : "Set location to claim local offers."
-                        : "Set your country to start claiming."}
+                      : status === "error"
+                        ? "Error (check auth + DB)."
+                        : deliveryReady
+                          ? "Shipping profile ready."
+                          : "Add shipping address to enable delivery offers."}
               </CardDescription>
             </CardHeader>
           <CardContent>
@@ -239,36 +207,6 @@ export default function InfluencerSettingsPage() {
               <div className="text-sm text-muted-foreground">No profile loaded.</div>
             ) : (
               <div className="grid gap-6">
-                <div className="rounded-lg border bg-muted p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">Location</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Required to claim local offers (distance-based).
-                      </div>
-                      {locationReady ? (
-                        <div className="mt-2 text-xs text-muted-foreground">
-                          Lat/Lng:{" "}
-                          <span className="font-mono">
-                            {profile.lat?.toFixed(5)}, {profile.lng?.toFixed(5)}
-                          </span>
-                        </div>
-                      ) : (
-                        <div className="mt-2 text-xs text-muted-foreground">Not set.</div>
-                      )}
-                    </div>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      type="button"
-                      onClick={useMyLocation}
-                      disabled={isLocating}
-                    >
-                      {isLocating ? "Locating..." : "Use my location"}
-                    </Button>
-                  </div>
-                </div>
-
                 <div className="rounded-lg border bg-muted p-4">
                   <div className="text-sm font-semibold">Connected accounts</div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -326,25 +264,6 @@ export default function InfluencerSettingsPage() {
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label>Country</Label>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant={profile.country === "US" ? "default" : "outline"}
-                        onClick={() => setProfile((p) => (p ? { ...p, country: "US" } : p))}
-                      >
-                        United States
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={profile.country === "IN" ? "default" : "outline"}
-                        onClick={() => setProfile((p) => (p ? { ...p, country: "IN" } : p))}
-                      >
-                        India
-                      </Button>
-                    </div>
-                  </div>
                   <div className="grid gap-2">
                     <Label htmlFor="fullName">Full name</Label>
                     <Input
@@ -420,14 +339,54 @@ export default function InfluencerSettingsPage() {
                   </div>
                 </div>
 
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="grid gap-2">
+                    <Label htmlFor="lat">Latitude</Label>
+                    <Input
+                      id="lat"
+                      placeholder="37.77"
+                      value={profile.lat ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const value = raw.trim() ? Number(raw) : null;
+                        setProfile((p) =>
+                          p
+                            ? {
+                                ...p,
+                                lat: value && Number.isFinite(value) ? value : null,
+                              }
+                            : p,
+                        );
+                      }}
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="lng">Longitude</Label>
+                    <Input
+                      id="lng"
+                      placeholder="-122.41"
+                      value={profile.lng ?? ""}
+                      onChange={(e) => {
+                        const raw = e.target.value;
+                        const value = raw.trim() ? Number(raw) : null;
+                        setProfile((p) =>
+                          p
+                            ? {
+                                ...p,
+                                lng: value && Number.isFinite(value) ? value : null,
+                              }
+                            : p,
+                        );
+                      }}
+                    />
+                  </div>
+                </div>
+
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-wrap items-center gap-2">
                     <Badge variant={deliveryReady ? "success" : "secondary"}>
                       {deliveryReady ? "Delivery address ready" : "Pickup-only (no address)"}
                     </Badge>
-                    {profile.country ? (
-                      <Badge variant="secondary">{profile.country === "US" ? "US" : "IN"}</Badge>
-                    ) : null}
                   </div>
                   <Button onClick={save} disabled={status === "saving" || status === "loading"}>
                     {status === "saving" ? "Saving..." : "Save profile"}
