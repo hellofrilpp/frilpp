@@ -46,17 +46,12 @@ export async function GET(request: Request) {
     );
   }
 
-  const url = new URL(request.url);
-  const countryQuery = url.searchParams.get("country");
-
   try {
     const ctx = await requireCreatorContext(request);
     if (ctx instanceof Response) return ctx;
 
     const creator = ctx.creator;
-    const creatorCountry = creator.country;
-    const country = creatorCountry ?? (countryQuery === "US" || countryQuery === "IN" ? countryQuery : null);
-    const unit = country === "IN" ? ("KM" as const) : ("MI" as const);
+    const unit = creator.country === "IN" ? ("KM" as const) : ("MI" as const);
 
     const strikeLimit = getStrikeLimit();
     const strikes = await getActiveStrikeCount(creator.id);
@@ -84,16 +79,8 @@ export async function GET(request: Request) {
       }
     }
 
-    const baseWhere =
-      country === "US" || country === "IN"
-        ? and(
-            eq(offers.status, "PUBLISHED"),
-            sql`${offers.countriesAllowed} @> ARRAY[${country}]::text[]`,
-          )
-        : eq(offers.status, "PUBLISHED");
-
     const whereClause = and(
-      baseWhere,
+      eq(offers.status, "PUBLISHED"),
       sql`NOT EXISTS (
         SELECT 1 FROM ${matches}
         WHERE ${matches.offerId} = ${offers.id}

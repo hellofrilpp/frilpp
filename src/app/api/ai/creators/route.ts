@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { and, count, eq, inArray, lte, gte, sum } from "drizzle-orm";
+import { and, count, eq, lte, gte, sum } from "drizzle-orm";
 import { db } from "@/db";
 import {
   attributedOrders,
@@ -23,7 +23,6 @@ const kmToMiles = (km: number) => km / 1.609344;
 const offerDraftSchema = z
   .object({
     title: z.string().trim().min(1).max(120).optional(),
-    countriesAllowed: z.array(z.enum(["US", "IN"])).min(1).optional(),
     platforms: z.array(z.string()).max(6).optional(),
     contentTypes: z.array(z.string()).max(6).optional(),
     niches: z.array(z.string()).max(8).optional(),
@@ -127,17 +126,16 @@ export async function POST(request: Request) {
 
   const offerDraft = parsed.data.offerDraft ?? null;
 
-  let offer: { id: string; title: string; countriesAllowed: string[]; metadata: Record<string, unknown> } | null = null;
+  let offer: { id: string; title: string; metadata: Record<string, unknown> } | null = null;
   if (parsed.data.offerId) {
     const offerRows = await db
-      .select({ id: offers.id, title: offers.title, countriesAllowed: offers.countriesAllowed, metadata: offers.metadata })
+      .select({ id: offers.id, title: offers.title, metadata: offers.metadata })
       .from(offers)
       .where(and(eq(offers.id, parsed.data.offerId), eq(offers.brandId, ctx.brandId)))
       .limit(1);
     offer = offerRows[0] ?? null;
   }
 
-  const allowedCountries = offerDraft?.countriesAllowed ?? offer?.countriesAllowed ?? null;
   const metadata = offer?.metadata ?? {};
   const rawNiches = Array.isArray(metadata["niches"]) ? (metadata["niches"] as string[]) : [];
   const niches = offerDraft?.niches?.length ? offerDraft.niches : rawNiches;
@@ -175,10 +173,6 @@ export async function POST(request: Request) {
     gte(creators.followersCount, minFollowers),
     lte(creators.followersCount, maxFollowers),
   ];
-  if (allowedCountries && allowedCountries.length) {
-    conditions.push(inArray(creators.country, allowedCountries));
-  }
-
   const candidateRows = await db
     .select({
       creatorId: creators.id,
@@ -302,7 +296,6 @@ export async function POST(request: Request) {
       offer: offer || offerDraft
         ? {
             title: offerDraft?.title ?? offer?.title ?? "Draft offer",
-            countriesAllowed: allowedCountries ?? [],
             niches,
             platforms,
             contentTypes,

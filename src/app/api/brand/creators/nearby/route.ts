@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNotNull, lte } from "drizzle-orm";
+import { and, eq, gte, isNotNull, lte } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { brands, creators } from "@/db/schema";
@@ -13,7 +13,6 @@ const milesToKm = (miles: number) => miles * 1.609344;
 const querySchema = z.object({
   radiusKm: z.coerce.number().finite().min(1).max(800).optional(),
   radiusMiles: z.coerce.number().finite().min(1).max(500).optional(), // legacy
-  countries: z.string().optional(),
   limit: z.coerce.number().int().min(1).max(20).optional(),
 });
 
@@ -38,7 +37,6 @@ export async function GET(request: Request) {
   const parsed = querySchema.safeParse({
     radiusKm: url.searchParams.get("radiusKm") ?? undefined,
     radiusMiles: url.searchParams.get("radiusMiles") ?? undefined,
-    countries: url.searchParams.get("countries") ?? undefined,
     limit: url.searchParams.get("limit") ?? undefined,
   });
   if (!parsed.success) {
@@ -52,11 +50,6 @@ export async function GET(request: Request) {
   const radiusKm =
     parsed.data.radiusKm ?? (parsed.data.radiusMiles ? milesToKm(parsed.data.radiusMiles) : 40.2336);
   const limit = parsed.data.limit ?? 8;
-  const countries = (parsed.data.countries ?? "")
-    .split(",")
-    .map((value) => value.trim().toUpperCase())
-    .filter((value): value is "US" | "IN" => value === "US" || value === "IN");
-
   const brandRows = await db
     .select({ lat: brands.lat, lng: brands.lng })
     .from(brands)
@@ -94,10 +87,6 @@ export async function GET(request: Request) {
     lte(creators.followersCount, followerRange.max),
   ];
 
-  if (countries.length) {
-    where.push(inArray(creators.country, countries));
-  }
-
   const rows = await db
     .select({
       id: creators.id,
@@ -131,7 +120,6 @@ export async function GET(request: Request) {
   return Response.json({
     ok: true,
     radiusKm,
-    countries,
     creatorCount: inRadius.length,
     creators: top.map((c, idx) => ({
       ...c,

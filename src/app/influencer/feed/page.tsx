@@ -289,7 +289,6 @@ export default function InfluencerFeedPage() {
                   <div className="flex flex-wrap gap-2">
                     <Badge>Deliverable: {deliverableLabel(current.deliverable)}</Badge>
                     <Badge>Due: {current.deadlineDaysAfterDelivery}d after delivery</Badge>
-                    <Badge>Countries: {current.countriesAllowed.join(", ")}</Badge>
                     {distanceLabel ? <Badge variant="secondary">Distance: {distanceLabel}</Badge> : null}
                     {radiusLabel ? <Badge variant="secondary">Local radius: {radiusLabel}</Badge> : null}
                     {fulfillmentLabel ? (

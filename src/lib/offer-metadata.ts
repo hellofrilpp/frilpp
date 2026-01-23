@@ -5,7 +5,6 @@ import {
   CREATOR_CATEGORIES,
   PLATFORMS_BY_COUNTRY,
   REGION_OPTIONS,
-  platformsForCountries,
 } from "@/lib/picklists";
 
 const milesToKm = (miles: number) => miles * 1.609344;
@@ -142,45 +141,7 @@ export function validatePublishMetadata(params: {
     return null;
   })();
 
-  const allowedPlatforms = platformsForCountries(params.countriesAllowed);
-  const invalidPlatforms = (metadata.platforms ?? []).filter(
-    (platform) => !allowedPlatforms.includes(platform),
-  );
-  if (invalidPlatforms.length) {
-    return {
-      ok: false as const,
-      response: Response.json(
-        {
-          ok: false,
-          error: "Platforms not allowed for selected countries",
-          issues: invalidPlatforms.map((platform) => ({ platform })),
-        },
-        { status: 400 },
-      ),
-    };
-  }
-
-  if (metadata.region) {
-    const expectedRegion =
-      params.countriesAllowed.length === 2
-        ? "US_IN"
-        : params.countriesAllowed[0] === "IN"
-          ? "IN"
-          : "US";
-    if (metadata.region !== expectedRegion) {
-      return {
-        ok: false as const,
-        response: Response.json(
-          {
-            ok: false,
-            error: "Region does not match countriesAllowed",
-            issues: [{ region: metadata.region, expected: expectedRegion }],
-          },
-          { status: 400 },
-        ),
-      };
-    }
-  }
+  // Country-based platform/region validation removed for global visibility.
 
   const storedMetadata: Record<string, unknown> = {
     ...metadata,
@@ -190,4 +151,3 @@ export function validatePublishMetadata(params: {
 
   return { ok: true as const, metadata: storedMetadata };
 }
-

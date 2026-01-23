@@ -179,13 +179,6 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
       );
     }
 
-    if (creator.country && !offer.countriesAllowed.includes(creator.country)) {
-      return Response.json(
-        { ok: false, error: "Not eligible for this offer country" },
-        { status: 403 },
-      );
-    }
-
     const offerMetadata =
       offer.metadata && typeof offer.metadata === "object"
         ? (offer.metadata as Record<string, unknown>)

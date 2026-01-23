@@ -114,8 +114,7 @@ const BrandSetup = () => {
     setSaving(true);
     try {
       if (!hasBrand) {
-        const defaultCountry: "US" | "IN" = profile.country === "IN" ? "IN" : "US";
-        await createBrandWorkspace({ name: brandName.trim(), countriesDefault: [defaultCountry] });
+        await createBrandWorkspace({ name: brandName.trim(), countriesDefault: ["US", "IN"] });
       }
 
       await updateBrandProfile({

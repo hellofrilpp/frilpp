@@ -245,13 +245,6 @@ const CampaignCreator = () => {
         if (cancelled) return;
         const offer = res.offer;
         const meta = (offer.metadata ?? {}) as OfferMetadata;
-        const region =
-          meta.region ||
-          (offer.countriesAllowed?.length === 2
-            ? "US_IN"
-            : offer.countriesAllowed?.[0] === "IN"
-              ? "IN"
-              : "US");
         const radiusKm = (() => {
           const kmRaw = meta.locationRadiusKm;
           const km =
@@ -271,8 +264,7 @@ const CampaignCreator = () => {
           if (miles !== null && Number.isFinite(miles) && miles > 0) return milesToKm(miles);
           return null;
         })();
-        const radiusInput =
-          region === "IN" ? radiusKm : radiusKm !== null ? kmToMiles(radiusKm) : null;
+        const radiusInput = radiusKm !== null ? kmToMiles(radiusKm) : null;
 
         setDraftOfferId(offer.id);
         setProductQuantity(offer.products?.[0]?.quantity ?? 1);
@@ -296,7 +288,7 @@ const CampaignCreator = () => {
           guidelines: meta.guidelines || "",
           niches: asStringArray(meta.niches),
           nicheOther: meta.nicheOther || "",
-          region: region || prev.region,
+          region: prev.region,
           campaignName: meta.campaignName || offer.title || "",
           quantity: String(offer.maxClaims ?? prev.quantity),
           minFollowers: String(offer.acceptanceFollowersThreshold ?? prev.minFollowers),
@@ -348,21 +340,15 @@ const CampaignCreator = () => {
   const campaignCategories = picklists?.campaignCategories ?? [];
   const creatorCategories = picklists?.creatorCategories ?? [];
   const contentTypeOptions = picklists?.contentTypes ?? [];
-  const regionOptions = picklists?.regions ?? [];
   const platformsByCountry = picklists?.platformsByCountry ?? emptyPlatformsByCountry;
   const offerPresets = picklists?.offerPresets ?? [];
-  const countriesAllowed = useMemo(() => {
-    if (formData.region === "US") return ["US"] as Array<"US" | "IN">;
-    if (formData.region === "IN") return ["IN"] as Array<"US" | "IN">;
-    return ["US", "IN"] as Array<"US" | "IN">;
-  }, [formData.region]);
+  const countriesAllowed = useMemo(() => ["US", "IN"] as Array<"US" | "IN">, []);
 
   const offerDraftPayload = useMemo(() => {
     const minFollowers = Number(formData.minFollowers || 0);
     const maxFollowers = Number(formData.maxFollowers || 0);
-    const isKm = countriesAllowed.length === 1 && countriesAllowed[0] === "IN";
     const radiusInput = Number(formData.locationRadiusMiles || 0);
-    const radiusKm = isKm ? radiusInput : milesToKm(radiusInput);
+    const radiusKm = milesToKm(radiusInput);
     return {
       title: formData.campaignName || formData.productName || undefined,
       countriesAllowed,
@@ -405,9 +391,6 @@ const CampaignCreator = () => {
   }, [currentStep, offerDraftKey, refetchDraftRecommendations]);
 
   const availablePlatforms = useMemo(() => {
-    const region = formData.region || "US_IN";
-    if (region === "US") return platformsByCountry.US.filter((p) => allowedCreatorPlatformIds.has(p.id));
-    if (region === "IN") return platformsByCountry.IN.filter((p) => allowedCreatorPlatformIds.has(p.id));
     const merged = new Map<string, { id: string; label: string }>();
     platformsByCountry.US.forEach((item) => {
       merged.set(item.id, item);
@@ -416,7 +399,7 @@ const CampaignCreator = () => {
       if (!merged.has(item.id)) merged.set(item.id, item);
     });
     return Array.from(merged.values()).filter((item) => allowedCreatorPlatformIds.has(item.id));
-  }, [formData.region, platformsByCountry]);
+  }, [platformsByCountry]);
 
   useEffect(() => {
     const allowed = new Set(availablePlatforms.map((item) => item.id));
@@ -476,9 +459,8 @@ const CampaignCreator = () => {
   };
 
   const buildOfferMetadata = (fulfillmentType: "SHOPIFY" | "MANUAL") => {
-    const isKm = countriesAllowed.length === 1 && countriesAllowed[0] === "IN";
     const radiusInput = Number(formData.locationRadiusMiles || 0);
-    const radiusKm = isKm ? radiusInput : milesToKm(radiusInput);
+    const radiusKm = milesToKm(radiusInput);
     return {
       productValue: formData.productValue ? Number(formData.productValue) : null,
       category: formData.category || null,
@@ -494,7 +476,7 @@ const CampaignCreator = () => {
       guidelines: formData.guidelines || null,
       niches: formData.niches,
       nicheOther: formData.niches.includes("OTHER") ? formData.nicheOther.trim() || null : null,
-      region: formData.region || null,
+      region: null,
       campaignName: formData.campaignName || null,
       fulfillmentType,
       locationRadiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : null,
@@ -698,16 +680,10 @@ const CampaignCreator = () => {
   };
 
   const formatDistance = (distance: { distanceKm?: number | null; distanceMiles?: number | null }) => {
-    const isKm = countriesAllowed.length === 1 && countriesAllowed[0] === "IN";
-    const raw = isKm
-      ? distance.distanceKm ??
-        (distance.distanceMiles !== null && distance.distanceMiles !== undefined
-          ? milesToKm(distance.distanceMiles)
-          : null)
-      : distance.distanceMiles ?? null;
-    const unit = isKm ? "km" : "mi";
+    const raw = distance.distanceMiles ?? null;
+    const unit = "mi";
     if (raw === null || raw === undefined) return null;
-    if (raw < 1) return isKm ? "<1km" : "<1mi";
+    if (raw < 1) return "<1mi";
     return `${raw.toFixed(raw < 10 ? 1 : 0)}${unit}`;
   };
 
@@ -721,12 +697,6 @@ const CampaignCreator = () => {
         return;
       }
       const meta = (last.metadata ?? {}) as OfferMetadata;
-      const region =
-        last.countriesAllowed?.length === 2
-          ? "US_IN"
-          : last.countriesAllowed?.[0] === "IN"
-            ? "IN"
-            : "US";
       const radiusKm = (() => {
         const kmRaw = meta.locationRadiusKm;
         const km =
@@ -746,8 +716,7 @@ const CampaignCreator = () => {
         if (miles !== null && Number.isFinite(miles) && miles > 0) return milesToKm(miles);
         return null;
       })();
-      const radiusInput =
-        region === "IN" ? radiusKm : radiusKm !== null ? kmToMiles(radiusKm) : null;
+      const radiusInput = radiusKm !== null ? kmToMiles(radiusKm) : null;
       setFormData((prev) => ({
         ...prev,
         productName: meta.campaignName || last.title || prev.productName,
@@ -766,7 +735,7 @@ const CampaignCreator = () => {
         guidelines: meta.guidelines || "",
         niches: asStringArray(meta.niches),
         nicheOther: meta.nicheOther || "",
-        region: meta.region || region,
+        region: prev.region,
         campaignName: meta.campaignName || last.title || "",
         quantity: String(last.maxClaims ?? prev.quantity),
         minFollowers: String(last.acceptanceFollowersThreshold ?? prev.minFollowers),
@@ -1259,28 +1228,7 @@ const CampaignCreator = () => {
                   )}
 
                   <div className="space-y-2">
-                    <Label className="font-mono text-sm">REGION</Label>
-                    <div className="grid grid-cols-3 gap-2">
-                      {regionOptions.map((region) => (
-                        <button
-                          key={region.id}
-                          onClick={() => updateField('region', region.id)}
-                          className={`px-3 py-2 border-2 text-xs font-mono transition-all pixel-btn ${
-                            formData.region === region.id
-                              ? 'border-neon-purple bg-neon-purple/20 text-neon-purple'
-                              : 'border-border hover:border-neon-purple'
-                          }`}
-                        >
-                          {region.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label className="font-mono text-sm">
-                      NEARBY_RADIUS ({countriesAllowed.length === 1 && countriesAllowed[0] === "IN" ? "km" : "miles"})
-                    </Label>
+                    <Label className="font-mono text-sm">NEARBY_RADIUS (miles)</Label>
                     <Input
                       type="number"
                       min={0}
@@ -1290,7 +1238,7 @@ const CampaignCreator = () => {
                       className="border-2 border-border font-mono focus:border-primary"
                     />
                     <p className="text-xs font-mono text-muted-foreground">
-                      Optional: show this offer only to creators within this distance. Requires brand location.
+                      Optional: show this offer only to creators within this distance. No radius = global visibility.
                     </p>
                   </div>
                 </div>

@@ -325,13 +325,6 @@ export default function BrandOffersPage() {
                             </span>
                             <span className="text-muted-foreground/40">•</span>
                             <span>
-                              Countries:{" "}
-                              <span className="font-mono text-foreground">
-                                {r.countriesAllowed.join(", ")}
-                              </span>
-                            </span>
-                            <span className="text-muted-foreground/40">•</span>
-                            <span>
                               Max claims:{" "}
                               <span className="font-mono text-foreground">{r.maxClaims}</span>
                             </span>

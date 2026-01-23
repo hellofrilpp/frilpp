@@ -95,9 +95,6 @@ export default function OfferShareClient(props: { offerId: string }) {
 
   const radiusBadge = useMemo(() => {
     if (!offer) return null;
-    const onlyIN = offer.countriesAllowed.length === 1 && offer.countriesAllowed[0] === "IN";
-    const onlyUS = offer.countriesAllowed.length === 1 && offer.countriesAllowed[0] === "US";
-
     const radiusKm =
       typeof offer.locationRadiusKm === "number" && Number.isFinite(offer.locationRadiusKm)
         ? offer.locationRadiusKm
@@ -110,18 +107,8 @@ export default function OfferShareClient(props: { offerId: string }) {
         : typeof offer.locationRadiusKm === "number" && Number.isFinite(offer.locationRadiusKm)
           ? kmToMiles(offer.locationRadiusKm)
           : null;
-
-    if (onlyIN && radiusKm) {
-      return `Local radius: ${formatDistance(radiusKm)} km`;
-    }
-    if (onlyUS && radiusMiles) {
-      return `Local radius: ${formatDistance(radiusMiles)} mi`;
-    }
-    if (radiusMiles && radiusKm) {
-      return `Local radius: ${formatDistance(radiusMiles)} mi (${formatDistance(radiusKm)} km)`;
-    }
-    if (radiusKm) return `Local radius: ${formatDistance(radiusKm)} km`;
     if (radiusMiles) return `Local radius: ${formatDistance(radiusMiles)} mi`;
+    if (radiusKm) return `Local radius: ${formatDistance(radiusKm)} km`;
     return null;
   }, [offer]);
 
@@ -221,7 +208,6 @@ export default function OfferShareClient(props: { offerId: string }) {
                 <div className="flex flex-wrap gap-2">
                   <Badge>Brand: {offer.brandName}</Badge>
                   <Badge>Deliverable: {deliverableLabel(offer.deliverableType)}</Badge>
-                  <Badge>Countries: {offer.countriesAllowed.join(", ")}</Badge>
                   <Badge>Due: {offer.deadlineDaysAfterDelivery}d after delivery</Badge>
                   <Badge variant="secondary">Fulfillment: {fulfillmentLabel(offer)}</Badge>
                   {radiusBadge ? <Badge variant="secondary">{radiusBadge}</Badge> : null}

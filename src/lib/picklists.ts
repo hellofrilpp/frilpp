@@ -34,7 +34,7 @@ export const CONTENT_TYPES = [
 
 export const PLATFORMS_BY_COUNTRY = {
   US: ["TIKTOK", "YOUTUBE", "OTHER"],
-  IN: ["YOUTUBE", "OTHER"],
+  IN: ["TIKTOK", "YOUTUBE", "OTHER"],
 } as const;
 
 export const REGION_OPTIONS = ["US", "IN", "US_IN"] as const;

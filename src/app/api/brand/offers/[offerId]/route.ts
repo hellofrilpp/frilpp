@@ -113,23 +113,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
     return Response.json({ ok: false, error: "No changes" }, { status: 400 });
   }
 
-  const brandRows = await db
-    .select({ lat: brands.lat, lng: brands.lng })
-    .from(brands)
-    .where(eq(brands.id, ctx.brandId))
-    .limit(1);
-  const brand = brandRows[0] ?? null;
-  if (brand?.lat === null || brand?.lat === undefined || brand?.lng === null || brand?.lng === undefined) {
-    return Response.json(
-      {
-        ok: false,
-        error: "Please add your brand location in Settings before updating campaigns.",
-        code: "NEEDS_LOCATION",
-      },
-      { status: 409 },
-    );
-  }
-
   const existingRows = await db
     .select({
       id: offers.id,
@@ -165,6 +148,37 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
     return undefined;
   })();
   if (storedMetadata instanceof Response) return storedMetadata;
+
+  const radiusKm = (() => {
+    const source = (storedMetadata ?? existing.metadata) as Record<string, unknown> | null;
+    if (!source) return null;
+    const kmRaw = source.locationRadiusKm;
+    if (typeof kmRaw === "number" && Number.isFinite(kmRaw) && kmRaw > 0) return kmRaw;
+    const milesRaw = source.locationRadiusMiles;
+    if (typeof milesRaw === "number" && Number.isFinite(milesRaw) && milesRaw > 0) {
+      return milesRaw * 1.609344;
+    }
+    return null;
+  })();
+
+  if (radiusKm) {
+    const brandRows = await db
+      .select({ lat: brands.lat, lng: brands.lng })
+      .from(brands)
+      .where(eq(brands.id, ctx.brandId))
+      .limit(1);
+    const brand = brandRows[0] ?? null;
+    if (brand?.lat === null || brand?.lat === undefined || brand?.lng === null || brand?.lng === undefined) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Please add your brand location in Settings before updating campaigns.",
+          code: "NEEDS_LOCATION",
+        },
+        { status: 409 },
+      );
+    }
+  }
 
   if (publishing) {
     const subscribed = await hasActiveSubscription({

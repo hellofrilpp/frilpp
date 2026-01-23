@@ -144,21 +144,41 @@ export async function POST(request: Request) {
 
     log("debug", "brand offer create authed", { errorId, ms: Date.now() - t0 });
 
-    const brandRows = await db
-      .select({ lat: brands.lat, lng: brands.lng })
-      .from(brands)
-      .where(eq(brands.id, ctx.brandId))
-      .limit(1);
-    const brand = brandRows[0] ?? null;
-    if (brand?.lat === null || brand?.lat === undefined || brand?.lng === null || brand?.lng === undefined) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Please add your brand location in Settings before creating campaigns.",
-          code: "NEEDS_LOCATION",
-        },
-        { status: 409 },
-      );
+    const storedMetadata =
+      desiredStatus === "PUBLISHED"
+        ? (() => {
+            const validated = validatePublishMetadata({
+              raw: input.metadata ?? {},
+              countriesAllowed: input.countriesAllowed,
+            });
+            if (!validated.ok) return validated.response;
+            return validated.metadata;
+          })()
+        : coerceDraftMetadata(input.metadata ?? {});
+    if (storedMetadata instanceof Response) return storedMetadata;
+
+    const radiusKm = (() => {
+      if (!storedMetadata || typeof storedMetadata !== "object") return null;
+      const raw = (storedMetadata as Record<string, unknown>).locationRadiusKm;
+      return typeof raw === "number" && Number.isFinite(raw) && raw > 0 ? raw : null;
+    })();
+    if (radiusKm) {
+      const brandRows = await db
+        .select({ lat: brands.lat, lng: brands.lng })
+        .from(brands)
+        .where(eq(brands.id, ctx.brandId))
+        .limit(1);
+      const brand = brandRows[0] ?? null;
+      if (brand?.lat === null || brand?.lat === undefined || brand?.lng === null || brand?.lng === undefined) {
+        return Response.json(
+          {
+            ok: false,
+            error: "Please add your brand location in Settings before creating campaigns.",
+            code: "NEEDS_LOCATION",
+          },
+          { status: 409 },
+        );
+      }
     }
 
     if (desiredStatus === "PUBLISHED") {
@@ -181,19 +201,6 @@ export async function POST(request: Request) {
         );
       }
     }
-
-    const storedMetadata =
-      desiredStatus === "PUBLISHED"
-        ? (() => {
-            const validated = validatePublishMetadata({
-              raw: input.metadata ?? {},
-              countriesAllowed: input.countriesAllowed,
-            });
-            if (!validated.ok) return validated.response;
-            return validated.metadata;
-          })()
-        : coerceDraftMetadata(input.metadata ?? {});
-    if (storedMetadata instanceof Response) return storedMetadata;
 
     const id = crypto.randomUUID();
     const template = input.template as OfferTemplateId;

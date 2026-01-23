@@ -29,7 +29,7 @@ export default function OnboardingPage() {
   const [requestedNextPath, setRequestedNextPath] = useState<string | null>(null);
 
   const [brandName, setBrandName] = useState("My brand");
-  const [brandCountries, setBrandCountries] = useState<Array<"US" | "IN">>(["US"]);
+  const [brandCountries] = useState<Array<"US" | "IN">>(["US", "IN"]);
 
   const [creatorForm, setCreatorForm] = useState({
     username: "",
@@ -336,29 +336,7 @@ export default function OnboardingPage() {
                     onChange={(e) => setBrandName(e.target.value)}
                   />
                 </div>
-                <div className="grid gap-2">
-                  <Label>Default countries</Label>
-                  <div className="flex flex-wrap gap-2">
-                    {(["US", "IN"] as const).map((cc) => {
-                      const active = brandCountries.includes(cc);
-                      return (
-                        <Button
-                          key={cc}
-                          size="sm"
-                          variant={active ? "default" : "outline"}
-                          onClick={() =>
-                            setBrandCountries((prev) =>
-                              active ? prev.filter((c) => c !== cc) : [...prev, cc],
-                            )
-                          }
-                        >
-                          {cc === "US" ? "United States" : "India"}
-                        </Button>
-                      );
-                    })}
-                  </div>
-                </div>
-                <Button onClick={createBrand} disabled={!brandName.trim() || !brandCountries.length}>
+                <Button onClick={createBrand} disabled={!brandName.trim()}>
                   Create brand
                 </Button>
               </CardContent>

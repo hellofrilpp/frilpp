@@ -203,10 +203,6 @@ const BrandCampaignDetails = () => {
                   <span className="text-foreground">Template:</span> {offer?.template ?? "—"}
                 </div>
                 <div>
-                  <span className="text-foreground">Countries:</span>{" "}
-                  {offer?.countriesAllowed?.join(", ") ?? "—"}
-                </div>
-                <div>
                   <span className="text-foreground">Max claims:</span> {offer?.maxClaims ?? "—"}
                 </div>
                 <div>

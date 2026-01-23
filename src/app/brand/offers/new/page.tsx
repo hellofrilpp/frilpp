@@ -112,7 +112,7 @@ export default function NewOfferPage() {
 
   const [draft, setDraft] = useState<OfferDraft>(() => ({
     title: "Free $50 skincare set for 1 Reel",
-    countriesAllowed: ["US"],
+    countriesAllowed: ["US", "IN"],
     followersThreshold: 5000,
     aboveThresholdAutoAccept: true,
     usageRightsRequired: false,
@@ -178,9 +178,7 @@ export default function NewOfferPage() {
       setNearbyError(null);
       try {
         const res = await fetch(
-          `/api/brand/creators/nearby?radiusKm=${encodeURIComponent(radiusKm)}&countries=${encodeURIComponent(
-            draft.countriesAllowed.join(","),
-          )}&limit=6`,
+          `/api/brand/creators/nearby?radiusKm=${encodeURIComponent(radiusKm)}&limit=6`,
           { signal: controller.signal },
         );
         const data = (await res.json().catch(() => null)) as
@@ -218,7 +216,7 @@ export default function NewOfferPage() {
       controller.abort();
       clearTimeout(timer);
     };
-  }, [draft.locationRadiusKm, draft.countriesAllowed]);
+  }, [draft.locationRadiusKm]);
 
   const stepOrder = useMemo<WizardStep[]>(
     () => (SHOPIFY_ENABLED ? [0, 1, 2, 3] : [1, 2, 3]),
@@ -325,7 +323,6 @@ export default function NewOfferPage() {
 
   const hasMinimumDetails =
     draft.title.trim().length >= 3 &&
-    draft.countriesAllowed.length >= 1 &&
     Number.isFinite(draft.maxClaims) &&
     draft.maxClaims >= 1 &&
     Number.isFinite(draft.deadlineDaysAfterDelivery) &&
@@ -842,56 +839,20 @@ export default function NewOfferPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label>Eligible countries</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {(["US", "IN"] as const).map((cc) => {
-                        const active = draft.countriesAllowed.includes(cc);
-                        return (
-                          <Button
-                            key={cc}
-                            variant={active ? "default" : "outline"}
-                            size="sm"
-                            type="button"
-                            onClick={() =>
-                              setDraft((d) => {
-                                const countriesAllowed = active
-                                  ? d.countriesAllowed.filter((c) => c !== cc)
-                                  : [...d.countriesAllowed, cc];
-                                const allowTikTok = countriesAllowed.includes("US");
-                                return {
-                                  ...d,
-                                  countriesAllowed,
-                                  platforms: allowTikTok
-                                    ? d.platforms
-                                    : d.platforms.filter((p) => p !== "TIKTOK"),
-                                };
-                              })
-                            }
-                          >
-                            {cc === "US" ? "United States" : "India"}
-                          </Button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  <div className="grid gap-2">
-                    <Label htmlFor="deadline">Due (days after delivery)</Label>
-                    <Input
-                      id="deadline"
-                      type="number"
-                      min={1}
-                      value={draft.deadlineDaysAfterDelivery}
-                      onChange={(e) =>
-                        setDraft((d) => ({
-                          ...d,
-                          deadlineDaysAfterDelivery: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="deadline">Due (days after delivery)</Label>
+                  <Input
+                    id="deadline"
+                    type="number"
+                    min={1}
+                    value={draft.deadlineDaysAfterDelivery}
+                    onChange={(e) =>
+                      setDraft((d) => ({
+                        ...d,
+                        deadlineDaysAfterDelivery: Number(e.target.value),
+                      }))
+                    }
+                  />
                 </div>
 
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -949,7 +910,7 @@ export default function NewOfferPage() {
 
                   <div className="mt-4 grid gap-4 sm:grid-cols-2">
                     <div className="grid gap-2">
-                      <Label htmlFor="radius">Max distance ({draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN" ? "km" : "miles"})</Label>
+                      <Label htmlFor="radius">Max distance (miles)</Label>
                       <Input
                         id="radius"
                         type="number"
@@ -958,27 +919,23 @@ export default function NewOfferPage() {
                         value={(() => {
                           const km = draft.locationRadiusKm;
                           if (!km) return "";
-                          const isKm = draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN";
-                          const value = isKm ? km : km / 1.609344;
+                          const value = km / 1.609344;
                           return Math.round(value * 10) / 10;
                         })()}
                         onChange={(e) => {
                           const raw = e.target.value;
                           const value = raw.trim() ? Number(raw) : null;
-                          const isKm = draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN";
                           setDraft((d) => ({
                             ...d,
                             locationRadiusKm:
                               value && Number.isFinite(value)
-                                ? isKm
-                                  ? value
-                                  : value * 1.609344
+                                ? value * 1.609344
                                 : null,
                           }));
                         }}
                       />
                       <div className="text-xs text-muted-foreground">
-                        Leave blank to show to all eligible creators.
+                        Leave blank for global visibility.
                       </div>
                     </div>
 
@@ -1018,10 +975,8 @@ export default function NewOfferPage() {
                         <div className="mt-2 grid gap-2 text-xs text-muted-foreground">
                           <div>
                             {(() => {
-                              const isKm = draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN";
-                              const radius = isKm ? nearby.radiusKm : nearby.radiusKm / 1.609344;
-                              const unit = isKm ? "km" : "mi";
-                              return `~${nearby.creatorCount} creators within ${Math.round(radius * 10) / 10} ${unit}`;
+                              const radius = nearby.radiusKm / 1.609344;
+                              return `~${nearby.creatorCount} creators within ${Math.round(radius * 10) / 10} mi`;
                             })()}
                           </div>
                           {nearby.creators.length ? (
@@ -1033,10 +988,8 @@ export default function NewOfferPage() {
                                   </div>
                                   <div className="shrink-0">
                                     {(() => {
-                                      const isKm = draft.countriesAllowed.length === 1 && draft.countriesAllowed[0] === "IN";
-                                      const distance = isKm ? c.distanceKm : c.distanceKm / 1.609344;
-                                      const unit = isKm ? "km" : "mi";
-                                      return `${Math.round(distance * 10) / 10} ${unit}`;
+                                      const distance = c.distanceKm / 1.609344;
+                                      return `${Math.round(distance * 10) / 10} mi`;
                                     })()}
                                   </div>
                                 </div>
@@ -1060,14 +1013,12 @@ export default function NewOfferPage() {
                       <div className="mt-2 flex flex-wrap gap-2">
                         {(["TIKTOK", "YOUTUBE"] as const).map((p) => {
                           const active = draft.platforms.includes(p);
-                          const allowed = p === "TIKTOK" ? draft.countriesAllowed.includes("US") : true;
                           return (
                             <Button
                               key={p}
                               size="sm"
                               type="button"
                               variant={active ? "default" : "outline"}
-                              disabled={!allowed}
                               onClick={() =>
                                 setDraft((d) => ({
                                   ...d,
@@ -1210,7 +1161,6 @@ export default function NewOfferPage() {
                     <Badge variant="secondary">{templateLabels[draft.template]}</Badge>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <Badge>Countries: {draft.countriesAllowed.join(", ")}</Badge>
                     <Badge>Max claims: {draft.maxClaims}</Badge>
                     <Badge>Due: {draft.deadlineDaysAfterDelivery}d after delivery</Badge>
                     {draft.usageRightsRequired ? (

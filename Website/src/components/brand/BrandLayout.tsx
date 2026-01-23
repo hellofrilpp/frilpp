@@ -16,7 +16,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Checkbox } from "@/components/ui/checkbox";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -74,7 +73,6 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
 
   const [gateMode, setGateMode] = useState<"none" | "create" | "select">("none");
   const [gateBrandName, setGateBrandName] = useState("");
-  const [gateCountries, setGateCountries] = useState<{ US: boolean; IN: boolean }>({ US: true, IN: true });
   const [gateBrandId, setGateBrandId] = useState<string | null>(null);
   const [gateSubmitting, setGateSubmitting] = useState(false);
   const autoSelectRef = useRef(false);
@@ -169,12 +167,7 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
     setGateMode("select");
   }, [authLoading, currentPath, memberships, queryClient, user]);
 
-  const resolvedCountries = useMemo(() => {
-    const next: Array<"US" | "IN"> = [];
-    if (gateCountries.US) next.push("US");
-    if (gateCountries.IN) next.push("IN");
-    return next;
-  }, [gateCountries]);
+  const resolvedCountries = useMemo(() => ["US", "IN"] as Array<"US" | "IN">, []);
 
   const blockChildren = gateSubmitting || gateMode !== "none";
 
@@ -202,31 +195,12 @@ const BrandLayout = ({ children }: BrandLayoutProps) => {
                   />
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="font-mono text-xs">COUNTRIES</Label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="flex items-center gap-2 border-2 border-border p-3 bg-background">
-                      <Checkbox
-                        checked={gateCountries.US}
-                        onCheckedChange={(checked) => setGateCountries((prev) => ({ ...prev, US: Boolean(checked) }))}
-                      />
-                      <span className="font-mono text-xs">United States</span>
-                    </label>
-                    <label className="flex items-center gap-2 border-2 border-border p-3 bg-background">
-                      <Checkbox
-                        checked={gateCountries.IN}
-                        onCheckedChange={(checked) => setGateCountries((prev) => ({ ...prev, IN: Boolean(checked) }))}
-                      />
-                      <span className="font-mono text-xs">India</span>
-                    </label>
-                  </div>
-                </div>
               </div>
 
               <AlertDialogFooter>
                 <AlertDialogAction
                   className="font-pixel text-xs bg-neon-pink text-background"
-                  disabled={gateSubmitting || gateBrandName.trim().length < 2 || resolvedCountries.length === 0}
+                  disabled={gateSubmitting || gateBrandName.trim().length < 2}
                   onClick={async () => {
                     try {
                       setGateSubmitting(true);
