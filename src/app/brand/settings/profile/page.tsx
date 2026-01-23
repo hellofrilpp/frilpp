@@ -255,7 +255,7 @@ export default function BrandProfileSettingsPage() {
 
                 <div className="grid gap-4 sm:grid-cols-2">
                   <div className="grid gap-2">
-                    <Label htmlFor="address1">Address</Label>
+                    <Label htmlFor="address1">Address line 1</Label>
                     <Input
                       id="address1"
                       placeholder="123 Main St"
@@ -266,6 +266,20 @@ export default function BrandProfileSettingsPage() {
                     />
                   </div>
                   <div className="grid gap-2">
+                    <Label htmlFor="address2">Address line 2 (optional)</Label>
+                    <Input
+                      id="address2"
+                      placeholder="Suite 200"
+                      value={profile.address2 ?? ""}
+                      onChange={(e) =>
+                        setProfile((p) => (p ? { ...p, address2: e.target.value || null } : p))
+                      }
+                    />
+                  </div>
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-3">
+                  <div className="grid gap-2">
                     <Label htmlFor="city">City</Label>
                     <Input
                       id="city"
@@ -273,6 +287,28 @@ export default function BrandProfileSettingsPage() {
                       value={profile.city ?? ""}
                       onChange={(e) =>
                         setProfile((p) => (p ? { ...p, city: e.target.value || null } : p))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="province">State / Province</Label>
+                    <Input
+                      id="province"
+                      placeholder="CA"
+                      value={profile.province ?? ""}
+                      onChange={(e) =>
+                        setProfile((p) => (p ? { ...p, province: e.target.value || null } : p))
+                      }
+                    />
+                  </div>
+                  <div className="grid gap-2">
+                    <Label htmlFor="zip">ZIP / PIN</Label>
+                    <Input
+                      id="zip"
+                      placeholder="94103"
+                      value={profile.zip ?? ""}
+                      onChange={(e) =>
+                        setProfile((p) => (p ? { ...p, zip: e.target.value || null } : p))
                       }
                     />
                   </div>
