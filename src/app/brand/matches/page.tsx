@@ -17,7 +17,6 @@ type MatchRow = {
     id: string;
     username: string | null;
     followersCount: number | null;
-    country: string | null;
     shippingReady: boolean;
   };
 };
@@ -209,12 +208,6 @@ export default function BrandMatchesPage() {
                             </span>
                           </span>
                           <span className="text-muted-foreground/40">•</span>
-                          <span>
-                            Country:{" "}
-                            <span className="font-mono text-foreground">
-                              {r.creator.country ?? "—"}
-                            </span>
-                          </span>
                         </div>
                         <div className="mt-2 flex flex-wrap items-center gap-2">
                           <Badge variant="secondary">Code: {r.campaignCode}</Badge>

@@ -54,7 +54,6 @@ export async function GET(request: Request, context: { params: Promise<{ code: s
       brandCity: brands.city,
       brandProvince: brands.province,
       brandZip: brands.zip,
-      brandCountry: brands.country,
       offerMetadata: offers.metadata,
     })
     .from(matches)
@@ -136,7 +135,6 @@ export async function GET(request: Request, context: { params: Promise<{ code: s
       match.brandCity,
       match.brandProvince,
       match.brandZip,
-      match.brandCountry,
     ].filter(Boolean);
     if (parts.length) {
       const query = encodeURIComponent(parts.join(" "));

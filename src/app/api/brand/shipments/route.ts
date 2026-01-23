@@ -83,7 +83,6 @@ export async function GET(request: Request) {
             creatorId: creators.id,
             creatorUsername: creators.username,
             creatorEmail: creators.email,
-            creatorCountry: creators.country,
           })
           .from(shopifyOrders)
           .innerJoin(matches, eq(matches.id, shopifyOrders.matchId))
@@ -116,7 +115,6 @@ export async function GET(request: Request) {
             creatorId: creators.id,
             creatorUsername: creators.username,
             creatorEmail: creators.email,
-            creatorCountry: creators.country,
           })
           .from(manualShipments)
           .innerJoin(matches, eq(matches.id, manualShipments.matchId))
@@ -145,7 +143,6 @@ export async function GET(request: Request) {
         id: r.creatorId,
         username: r.creatorUsername,
         email: r.creatorEmail ?? null,
-        country: r.creatorCountry ?? null,
       },
     })),
     ...manualRows.map((r) => ({
@@ -167,7 +164,6 @@ export async function GET(request: Request) {
         id: r.creatorId,
         username: r.creatorUsername,
         email: r.creatorEmail ?? null,
-        country: r.creatorCountry ?? null,
       },
     })),
   ].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));

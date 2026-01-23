@@ -51,7 +51,7 @@ export async function GET(request: Request) {
     if (ctx instanceof Response) return ctx;
 
     const creator = ctx.creator;
-    const unit = creator.country === "IN" ? ("KM" as const) : ("MI" as const);
+    const unit = "MI" as const;
 
     const strikeLimit = getStrikeLimit();
     const strikes = await getActiveStrikeCount(creator.id);

@@ -389,7 +389,7 @@ export default function InfluencerFeedPage() {
               </div>
 
               <div className="mt-6 text-xs leading-5 text-muted-foreground">
-                Next: connect Meta OAuth, filter by country, and enforce strike policy.
+                Next: connect Meta OAuth and enforce strike policy.
               </div>
             </CardContent>
           </Card>

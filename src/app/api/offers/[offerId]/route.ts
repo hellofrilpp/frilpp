@@ -36,7 +36,6 @@ export async function GET(_request: Request, context: { params: Promise<{ offerI
       brandCity: brands.city,
       brandProvince: brands.province,
       brandZip: brands.zip,
-      brandCountry: brands.country,
     })
     .from(offers)
     .innerJoin(brands, eq(brands.id, offers.brandId))
@@ -88,7 +87,6 @@ export async function GET(_request: Request, context: { params: Promise<{ offerI
     offer.brandCity,
     offer.brandProvince,
     offer.brandZip,
-    offer.brandCountry,
   ].filter(Boolean);
   const pickupAddress = pickupAddressParts.length ? pickupAddressParts.join(", ") : null;
 

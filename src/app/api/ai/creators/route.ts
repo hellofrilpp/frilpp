@@ -113,7 +113,6 @@ export async function POST(request: Request) {
     .select({
       name: brands.name,
       location: brands.location,
-      country: brands.country,
       lat: brands.lat,
       lng: brands.lng,
     })
@@ -178,7 +177,6 @@ export async function POST(request: Request) {
       creatorId: creators.id,
       username: creators.username,
       followersCount: creators.followersCount,
-      country: creators.country,
       categories: creators.categories,
       lat: creators.lat,
       lng: creators.lng,
@@ -251,7 +249,6 @@ export async function POST(request: Request) {
         creatorId: row.creatorId,
         username: row.username ?? "Creator",
         followersCount: row.followersCount ?? 0,
-        country: row.country ?? "",
         categories: (row.categories as string[] | null) ?? [],
         distanceKm,
         distanceMiles: distanceKm !== null ? kmToMiles(distanceKm) : null,
@@ -291,7 +288,6 @@ export async function POST(request: Request) {
       brand: {
         name: brand?.name ?? "Brand",
         location: brand?.location ?? null,
-        country: brand?.country ?? null,
       },
       offer: offer || offerDraft
         ? {

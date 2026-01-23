@@ -30,7 +30,6 @@ export async function GET(request: Request) {
       creatorId: creators.id,
       username: creators.username,
       followersCount: creators.followersCount,
-      country: creators.country,
       categories: creators.categories,
       offerMetadata: offers.metadata,
     })
@@ -146,7 +145,6 @@ export async function GET(request: Request) {
       creatorId: string;
       username: string | null;
       followersCount: number | null;
-      country: string | null;
       categories: string[] | null;
       matchCount: number;
       verifiedCount: number;
@@ -167,7 +165,6 @@ export async function GET(request: Request) {
         creatorId: row.creatorId,
         username: row.username ?? null,
         followersCount: row.followersCount ?? null,
-        country: row.country ?? null,
         categories: (row.categories as string[] | null) ?? null,
         matchCount: 0,
         verifiedCount: 0,
@@ -212,7 +209,6 @@ export async function GET(request: Request) {
       creatorId: entry.creatorId,
       username: entry.username,
       followersCount: entry.followersCount,
-      country: entry.country,
       categories: entry.categories,
       matchCount: entry.matchCount,
       verifiedCount: entry.verifiedCount,

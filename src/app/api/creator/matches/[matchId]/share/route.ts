@@ -37,7 +37,6 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
       brandCity: brands.city,
       brandProvince: brands.province,
       brandZip: brands.zip,
-      brandCountry: brands.country,
       brandWebsite: brands.website,
       brandLat: brands.lat,
       brandLng: brands.lng,
@@ -84,7 +83,6 @@ export async function GET(request: Request, context: { params: Promise<{ matchId
     row.brandCity,
     row.brandProvince,
     row.brandZip,
-    row.brandCountry,
   ].filter(Boolean);
   const pickupAddress = pickupAddressParts.length ? pickupAddressParts.join(", ") : null;
   const mapsUrl = pickupAddress

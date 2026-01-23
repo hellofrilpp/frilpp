@@ -26,7 +26,7 @@ type ShipmentRow = {
     manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY" | null;
     manualFulfillmentNotes: string | null;
   };
-  creator: { id: string; username: string | null; email: string | null; country: string | null };
+  creator: { id: string; username: string | null; email: string | null };
 };
 
 type Filter = "ALL" | "PENDING" | "SHIPPED" | "ERROR" | "FULFILLED" | "COMPLETED" | "CANCELED" | "DRAFT_CREATED";

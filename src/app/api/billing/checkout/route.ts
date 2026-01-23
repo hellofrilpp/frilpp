@@ -1,12 +1,9 @@
 import Stripe from "stripe";
 import { z } from "zod";
-import { db } from "@/db";
-import { brands } from "@/db/schema";
 import { requireBrandContext, requireCreatorContext, getSessionUser } from "@/lib/auth";
 import { marketFromRequest, planKeyFor, type BillingLane } from "@/lib/billing";
 import { upsertBillingSubscriptionBySubject } from "@/lib/billing-store";
 import { fetchWithTimeout } from "@/lib/http";
-import { eq } from "drizzle-orm";
 
 export const runtime = "nodejs";
 
@@ -154,14 +151,7 @@ export async function POST(request: Request) {
     if (ctx instanceof Response) return ctx;
     const brandId = ctx.brandId;
 
-    const brandRow = await db
-      .select({ country: brands.country })
-      .from(brands)
-      .where(eq(brands.id, brandId))
-      .limit(1);
-    const brandCountry = (brandRow[0]?.country ?? "").toUpperCase();
-
-    const market = brandCountry === "IN" ? "IN" : marketFromRequest(request);
+    const market = marketFromRequest(request);
     const planKey = planKeyFor(lane, market);
 
     const mode = billingProviderMode();
@@ -206,8 +196,7 @@ export async function POST(request: Request) {
   const creatorCtx = await requireCreatorContext(request);
   if (creatorCtx instanceof Response) return creatorCtx;
   const creatorId = creatorCtx.creator.id;
-  const creatorCountry = (creatorCtx.creator.country ?? "").toUpperCase();
-  const market = creatorCountry === "IN" ? "IN" : marketFromRequest(request);
+  const market = marketFromRequest(request);
   const planKey = planKeyFor(lane, market);
 
   const mode = billingProviderMode();

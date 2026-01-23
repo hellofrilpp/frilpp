@@ -11,7 +11,6 @@ type CreatorRow = {
   creatorId: string;
   username: string | null;
   followersCount: number | null;
-  country: string | null;
   categories: string[] | null;
   matchCount: number;
   verifiedCount: number;
@@ -69,8 +68,7 @@ export default function BrandCreatorAnalyticsPage() {
     if (!q) return rows;
     return rows.filter((row) => {
       const username = (row.username ?? "").toLowerCase();
-      const country = (row.country ?? "").toLowerCase();
-      return username.includes(q) || country.includes(q);
+      return username.includes(q);
     });
   }, [query, rows]);
 
@@ -170,7 +168,7 @@ export default function BrandCreatorAnalyticsPage() {
           <CardContent className="grid gap-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <Input
-                placeholder="Search username or country…"
+                placeholder="Search username…"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
@@ -191,7 +189,7 @@ export default function BrandCreatorAnalyticsPage() {
                             {row.username ? `@${row.username}` : "Creator"}
                           </div>
                           <div className="mt-1 text-xs text-muted-foreground">
-                            {row.country ?? "—"} · {row.followersCount ? `${row.followersCount.toLocaleString()} followers` : "followers n/a"}
+                            {row.followersCount ? `${row.followersCount.toLocaleString()} followers` : "followers n/a"}
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-2">
@@ -231,4 +229,3 @@ export default function BrandCreatorAnalyticsPage() {
     </div>
   );
 }
-

@@ -41,10 +41,9 @@ const requirementLabel = (deliverable: string) => {
 
 const InfluencerDiscover = () => {
   const { toast } = useToast();
-  const country: "US" | "IN" | undefined = undefined;
   const { data, isLoading, error } = useQuery({
-    queryKey: ["creator-feed", country],
-    queryFn: () => getCreatorFeed(country),
+    queryKey: ["creator-feed"],
+    queryFn: () => getCreatorFeed(),
   });
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);

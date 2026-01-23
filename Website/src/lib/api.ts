@@ -304,7 +304,6 @@ export type BrandMatch = {
     id: string;
     username: string | null;
     followersCount: number | null;
-    country: string | null;
     shippingReady: boolean;
     distanceKm?: number | null;
     distanceMiles?: number | null;
@@ -344,7 +343,7 @@ export type BrandShipment = {
   updatedAt: string;
   match: { id: string; campaignCode: string };
   offer: { title: string };
-  creator: { id: string; username: string | null; email: string | null; country: string | null };
+  creator: { id: string; username: string | null; email: string | null };
 };
 
 export async function getBrandShipments() {
@@ -431,7 +430,6 @@ export type BrandCreatorAnalytics = {
   creatorId: string;
   username: string | null;
   followersCount: number | null;
-  country: string | null;
   categories: string[] | null;
   matchCount: number;
   verifiedCount: number;
@@ -598,10 +596,9 @@ export type CreatorFeedOffer = {
   distanceMiles?: number | null;
 };
 
-export async function getCreatorFeed(country?: "US" | "IN") {
-  const query = country ? `?country=${encodeURIComponent(country)}` : "";
+export async function getCreatorFeed() {
   return apiFetch<{ ok: boolean; blocked: boolean; reason?: string; offers: CreatorFeedOffer[] }>(
-    `/api/creator/feed${query}`,
+    "/api/creator/feed",
   );
 }
 

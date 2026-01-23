@@ -36,12 +36,11 @@ interface Influencer {
   stage: Stage;
   avatar: string;
   engagement: string;
-  country?: string | null;
   distanceKm?: number | null;
   distanceMiles?: number | null;
 }
 
-const milesToKm = (miles: number) => miles * 1.609344;
+const kmToMiles = (km: number) => km / 1.609344;
 
 const stages: { key: Stage; label: string; icon: React.ElementType; color: string }[] = [
   { key: "applied", label: "APPLIED", icon: Clock, color: "border-border" },
@@ -97,19 +96,16 @@ const BrandPipeline = () => {
   }, []);
 
   const formatDistance = useCallback(
-    (influencer?: Pick<Influencer, "country" | "distanceKm" | "distanceMiles"> | null) => {
+    (influencer?: Pick<Influencer, "distanceKm" | "distanceMiles"> | null) => {
       if (!influencer) return null;
-      const unit = influencer.country === "IN" ? "km" : "mi";
       const distance =
-        unit === "km"
-          ? influencer.distanceKm ??
-            (influencer.distanceMiles !== null && influencer.distanceMiles !== undefined
-              ? milesToKm(influencer.distanceMiles)
-              : null)
-          : influencer.distanceMiles ?? null;
+        influencer.distanceMiles ??
+        (influencer.distanceKm !== null && influencer.distanceKm !== undefined
+          ? kmToMiles(influencer.distanceKm)
+          : null);
       if (distance === null || distance === undefined) return null;
-      if (distance < 1) return unit === "km" ? "<1km" : "<1mi";
-      return `${distance.toFixed(distance < 10 ? 1 : 0)}${unit}`;
+      if (distance < 1) return "<1mi";
+      return `${distance.toFixed(distance < 10 ? 1 : 0)}mi`;
     },
     [],
   );
@@ -121,7 +117,6 @@ const BrandPipeline = () => {
     followersCount: number | null,
     campaign: string,
     stage: Stage,
-    country?: string | null,
     distanceKm?: number | null,
     distanceMiles?: number | null,
   ): Influencer => {
@@ -143,7 +138,6 @@ const BrandPipeline = () => {
       stage,
       avatar: avatar || "CR",
       engagement: "—",
-      country: country ?? null,
       distanceKm: distanceKm ?? null,
       distanceMiles: distanceMiles ?? null,
     };
@@ -168,7 +162,6 @@ const BrandPipeline = () => {
           match.creator.followersCount,
           match.offer.title,
           "applied",
-          match.creator.country ?? null,
           match.creator.distanceKm ?? null,
           match.creator.distanceMiles ?? null,
         ),
@@ -185,7 +178,6 @@ const BrandPipeline = () => {
           match.creator.followersCount,
           match.offer.title,
           "approved",
-          match.creator.country ?? null,
           match.creator.distanceKm ?? null,
           match.creator.distanceMiles ?? null,
         ),
@@ -207,7 +199,6 @@ const BrandPipeline = () => {
           null,
           shipment.offer.title,
           "shipped",
-          shipment.creator.country ?? null,
           null,
           null,
         ),
@@ -227,7 +218,6 @@ const BrandPipeline = () => {
           "posted",
           null,
           null,
-          null,
         ),
       );
     });
@@ -242,7 +232,6 @@ const BrandPipeline = () => {
           deliverable.creator.followersCount,
           deliverable.offer.title,
           "complete",
-          null,
           null,
           null,
         ),

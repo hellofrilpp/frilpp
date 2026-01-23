@@ -21,7 +21,7 @@ const benefits = [
   {
     icon: Users,
     title: "CREATOR FIT",
-    description: "Filter by country, niche, and followers — then auto-accept or approve.",
+    description: "Filter by niche and followers — then auto-accept or approve.",
     color: "neon-pink",
   },
   {
@@ -72,7 +72,7 @@ const ForBrands = () => {
             </h2>
             
             <p className="font-mono text-sm text-muted-foreground mb-10 leading-relaxed max-w-lg">
-              &gt; Built for small businesses selling locally (US + India)<br />
+              &gt; Built for local + global offers<br />
               &gt; Set a local radius ({unit}) so only nearby creators see the offer<br />
               <span className="text-neon-green">&gt; NOT_A_DELIVERY_SERVICE: TRUE</span>
             </p>
