@@ -83,11 +83,23 @@ const InfluencerDeals = () => {
     return new Map(deliverables.map((deliverable) => [deliverable.match.id, deliverable]));
   }, [deliverablesData]);
 
-  const filteredDeals = filter === "all" ? deals : deals.filter(deal => deal.status === filter);
+  const filteredDeals =
+    filter === "all"
+      ? deals
+      : filter === "approved"
+        ? deals.filter((deal) => deal.status === "approved" || deal.status === "post_required")
+        : deals.filter((deal) => deal.status === filter);
 
   const activeDeals = deals.filter(d => d.status !== "complete").length;
   const completedDeals = deals.filter(d => d.status === "complete").length;
   const totalValue = deals.reduce((sum, d) => sum + parseInt(d.value.replace("$", "")), 0);
+
+  const normalizeUrl = (value: string) => {
+    const trimmed = value.trim();
+    if (!trimmed) return "";
+    if (/^https?:\/\//i.test(trimmed)) return trimmed;
+    return `https://${trimmed}`;
+  };
 
   useEffect(() => {
     if (error instanceof ApiError && error.code === "NEEDS_CREATOR_PROFILE") {
@@ -292,8 +304,14 @@ const InfluencerDeals = () => {
                 if (!activeDeliverable) return;
                 try {
                   setSubmitting(true);
+                  const normalizedUrl = normalizeUrl(submitUrl);
+                  if (!normalizedUrl) {
+                    toast({ title: "INVALID URL", description: "Please enter a valid permalink URL." });
+                    setSubmitting(false);
+                    return;
+                  }
                   await submitCreatorDeliverable(activeDeliverable.match.id, {
-                    url: submitUrl,
+                    url: normalizedUrl,
                     notes: submitNotes || undefined,
                     grantUsageRights: submitUsageRights || undefined,
                   });
