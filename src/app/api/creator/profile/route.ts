@@ -24,7 +24,7 @@ const patchSchema = z
     lat: z.number().min(-90).max(90).nullable().optional(),
     lng: z.number().min(-180).max(180).nullable().optional(),
   })
-  .strict()
+  .strip()
   .superRefine((data, ctx) => {
     const categories = data.categories ?? [];
     if (categories.includes("OTHER") && !data.categoriesOther) {
