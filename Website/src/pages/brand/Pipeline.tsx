@@ -81,6 +81,15 @@ const BrandPipeline = () => {
   const manualShipments = (shipmentsData?.shipments ?? []).filter(
     (shipment) => shipment.fulfillmentType === "MANUAL" && shipment.status !== "SHIPPED",
   );
+  const manualShipmentByMatch = useMemo(() => {
+    const shipments = shipmentsData?.shipments ?? [];
+    const map = new Map<string, BrandShipment>();
+    shipments.forEach((shipment) => {
+      if (shipment.fulfillmentType !== "MANUAL") return;
+      map.set(shipment.match.id, shipment);
+    });
+    return map;
+  }, [shipmentsData]);
 
   useEffect(() => {
     if (matchesError instanceof ApiError && matchesError.status === 401) {
@@ -281,19 +290,20 @@ const BrandPipeline = () => {
 
   const handleDrop = (stage: Stage) => {
     if (draggedInfluencer) {
-      setInfluencersList(prev => 
-        prev.map(inf => 
-          inf.id === draggedInfluencer.id ? { ...inf, stage } : inf
-        )
-      );
       if (stage === "approved") {
+        setInfluencersList(prev => 
+          prev.map(inf => 
+            inf.id === draggedInfluencer.id ? { ...inf, stage } : inf
+          )
+        );
         approveBrandMatch(draggedInfluencer.id).catch((err) => {
           const message = err instanceof ApiError ? err.message : "Approve failed";
           toast({ title: "APPROVE FAILED", description: message });
         });
-      }
-      if (stage === "complete") {
+      } else if (stage === "complete") {
         toast({ title: "VERIFY IN DELIVERABLES", description: "Use deliverables to verify posts." });
+      } else {
+        toast({ title: "NOT AVAILABLE", description: "Move to Approved first, then update shipments/deliverables." });
       }
       setDraggedInfluencer(null);
     }
@@ -384,10 +394,67 @@ const BrandPipeline = () => {
                               <Mail className="w-4 h-4 mr-2" />
                               MESSAGE
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="font-mono text-xs">
-                              <Package className="w-4 h-4 mr-2" />
-                              MARK_SHIPPED
-                            </DropdownMenuItem>
+                            {influencer.stage === "applied" && (
+                              <DropdownMenuItem
+                                className="font-mono text-xs"
+                                onSelect={(event) => {
+                                  event.preventDefault();
+                                  approveBrandMatch(influencer.id)
+                                    .then(() => {
+                                      setInfluencersList((prev) =>
+                                        prev.map((inf) =>
+                                          inf.id === influencer.id ? { ...inf, stage: "approved" } : inf,
+                                        ),
+                                      );
+                                      toast({ title: "APPROVED", description: "Creator approved." });
+                                    })
+                                    .catch((err) => {
+                                      const message = err instanceof ApiError ? err.message : "Approve failed";
+                                      toast({ title: "APPROVE FAILED", description: message });
+                                    });
+                                }}
+                              >
+                                <CheckCircle className="w-4 h-4 mr-2" />
+                                APPROVE
+                              </DropdownMenuItem>
+                            )}
+                            {influencer.stage === "approved" && (
+                              <DropdownMenuItem
+                                className="font-mono text-xs"
+                                onSelect={async (event) => {
+                                  event.preventDefault();
+                                  const shipment = manualShipmentByMatch.get(influencer.id);
+                                  if (!shipment) {
+                                    toast({
+                                      title: "NO MANUAL SHIPMENT",
+                                      description: "Use Shipments for Shopify orders.",
+                                    });
+                                    return;
+                                  }
+                                  try {
+                                    const payload = manualForms[shipment.id] ?? {
+                                      carrier: "",
+                                      trackingNumber: "",
+                                      trackingUrl: "",
+                                    };
+                                    await updateManualShipment(shipment.id, {
+                                      status: "SHIPPED",
+                                      carrier: payload.carrier || undefined,
+                                      trackingNumber: payload.trackingNumber || undefined,
+                                      trackingUrl: payload.trackingUrl || undefined,
+                                    });
+                                    toast({ title: "SHIPPED", description: "Tracking saved." });
+                                    await queryClient.invalidateQueries({ queryKey: ["brand-shipments"] });
+                                  } catch (err) {
+                                    const message = err instanceof ApiError ? err.message : "Update failed";
+                                    toast({ title: "UPDATE FAILED", description: message });
+                                  }
+                                }}
+                              >
+                                <Package className="w-4 h-4 mr-2" />
+                                MARK_SHIPPED
+                              </DropdownMenuItem>
+                            )}
                             {influencer.stage === "posted" && deliverableByMatch.has(influencer.id) && (
                               <>
                                 <DropdownMenuItem
