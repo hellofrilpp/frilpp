@@ -521,7 +521,6 @@ export type BrandProfile = {
   city?: string | null;
   province?: string | null;
   zip?: string | null;
-  country?: string | null;
   lat?: number | null;
   lng?: number | null;
   logoUrl: string | null;
@@ -624,7 +623,6 @@ export type CreatorProfile = {
   id: string;
   username: string | null;
   followersCount: number | null;
-  country: string | null;
   categories?: string[] | null;
   categoriesOther?: string | null;
   fullName: string | null;
@@ -653,7 +651,6 @@ export async function updateCreatorProfile(payload: Partial<CreatorProfile>) {
 export async function completeCreatorOnboarding(payload: {
   username?: string;
   followersCount?: number;
-  country: "US" | "IN";
   categories?: string[];
   categoriesOther?: string;
   fullName: string;

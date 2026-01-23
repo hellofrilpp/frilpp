@@ -46,7 +46,6 @@ const BrandSettings = () => {
     city: "",
     province: "",
     zip: "",
-    country: "",
     lat: null as number | null,
     lng: null as number | null,
     logoUrl: "",
@@ -94,7 +93,6 @@ const BrandSettings = () => {
       city: profileData.profile.city ?? "",
       province: profileData.profile.province ?? "",
       zip: profileData.profile.zip ?? "",
-      country: profileData.profile.country ?? "",
       lat: profileData.profile.lat ?? null,
       lng: profileData.profile.lng ?? null,
       logoUrl: profileData.profile.logoUrl ?? "",
@@ -207,7 +205,6 @@ const BrandSettings = () => {
                   city: location.city,
                   province: location.province,
                   zip: location.zip,
-                  country: location.country ?? prev.country,
                   lat: location.lat,
                   lng: location.lng,
                 }))
@@ -444,7 +441,6 @@ const BrandSettings = () => {
                 setSaving(true);
                 const payload = {
                   ...profile,
-                  country: profile.country || undefined,
                 };
                 await updateBrandProfile(payload);
                 await updateBrandNotifications(notifications);

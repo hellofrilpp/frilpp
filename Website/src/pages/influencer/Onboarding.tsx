@@ -12,7 +12,6 @@ const InfluencerOnboarding = () => {
   const [step, setStep] = useState(1);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [categoriesOther, setCategoriesOther] = useState("");
-  const [country, setCountry] = useState<"US" | "IN">("US");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { data: picklists } = useQuery({
@@ -38,7 +37,6 @@ const InfluencerOnboarding = () => {
         return;
       }
       await updateCreatorProfile({
-        country,
         categories: selectedCategories,
         categoriesOther: needsOther ? categoriesOther.trim() : null,
       });
@@ -112,25 +110,6 @@ const InfluencerOnboarding = () => {
                 <p className="font-mono text-sm text-muted-foreground mt-2">
                   &gt; Pick categories you create content about
                 </p>
-              </div>
-
-              <div className="mb-6 border-2 border-border p-4">
-                <p className="text-xs font-mono text-muted-foreground mb-3">&gt; Choose your country</p>
-                <div className="flex gap-2">
-                  {(["US", "IN"] as const).map((option) => (
-                    <button
-                      key={option}
-                      onClick={() => setCountry(option)}
-                      className={`px-3 py-2 border-2 text-xs font-mono transition-all pixel-btn ${
-                        country === option
-                          ? "border-neon-green bg-neon-green/20 text-neon-green"
-                          : "border-border hover:border-neon-green"
-                      }`}
-                    >
-                      {option === "US" ? "UNITED STATES" : "INDIA"}
-                    </button>
-                  ))}
-                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-2 mb-8">

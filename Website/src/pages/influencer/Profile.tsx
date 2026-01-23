@@ -31,7 +31,6 @@ const InfluencerProfile = () => {
     city: "",
     province: "",
     zip: "",
-    country: "" as "" | "US" | "IN",
     lat: null as number | null,
     lng: null as number | null,
   });
@@ -69,7 +68,6 @@ const InfluencerProfile = () => {
       city: profileData.creator.city ?? "",
       province: profileData.creator.province ?? "",
       zip: profileData.creator.zip ?? "",
-      country: (profileData.creator.country as "US" | "IN") ?? "",
       lat: profileData.creator.lat ?? null,
       lng: profileData.creator.lng ?? null,
     });
@@ -313,7 +311,6 @@ const InfluencerProfile = () => {
                   city: location.city,
                   province: location.province,
                   zip: location.zip,
-                  country: (location.country as "US" | "IN") ?? prev.country,
                   lat: location.lat,
                   lng: location.lng,
                 }))
@@ -390,7 +387,6 @@ const InfluencerProfile = () => {
                     city: normalizeOptional(profileForm.city),
                     province: normalizeOptional(profileForm.province),
                     zip: normalizeOptional(profileForm.zip),
-                    country: profileForm.country ? (profileForm.country as "US" | "IN") : null,
                     lat: profileForm.lat,
                     lng: profileForm.lng,
                   });

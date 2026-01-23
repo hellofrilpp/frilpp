@@ -194,7 +194,7 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     const needsDeliveryAddress =
       fulfillmentType === "SHOPIFY" || (fulfillmentType === "MANUAL" && manualMethod === "LOCAL_DELIVERY");
     if (needsDeliveryAddress) {
-      if (!creator.address1 || !creator.city || !creator.zip || !creator.country) {
+      if (!creator.address1 || !creator.city || !creator.zip) {
         return Response.json(
           {
             ok: false,

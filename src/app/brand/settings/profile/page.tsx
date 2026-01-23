@@ -17,7 +17,6 @@ type BrandProfile = {
   city: string | null;
   province: string | null;
   zip: string | null;
-  country: "US" | "IN" | null;
   lat: number | null;
   lng: number | null;
   logoUrl: string | null;

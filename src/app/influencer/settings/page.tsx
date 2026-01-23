@@ -12,7 +12,6 @@ type CreatorProfile = {
   id: string;
   username: string | null;
   followersCount: number | null;
-  country: "US" | "IN" | null;
   fullName: string | null;
   email: string | null;
   phone: string | null;

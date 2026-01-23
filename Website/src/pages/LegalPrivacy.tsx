@@ -45,7 +45,7 @@ const LegalPrivacy = () => {
             <div className="text-sm font-semibold">Information we collect</div>
             <ul className="list-disc space-y-2 pl-5 text-muted-foreground">
               <li>Account data: email, authentication tokens, and session identifiers.</li>
-              <li>Creator profile data: name, shipping address, phone (optional), and country.</li>
+              <li>Creator profile data: name, shipping address, and phone (optional).</li>
               <li>
                 Social account data (with your consent): username, follower count, and recent media
                 metadata used for deliverable verification.

@@ -12,7 +12,6 @@ export const runtime = "nodejs";
 const bodySchema = z.object({
   username: z.string().min(1).max(64).optional(),
   followersCount: z.number().int().min(0).max(50_000_000).optional(),
-  country: z.enum(["US", "IN"]),
   categories: z.array(z.enum(CREATOR_CATEGORIES)).max(20).optional(),
   categoriesOther: z.string().trim().min(2).max(64).optional(),
   fullName: z.string().min(1).max(128).optional(),
@@ -78,7 +77,6 @@ export async function POST(request: Request) {
       igUserId: null,
       username: parsed.data.username ?? null,
       followersCount: parsed.data.followersCount ?? null,
-      country: parsed.data.country,
       categories: parsed.data.categories ?? null,
       categoriesOther: parsed.data.categoriesOther ?? null,
       fullName: parsed.data.fullName ?? null,

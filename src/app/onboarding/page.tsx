@@ -33,7 +33,6 @@ export default function OnboardingPage() {
 
   const [creatorForm, setCreatorForm] = useState({
     username: "",
-    country: "US" as "US" | "IN",
     phone: "",
     lat: null as number | null,
     lng: null as number | null,
@@ -149,7 +148,6 @@ export default function OnboardingPage() {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           username: creatorForm.username || undefined,
-          country: creatorForm.country,
           phone: creatorForm.phone || undefined,
           lat: creatorForm.lat ?? undefined,
           lng: creatorForm.lng ?? undefined,
@@ -370,26 +368,6 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                <div className="grid gap-2">
-                  <Label>Country</Label>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant={creatorForm.country === "US" ? "default" : "outline"}
-                      onClick={() => setCreatorForm((p) => ({ ...p, country: "US" }))}
-                    >
-                      United States
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={creatorForm.country === "IN" ? "default" : "outline"}
-                      onClick={() => setCreatorForm((p) => ({ ...p, country: "IN" }))}
-                    >
-                      India
-                    </Button>
-                  </div>
-                </div>
-
                 <div className="rounded-lg border bg-muted p-4">
                   <div className="text-sm font-semibold">Location</div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -411,7 +389,6 @@ export default function OnboardingPage() {
 
                 <Button
                   onClick={createCreator}
-                  disabled={!creatorForm.country}
                 >
                   Create creator profile
                 </Button>

@@ -35,7 +35,6 @@ const BrandSetup = () => {
     city: "",
     province: "",
     zip: "",
-    country: "US" as "US" | "IN",
     lat: null as number | null,
     lng: null as number | null,
   });
@@ -68,7 +67,6 @@ const BrandSetup = () => {
             city: profileRes.profile.city ?? "",
             province: profileRes.profile.province ?? "",
             zip: profileRes.profile.zip ?? "",
-            country: (profileRes.profile.country as "US" | "IN") ?? "US",
             lat: profileRes.profile.lat ?? null,
             lng: profileRes.profile.lng ?? null,
           });
@@ -87,8 +85,8 @@ const BrandSetup = () => {
   }, [navigate]);
 
   const locationReady = useMemo(() => {
-    return Boolean(profile.lat !== null && profile.lng !== null && profile.country);
-  }, [profile.lat, profile.lng, profile.country]);
+    return Boolean(profile.lat !== null && profile.lng !== null);
+  }, [profile.lat, profile.lng]);
 
   const needsLocation = !locationReady;
 
@@ -125,7 +123,6 @@ const BrandSetup = () => {
         city: profile.city || undefined,
         province: profile.province || undefined,
         zip: profile.zip || undefined,
-        country: profile.country || undefined,
         lat: profile.lat ?? null,
         lng: profile.lng ?? null,
       });
@@ -236,7 +233,6 @@ const BrandSetup = () => {
                   city: location.city,
                   province: location.province,
                   zip: location.zip,
-                  country: location.country ?? prev.country,
                   lat: location.lat,
                   lng: location.lng,
                 }))
