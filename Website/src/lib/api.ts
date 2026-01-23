@@ -304,6 +304,12 @@ export type BrandMatch = {
     id: string;
     username: string | null;
     followersCount: number | null;
+    fullName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    city?: string | null;
+    province?: string | null;
+    zip?: string | null;
     shippingReady: boolean;
     distanceKm?: number | null;
     distanceMiles?: number | null;

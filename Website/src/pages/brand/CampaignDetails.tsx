@@ -20,6 +20,8 @@ import {
   duplicateBrandOffer,
   getBrandMatchesByOffer,
   getBrandOffer,
+  approveBrandMatch,
+  rejectBrandMatch,
   updateBrandOffer,
 } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +36,12 @@ const BrandCampaignDetails = () => {
     queryFn: () => getBrandOffer(offerId as string),
     enabled: Boolean(offerId),
   });
-  const { data: matchesData, error: matchesError, isLoading: matchesLoading } = useQuery({
+  const {
+    data: matchesData,
+    error: matchesError,
+    isLoading: matchesLoading,
+    refetch: refetchMatches,
+  } = useQuery({
     queryKey: ["brand-offer-matches", offerId],
     queryFn: () => getBrandMatchesByOffer(offerId as string),
     enabled: Boolean(offerId),
@@ -178,6 +185,28 @@ const BrandCampaignDetails = () => {
     } finally {
       setDeleteConfirm("");
       setDeleteOpen(false);
+    }
+  };
+
+  const handleApprove = async (matchId: string) => {
+    try {
+      await approveBrandMatch(matchId);
+      toast({ title: "APPROVED", description: "Creator approved for this campaign." });
+      await refetchMatches();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Approval failed";
+      toast({ title: "APPROVE FAILED", description: message });
+    }
+  };
+
+  const handleReject = async (matchId: string) => {
+    try {
+      await rejectBrandMatch(matchId);
+      toast({ title: "REJECTED", description: "Creator rejected for this campaign." });
+      await refetchMatches();
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Reject failed";
+      toast({ title: "REJECT FAILED", description: message });
     }
   };
 
@@ -390,19 +419,55 @@ const BrandCampaignDetails = () => {
                       {match.creator.username ? `@${match.creator.username}` : "Creator"}
                     </div>
                     <div className="font-mono text-[11px] text-muted-foreground">
+                      Name: {match.creator.fullName || "—"}
+                    </div>
+                    <div className="font-mono text-[11px] text-muted-foreground">
+                      Email: {match.creator.email || "—"}
+                    </div>
+                    <div className="font-mono text-[11px] text-muted-foreground">
+                      Phone: {match.creator.phone || "—"}
+                    </div>
+                    <div className="font-mono text-[11px] text-muted-foreground">
                       Followers: {formatFollowers(match.creator.followersCount)}
                     </div>
                     <div className="font-mono text-[11px] text-muted-foreground">
                       Shipping: {match.creator.shippingReady ? "ready" : "needs address"}
                     </div>
+                    <div className="font-mono text-[11px] text-muted-foreground">
+                      Location: {[match.creator.city, match.creator.province, match.creator.zip]
+                        .filter((value) => typeof value === "string" && value.trim().length > 0)
+                        .join(", ") || "—"}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <span className="px-2 py-1 text-[10px] font-pixel border-2 border-border">
-                      {formatStatus(match.status)}
-                    </span>
-                    <span className="font-mono text-[11px] text-muted-foreground">
-                      {new Date(match.createdAt).toLocaleDateString()}
-                    </span>
+                  <div className="flex flex-col items-end gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-1 text-[10px] font-pixel border-2 border-border">
+                        {formatStatus(match.status)}
+                      </span>
+                      <span className="font-mono text-[11px] text-muted-foreground">
+                        {new Date(match.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                    {match.status === "PENDING_APPROVAL" ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-2 font-mono text-[10px]"
+                          onClick={() => handleApprove(match.matchId)}
+                        >
+                          APPROVE
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-2 font-mono text-[10px] text-destructive"
+                          onClick={() => handleReject(match.matchId)}
+                        >
+                          REJECT
+                        </Button>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ))}
