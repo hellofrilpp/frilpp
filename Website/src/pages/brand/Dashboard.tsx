@@ -78,6 +78,7 @@ const BrandDashboard = () => {
         icon: Package,
         change: `${offers.length} total`,
         color: "neon-green",
+        href: "/brand/campaigns",
       },
       {
         label: "PENDING MATCHES",
@@ -85,6 +86,7 @@ const BrandDashboard = () => {
         icon: Users,
         change: `${pendingMatches.length} awaiting`,
         color: "neon-pink",
+        href: "/brand/pipeline",
       },
       {
         label: "CONTENT RECEIVED",
@@ -92,6 +94,7 @@ const BrandDashboard = () => {
         icon: Camera,
         change: `${verifiedDeliverables.length} verified`,
         color: "neon-purple",
+        href: "/brand/pipeline",
       },
       {
         label: "EST. REACH",
@@ -99,6 +102,7 @@ const BrandDashboard = () => {
         icon: TrendingUp,
         change: `${acceptedMatches.length} active`,
         color: "neon-yellow",
+        href: "/brand/analytics",
       },
     ],
     [offers, pendingMatches.length, verifiedDeliverables.length, reachEstimate, acceptedMatches.length],
@@ -123,6 +127,7 @@ const BrandDashboard = () => {
       .map((item) => ({
         ...item,
         time: new Date(item.time).toLocaleDateString(),
+        href: "/brand/pipeline",
       }));
   }, [pendingMatches, verifiedDeliverables]);
 
@@ -141,6 +146,7 @@ const BrandDashboard = () => {
     }, {});
 
     return offers.slice(0, 3).map((offer) => ({
+      id: offer.id,
       name: offer.title,
       matches: acceptedByOffer[offer.title] ?? 0,
       pending: pendingByOffer[offer.title] ?? 0,
@@ -182,9 +188,11 @@ const BrandDashboard = () => {
         {/* Stats Grid */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
           {stats.map((stat, index) => (
-            <div 
-              key={index} 
-              className={`p-5 border-4 border-border bg-card hover:border-${stat.color} transition-all group`}
+            <Link
+              key={index}
+              to={stat.href}
+              className={`p-5 border-4 border-border bg-card hover:border-${stat.color} transition-all group block`}
+              aria-label={stat.label}
             >
               <div className="flex items-start justify-between mb-3">
                 <div className={`w-10 h-10 border-2 border-${stat.color} bg-${stat.color}/10 flex items-center justify-center`}>
@@ -195,7 +203,7 @@ const BrandDashboard = () => {
               <p className={`text-2xl font-pixel mb-1 text-${stat.color}`}>{stat.value}</p>
               <p className="text-xs font-mono text-muted-foreground mb-2">{stat.label}</p>
               <p className="text-xs font-mono text-neon-green">{stat.change}</p>
-            </div>
+            </Link>
           ))}
         </div>
 
@@ -204,13 +212,17 @@ const BrandDashboard = () => {
           <div className="lg:col-span-2 border-4 border-border bg-card">
             <div className="p-4 border-b-4 border-border flex items-center justify-between">
               <h2 className="font-pixel text-sm text-neon-purple">[ACTIVITY_LOG]</h2>
-              <Button variant="ghost" size="sm" className="text-xs font-mono hover:text-neon-green">
-                VIEW_ALL →
+              <Button variant="ghost" size="sm" className="text-xs font-mono hover:text-neon-green" asChild>
+                <Link to="/brand/pipeline">VIEW_ALL →</Link>
               </Button>
             </div>
             <div className="divide-y-2 divide-border">
               {recentActivity.map((activity, index) => (
-                <div key={index} className="p-4 flex items-start gap-4 hover:bg-muted/50 transition-colors">
+                <Link
+                  key={index}
+                  to={activity.href}
+                  className="p-4 flex items-start gap-4 hover:bg-muted/50 transition-colors"
+                >
                   <div className={`w-8 h-8 flex items-center justify-center flex-shrink-0 border-2 ${
                     activity.status === 'complete' ? 'bg-neon-green border-neon-green text-background' :
                     activity.status === 'review' ? 'bg-neon-yellow/20 border-neon-yellow text-neon-yellow' :
@@ -224,7 +236,7 @@ const BrandDashboard = () => {
                     <p className="text-sm font-mono">{activity.message}</p>
                     <p className="text-xs font-mono text-muted-foreground mt-1">{activity.time}</p>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           </div>
@@ -236,7 +248,11 @@ const BrandDashboard = () => {
             </div>
             <div className="divide-y-2 divide-border">
               {activeCampaigns.map((campaign, index) => (
-                <div key={index} className="p-4">
+                <Link
+                  key={index}
+                  to={`/brand/campaigns/${campaign.id}`}
+                  className="p-4 block hover:bg-muted/50 transition-colors"
+                >
                   <p className="text-sm font-mono mb-3">{campaign.name}</p>
                   <div className="flex gap-3 text-xs font-mono text-muted-foreground mb-3">
                     <span className="text-neon-green">{campaign.complete} done</span>
@@ -244,10 +260,16 @@ const BrandDashboard = () => {
                   </div>
                   {/* Progress Bar */}
                   <div className="h-2 bg-muted flex overflow-hidden">
-                    <div className="h-full bg-neon-green" style={{ width: `${(campaign.complete / campaign.matches) * 100}%` }} />
-                    <div className="h-full bg-neon-yellow" style={{ width: `${(campaign.shipped / campaign.matches) * 100}%` }} />
+                    <div
+                      className="h-full bg-neon-green"
+                      style={{ width: `${campaign.matches ? (campaign.complete / campaign.matches) * 100 : 0}%` }}
+                    />
+                    <div
+                      className="h-full bg-neon-yellow"
+                      style={{ width: `${campaign.matches ? (campaign.shipped / campaign.matches) * 100 : 0}%` }}
+                    />
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
             <div className="p-4 border-t-4 border-border">
