@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { and, eq, gt, isNull } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import { loginTokens, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
 import { hashLoginToken, SESSION_COOKIE_NAME } from "@/lib/auth";
@@ -7,18 +8,15 @@ import { sanitizeNextPath } from "@/lib/redirects";
 
 export const runtime = "nodejs";
 
-export async function GET(request: Request) {
-  if (!process.env.DATABASE_URL) {
-    return Response.json(
-      { ok: false, error: "DATABASE_URL is not configured" },
-      { status: 500 },
-    );
-  }
+const tokenSchema = z.object({
+  token: z.string().min(1),
+});
 
-  const url = new URL(request.url);
-  const token = url.searchParams.get("token");
-  if (!token) return Response.json({ ok: false, error: "Missing token" }, { status: 400 });
+type RedeemResult =
+  | { ok: true; nextPath: string }
+  | { ok: false; error: string; status: number };
 
+async function redeemToken(token: string): Promise<RedeemResult> {
   const tokenHash = hashLoginToken(token);
   const now = new Date();
 
@@ -28,7 +26,7 @@ export async function GET(request: Request) {
     .where(and(eq(loginTokens.tokenHash, tokenHash), isNull(loginTokens.usedAt), gt(loginTokens.expiresAt, now)))
     .limit(1);
   const tokenRow = tokenRows[0];
-  if (!tokenRow) return Response.json({ ok: false, error: "Invalid or expired token" }, { status: 400 });
+  if (!tokenRow) return { ok: false, error: "Invalid or expired token", status: 400 };
 
   await db.update(loginTokens).set({ usedAt: now }).where(eq(loginTokens.id, tokenRow.id));
 
@@ -196,5 +194,36 @@ export async function GET(request: Request) {
     nextPath = `/legal/accept?next=${encodeURIComponent(nextPath)}`;
   }
 
-  return Response.redirect(new URL(nextPath, url.origin), 302);
+  return { ok: true, nextPath };
+}
+
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  const token = url.searchParams.get("token");
+  if (!token) {
+    return Response.redirect(new URL("/auth/callback?error=missing", url.origin), 302);
+  }
+  return Response.redirect(new URL(`/auth/callback#token=${encodeURIComponent(token)}`, url.origin), 302);
+}
+
+export async function POST(request: Request) {
+  if (!process.env.DATABASE_URL) {
+    return Response.json(
+      { ok: false, error: "DATABASE_URL is not configured" },
+      { status: 500 },
+    );
+  }
+
+  const json = await request.json().catch(() => null);
+  const parsed = tokenSchema.safeParse(json);
+  if (!parsed.success) {
+    return Response.json({ ok: false, error: "Missing token" }, { status: 400 });
+  }
+
+  const result = await redeemToken(parsed.data.token);
+  if (!result.ok) {
+    return Response.json({ ok: false, error: result.error }, { status: result.status });
+  }
+
+  return Response.json({ ok: true, nextPath: result.nextPath });
 }

@@ -140,7 +140,7 @@ export async function POST(request: Request) {
   });
 
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
-  const callbackUrl = `${origin}/api/auth/callback?token=${encodeURIComponent(token)}`;
+  const callbackUrl = `${origin}/auth/callback#token=${encodeURIComponent(token)}`;
 
   jar.set("auth_next", nextPath, {
     httpOnly: true,
