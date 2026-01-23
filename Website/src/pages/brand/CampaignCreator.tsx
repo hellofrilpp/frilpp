@@ -408,8 +408,14 @@ const CampaignCreator = () => {
     const region = formData.region || "US_IN";
     if (region === "US") return platformsByCountry.US.filter((p) => allowedCreatorPlatformIds.has(p.id));
     if (region === "IN") return platformsByCountry.IN.filter((p) => allowedCreatorPlatformIds.has(p.id));
-    const byId = new Map(platformsByCountry.US.map((item) => [item.id, item]));
-    return platformsByCountry.IN.filter((item) => byId.has(item.id) && allowedCreatorPlatformIds.has(item.id));
+    const merged = new Map<string, { id: string; label: string }>();
+    platformsByCountry.US.forEach((item) => {
+      merged.set(item.id, item);
+    });
+    platformsByCountry.IN.forEach((item) => {
+      if (!merged.has(item.id)) merged.set(item.id, item);
+    });
+    return Array.from(merged.values()).filter((item) => allowedCreatorPlatformIds.has(item.id));
   }, [formData.region, platformsByCountry]);
 
   useEffect(() => {
