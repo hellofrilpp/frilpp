@@ -39,13 +39,13 @@ const InfluencerAuth = () => {
             </div>
             <CardTitle className="text-xl font-pixel text-portal-pink">CREATOR PORTAL</CardTitle>
             <CardDescription className="font-mono text-xs">
-              Login with TikTok to continue
+              Log in to continue
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-center">
               <p className="font-mono text-xs text-muted-foreground mb-4">
-                Start by connecting TikTok
+                Start by connecting your social account
               </p>
             </div>
             

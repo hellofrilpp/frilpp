@@ -26,7 +26,7 @@ const steps = [
   {
     icon: Camera,
     title: "CONTENT CREATED",
-    description: "Creator shares to IG/TikTok from the app so the post is verified + tracked.",
+    description: "Creator shares from the app so the post is verified + tracked.",
     visual: "VERIFIED_POST",
     color: "neon-purple",
   },

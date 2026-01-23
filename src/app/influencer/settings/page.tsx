@@ -209,7 +209,7 @@ export default function InfluencerSettingsPage() {
                 <div className="rounded-lg border bg-muted p-4">
                   <div className="text-sm font-semibold">Connected accounts</div>
                   <div className="mt-1 text-xs text-muted-foreground">
-                    Connect TikTok (and YouTube if needed).
+                    Connect social accounts (TikTok/YouTube if needed).
                   </div>
                   <div className="mt-3 flex flex-wrap gap-2">
                     {socialAccounts.length ? (

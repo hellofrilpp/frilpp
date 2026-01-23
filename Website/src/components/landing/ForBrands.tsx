@@ -38,7 +38,7 @@ const benefits = [
 ];
 
 const features = [
-  "IG/TikTok-only signup (email optional)",
+  "Social signup (email optional)",
   "Local radius + auto-accept threshold",
   "Pickup / local delivery / shipping",
   "Clicks + redemptions ROI",

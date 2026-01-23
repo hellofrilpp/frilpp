@@ -101,14 +101,14 @@ const InfluencerDiscover = () => {
       } catch (err) {
         if (err instanceof ApiError && err.code === "NEEDS_TIKTOK_CONNECT") {
           toast({
-            title: "CONNECT TIKTOK",
-            description: "Link your TikTok to claim this offer.",
+            title: "CONNECT SOCIAL",
+            description: "Link a social account to claim this offer.",
           });
           window.location.href = apiUrl("/api/auth/social/tiktok/connect?next=/influencer/discover");
         } else if (err instanceof ApiError && err.code === "NEEDS_TIKTOK_RECONNECT") {
           toast({
-            title: "RECONNECT TIKTOK",
-            description: "Your TikTok token expired. Reconnect to claim.",
+            title: "RECONNECT SOCIAL",
+            description: "Your social token expired. Reconnect to claim.",
           });
         } else if (err instanceof ApiError && err.code === "NEEDS_LOCATION") {
           toast({

@@ -341,11 +341,11 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
           .limit(1);
         const tiktok = tiktokRows[0] ?? null;
         if (!tiktok?.accessTokenEncrypted) {
-          tiktokError = { code: "NEEDS_TIKTOK_CONNECT", message: "TikTok connect required" };
+          tiktokError = { code: "NEEDS_TIKTOK_CONNECT", message: "Social connect required" };
         } else if (tiktok.expiresAt && tiktok.expiresAt.getTime() < Date.now()) {
           tiktokError = {
             code: "NEEDS_TIKTOK_RECONNECT",
-            message: "TikTok token expired. Reconnect required.",
+            message: "Social token expired. Reconnect required.",
           };
         } else {
           tiktokReady = true;
