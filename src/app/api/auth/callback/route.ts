@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { loginTokens, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
