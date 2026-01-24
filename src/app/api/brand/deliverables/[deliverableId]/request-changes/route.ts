@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
 import { z } from "zod";
+import crypto from "node:crypto";
 import { db } from "@/db";
-import { deliverables, matches, offers } from "@/db/schema";
+import { deliverableReviews, deliverables, matches, offers } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -33,6 +34,8 @@ export async function POST(request: Request, context: { params: Promise<{ delive
     .select({
       deliverableId: deliverables.id,
       offerBrandId: offers.brandId,
+      submittedPermalink: deliverables.submittedPermalink,
+      submittedNotes: deliverables.submittedNotes,
     })
     .from(deliverables)
     .innerJoin(matches, eq(matches.id, deliverables.matchId))
@@ -47,21 +50,35 @@ export async function POST(request: Request, context: { params: Promise<{ delive
 
   const reason = parsed.data.reason ?? "Changes requested by brand";
 
-  await db
-    .update(deliverables)
-    .set({
-      status: "DUE",
-      submittedPermalink: null,
-      submittedNotes: null,
-      submittedAt: null,
-      verifiedPermalink: null,
-      verifiedAt: null,
-      usageRightsGrantedAt: null,
-      usageRightsScope: null,
-      failureReason: reason,
+  const now = new Date();
+  await db.transaction(async (tx) => {
+    await tx
+      .update(deliverables)
+      .set({
+        status: "DUE",
+        submittedPermalink: null,
+        submittedNotes: null,
+        submittedAt: null,
+        verifiedPermalink: null,
+        verifiedAt: null,
+        usageRightsGrantedAt: null,
+        usageRightsScope: null,
+        failureReason: reason,
+        reviewedByUserId: ctx.user.id,
+      })
+      .where(eq(deliverables.id, deliverableId));
+
+    await tx.insert(deliverableReviews).values({
+      id: crypto.randomUUID(),
+      deliverableId,
+      action: "REQUEST_CHANGES",
+      reason,
+      submittedPermalink: d.submittedPermalink ?? null,
+      submittedNotes: d.submittedNotes ?? null,
       reviewedByUserId: ctx.user.id,
-    })
-    .where(eq(deliverables.id, deliverableId));
+      createdAt: now,
+    });
+  });
 
   return Response.json({ ok: true });
 }

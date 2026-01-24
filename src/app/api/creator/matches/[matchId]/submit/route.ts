@@ -63,6 +63,8 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
     submittedPermalink: parsed.data.url,
     submittedNotes: parsed.data.notes ?? null,
     submittedAt: now,
+    failureReason: null,
+    reviewedByUserId: null,
   };
   if (parsed.data.grantUsageRights) {
     update.usageRightsGrantedAt = now;

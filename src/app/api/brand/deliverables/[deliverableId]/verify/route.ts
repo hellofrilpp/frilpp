@@ -1,7 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import crypto from "node:crypto";
 import { db } from "@/db";
-import { deliverables, matches, offers } from "@/db/schema";
+import { deliverableReviews, deliverables, matches, offers } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -34,6 +35,7 @@ export async function POST(request: Request, context: { params: Promise<{ delive
       id: deliverables.id,
       matchId: deliverables.matchId,
       submittedPermalink: deliverables.submittedPermalink,
+      submittedNotes: deliverables.submittedNotes,
       usageRightsGrantedAt: deliverables.usageRightsGrantedAt,
       offerBrandId: offers.brandId,
       offerUsageRightsRequired: offers.usageRightsRequired,
@@ -61,16 +63,29 @@ export async function POST(request: Request, context: { params: Promise<{ delive
   }
 
   const now = new Date();
-  await db
-    .update(deliverables)
-    .set({
-      status: "VERIFIED",
-      verifiedPermalink: permalink,
-      verifiedAt: now,
+  await db.transaction(async (tx) => {
+    await tx
+      .update(deliverables)
+      .set({
+        status: "VERIFIED",
+        verifiedPermalink: permalink,
+        verifiedAt: now,
+        reviewedByUserId: ctx.user.id,
+        failureReason: null,
+      })
+      .where(and(eq(deliverables.id, deliverableId)));
+
+    await tx.insert(deliverableReviews).values({
+      id: crypto.randomUUID(),
+      deliverableId,
+      action: "VERIFIED",
+      reason: null,
+      submittedPermalink: d.submittedPermalink ?? null,
+      submittedNotes: d.submittedNotes ?? null,
       reviewedByUserId: ctx.user.id,
-      failureReason: null,
-    })
-    .where(and(eq(deliverables.id, deliverableId)));
+      createdAt: now,
+    });
+  });
 
   return Response.json({ ok: true });
 }

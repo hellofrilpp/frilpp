@@ -46,6 +46,12 @@ export const deliverableStatusEnum = pgEnum("deliverable_status", [
   "FAILED",
 ]);
 
+export const deliverableReviewActionEnum = pgEnum("deliverable_review_action", [
+  "REQUEST_CHANGES",
+  "FAILED",
+  "VERIFIED",
+]);
+
 export const brands = pgTable("brands", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -220,6 +226,23 @@ export const deliverables = pgTable("deliverables", {
   verifiedAt: timestamp("verified_at", { withTimezone: true }),
   failureReason: text("failure_reason"),
 
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
+export const deliverableReviews = pgTable("deliverable_reviews", {
+  id: text("id").primaryKey(),
+  deliverableId: text("deliverable_id")
+    .notNull()
+    .references(() => deliverables.id, { onDelete: "cascade" }),
+  action: deliverableReviewActionEnum("action").notNull(),
+  reason: text("reason"),
+  submittedPermalink: text("submitted_permalink"),
+  submittedNotes: text("submitted_notes"),
+  reviewedByUserId: text("reviewed_by_user_id").references(() => users.id, {
+    onDelete: "set null",
+  }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .notNull()
     .defaultNow(),

@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { deliverables, matches, offers, strikes } from "@/db/schema";
+import { deliverableReviews, deliverables, matches, offers, strikes } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -36,6 +36,8 @@ export async function POST(request: Request, context: { params: Promise<{ delive
       matchId: deliverables.matchId,
       creatorId: matches.creatorId,
       offerBrandId: offers.brandId,
+      submittedPermalink: deliverables.submittedPermalink,
+      submittedNotes: deliverables.submittedNotes,
     })
     .from(deliverables)
     .innerJoin(matches, eq(matches.id, deliverables.matchId))
@@ -60,6 +62,17 @@ export async function POST(request: Request, context: { params: Promise<{ delive
         reviewedByUserId: ctx.user.id,
       })
       .where(eq(deliverables.id, deliverableId));
+
+    await tx.insert(deliverableReviews).values({
+      id: crypto.randomUUID(),
+      deliverableId,
+      action: "FAILED",
+      reason,
+      submittedPermalink: d.submittedPermalink ?? null,
+      submittedNotes: d.submittedNotes ?? null,
+      reviewedByUserId: ctx.user.id,
+      createdAt: now,
+    });
 
     const existingStrike = await tx
       .select({ id: strikes.id })
