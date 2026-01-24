@@ -153,7 +153,16 @@ export async function PATCH(request: Request) {
   } catch (err) {
     console.error("creator profile save failed", err);
     const message = err instanceof Error ? err.message : "Failed to save creator profile";
-    if (message.includes("users_email_unique")) {
+    const pgError = err && typeof err === "object" && "cause" in err ? (err as { cause?: unknown }).cause : null;
+    const constraint =
+      pgError && typeof pgError === "object" && "constraint" in pgError
+        ? (pgError as { constraint?: string }).constraint
+        : null;
+    const code =
+      pgError && typeof pgError === "object" && "code" in pgError
+        ? (pgError as { code?: string }).code
+        : null;
+    if (constraint === "users_email_unique" || message.includes("users_email_unique") || code === "23505") {
       return Response.json({ ok: false, error: "Email is already in use" }, { status: 409 });
     }
     return Response.json({ ok: false, error: "Failed to save creator profile" }, { status: 500 });
