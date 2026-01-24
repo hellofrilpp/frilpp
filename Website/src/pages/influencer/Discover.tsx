@@ -49,6 +49,7 @@ const InfluencerDiscover = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [swipeDirection, setSwipeDirection] = useState<"left" | "right" | null>(null);
   const [showDetails, setShowDetails] = useState(false);
+  const [showLocationModal, setShowLocationModal] = useState(false);
   const [matchedOffers, setMatchedOffers] = useState<string[]>([]);
   const [hiddenOfferIds, setHiddenOfferIds] = useState<string[]>([]);
   const feedback = useFeedback();
@@ -99,17 +100,16 @@ const InfluencerDiscover = () => {
   const hasMoreOffers = currentIndex < visibleOffers.length;
 
   const handleSwipe = async (direction: "left" | "right") => {
-    setSwipeDirection(direction);
-
     if (!currentOffer) {
-      setSwipeDirection(null);
       return;
     }
     let shouldRemove = false;
+    let shouldAdvance = true;
 
     if (direction === "right") {
       try {
         await claimOffer(currentOffer.id);
+        setSwipeDirection("right");
         setMatchedOffers(prev => {
           const newMatches = [...prev, currentOffer.id];
           return newMatches;
@@ -119,6 +119,7 @@ const InfluencerDiscover = () => {
         fireMatch();
         shouldRemove = true;
       } catch (err) {
+        shouldAdvance = false;
         if (err instanceof ApiError && err.code === "NEEDS_TIKTOK_CONNECT") {
           toast({
             title: "CONNECT TIKTOK",
@@ -131,11 +132,8 @@ const InfluencerDiscover = () => {
             description: "Your TikTok token expired. Reconnect to claim.",
           });
         } else if (err instanceof ApiError && err.code === "NEEDS_LOCATION") {
-          toast({
-            title: "ADD YOUR LOCATION",
-            description: "Please add your location in Profile before claiming offers.",
-          });
-          window.location.href = "/influencer/profile";
+          setShowLocationModal(true);
+          return;
         } else if (err instanceof ApiError && err.code === "NEEDS_ADDRESS") {
           toast({
             title: "ADD YOUR ADDRESS",
@@ -152,8 +150,10 @@ const InfluencerDiscover = () => {
           const message = err instanceof ApiError ? err.message : "Unable to claim offer";
           toast({ title: "CLAIM FAILED", description: message });
         }
+        return;
       }
     } else {
+      setSwipeDirection("left");
       try {
         await rejectOffer(currentOffer.id);
       } catch {
@@ -164,6 +164,7 @@ const InfluencerDiscover = () => {
 
     setTimeout(() => {
       setSwipeDirection(null);
+      if (!shouldAdvance) return;
       if (shouldRemove) {
         const removalId = currentOffer.id;
         setHiddenOfferIds((prev) => (prev.includes(removalId) ? prev : [...prev, removalId]));
@@ -398,6 +399,38 @@ const InfluencerDiscover = () => {
                 </div>
               </div>
             )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Location Required Dialog */}
+        <Dialog open={showLocationModal} onOpenChange={setShowLocationModal}>
+          <DialogContent className="max-w-md border-4 border-neon-pink bg-card">
+            <DialogHeader>
+              <DialogTitle className="font-pixel text-lg text-neon-pink">ADD YOUR LOCATION</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="font-mono text-sm text-muted-foreground">
+                This offer needs location for eligibility. Add your location in Profile to continue.
+              </p>
+              <div className="flex items-center gap-3">
+                <Button
+                  variant="outline"
+                  className="border-2 border-border font-pixel text-xs"
+                  onClick={() => setShowLocationModal(false)}
+                >
+                  CANCEL
+                </Button>
+                <Button
+                  className="bg-neon-green text-background font-pixel text-xs pixel-btn glow-green"
+                  onClick={() => {
+                    setShowLocationModal(false);
+                    window.location.href = "/influencer/profile";
+                  }}
+                >
+                  GO TO PROFILE
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

@@ -112,16 +112,6 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     }
 
     const creator = creatorCtx.creator;
-    if (creator.lat === null || creator.lng === null) {
-      return Response.json(
-        {
-          ok: false,
-          error: "Please add your location in Profile before claiming offers.",
-          code: "NEEDS_LOCATION",
-        },
-        { status: 409 },
-      );
-    }
 
     const rejectedRows = await db
       .select({ id: creatorOfferRejections.id })
@@ -193,6 +183,13 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
         : "";
     const needsDeliveryAddress =
       fulfillmentType === "SHOPIFY" || (fulfillmentType === "MANUAL" && manualMethod === "LOCAL_DELIVERY");
+    const locationRadiusKm = (() => {
+      if (!offer.metadata || typeof offer.metadata !== "object") return null;
+      const v = parseRadiusKm(offer.metadata as Record<string, unknown>);
+      return v && v > 0 ? v : null;
+    })();
+    const requiresLocation =
+      Boolean(locationRadiusKm) || (fulfillmentType === "MANUAL" && manualMethod === "LOCAL_DELIVERY");
     if (needsDeliveryAddress) {
       if (!creator.address1 || !creator.city || !creator.zip) {
         return Response.json(
@@ -205,12 +202,17 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
         );
       }
     }
+    if (requiresLocation && (creator.lat === null || creator.lng === null)) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Please add your location in Profile before claiming offers.",
+          code: "NEEDS_LOCATION",
+        },
+        { status: 409 },
+      );
+    }
 
-    const locationRadiusKm = (() => {
-      if (!offer.metadata || typeof offer.metadata !== "object") return null;
-      const v = parseRadiusKm(offer.metadata as Record<string, unknown>);
-      return v && v > 0 ? v : null;
-    })();
     if (locationRadiusKm) {
       const brandRows = await db
         .select({ lat: brands.lat, lng: brands.lng })
