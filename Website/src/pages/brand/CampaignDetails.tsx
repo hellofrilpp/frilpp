@@ -69,6 +69,16 @@ const BrandCampaignDetails = () => {
     () => matches.filter((match) => match.status === "ACCEPTED").length,
     [matches],
   );
+  const completedCount = useMemo(
+    () => matches.filter((match) => match.deliverable?.status === "VERIFIED").length,
+    [matches],
+  );
+  const campaignComplete = useMemo(() => {
+    if (!matches.length) return false;
+    const acceptedMatches = matches.filter((match) => match.status === "ACCEPTED");
+    if (!acceptedMatches.length) return false;
+    return acceptedMatches.every((match) => match.deliverable?.status === "VERIFIED");
+  }, [matches]);
 
   const presetLabel = useMemo(() => {
     if (!metadata.presetId || typeof metadata.presetId !== "string") return null;
@@ -103,10 +113,11 @@ const BrandCampaignDetails = () => {
 
   const statusLabel = useMemo(() => {
     if (!offer) return "";
+    if (campaignComplete) return "COMPLETE";
     if (offer.status === "PUBLISHED") return "ACTIVE";
     if (offer.status === "ARCHIVED") return "PAUSED";
     return "DRAFT";
-  }, [offer]);
+  }, [offer, campaignComplete]);
 
   const formatFollowers = (count?: number | null) => {
     if (!count) return "—";
@@ -130,6 +141,12 @@ const BrandCampaignDetails = () => {
       default:
         return status ?? "—";
     }
+  };
+
+  const formatMatchStatus = (match: (typeof matches)[number]) => {
+    if (match.deliverable?.status === "VERIFIED") return "COMPLETE";
+    if (match.deliverable?.submittedAt) return "POSTED";
+    return formatStatus(match.status);
   };
 
   const handlePauseResume = async () => {
@@ -407,7 +424,7 @@ const BrandCampaignDetails = () => {
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div className="text-sm font-pixel text-neon-pink">APPLICANTS</div>
             <div className="font-mono text-xs text-muted-foreground">
-              {matches.length} total · {pendingCount} pending · {acceptedCount} approved
+              {matches.length} total · {pendingCount} pending · {acceptedCount} approved · {completedCount} complete
             </div>
           </div>
           {matchesLoading ? (
@@ -451,12 +468,53 @@ const BrandCampaignDetails = () => {
                   <div className="flex flex-col items-end gap-2">
                     <div className="flex items-center gap-2">
                       <span className="px-2 py-1 text-[10px] font-pixel border-2 border-border">
-                        {formatStatus(match.status)}
+                        {formatMatchStatus(match)}
                       </span>
                       <span className="font-mono text-[11px] text-muted-foreground">
                         {new Date(match.createdAt).toLocaleDateString()}
                       </span>
                     </div>
+                    {match.deliverable ? (
+                      <div className="w-full border-2 border-border bg-muted p-2 text-[11px] font-mono text-muted-foreground">
+                        {match.deliverable.submittedPermalink ? (
+                          <div>
+                            <span className="text-foreground">POST:</span>{" "}
+                            <a
+                              href={match.deliverable.submittedPermalink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-neon-green underline"
+                            >
+                              Open submitted
+                            </a>
+                          </div>
+                        ) : null}
+                        {match.deliverable.verifiedPermalink ? (
+                          <div>
+                            <span className="text-foreground">VERIFIED:</span>{" "}
+                            <a
+                              href={match.deliverable.verifiedPermalink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-neon-green underline"
+                            >
+                              Open verified
+                            </a>
+                          </div>
+                        ) : null}
+                        {match.deliverable.submittedNotes ? (
+                          <div>
+                            <span className="text-foreground">NOTES:</span> {match.deliverable.submittedNotes}
+                          </div>
+                        ) : null}
+                        {match.deliverable.verifiedAt ? (
+                          <div>
+                            <span className="text-foreground">VERIFIED AT:</span>{" "}
+                            {new Date(match.deliverable.verifiedAt).toLocaleString()}
+                          </div>
+                        ) : null}
+                      </div>
+                    ) : null}
                     {match.status === "PENDING_APPROVAL" ? (
                       <div className="flex items-center gap-2">
                         <Button

@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { brands, creators, matches, offers } from "@/db/schema";
+import { brands, creators, deliverables, matches, offers } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -76,6 +76,13 @@ export async function GET(request: Request) {
       campaignCode: matches.campaignCode,
       createdAt: matches.createdAt,
       acceptedAt: matches.acceptedAt,
+      deliverableStatus: deliverables.status,
+      deliverableDueAt: deliverables.dueAt,
+      deliverableSubmittedAt: deliverables.submittedAt,
+      deliverableSubmittedPermalink: deliverables.submittedPermalink,
+      deliverableSubmittedNotes: deliverables.submittedNotes,
+      deliverableVerifiedAt: deliverables.verifiedAt,
+      deliverableVerifiedPermalink: deliverables.verifiedPermalink,
       offerId: offers.id,
       offerTitle: offers.title,
       creatorId: creators.id,
@@ -94,6 +101,7 @@ export async function GET(request: Request) {
     .from(matches)
     .innerJoin(offers, eq(matches.offerId, offers.id))
     .innerJoin(creators, eq(matches.creatorId, creators.id))
+    .leftJoin(deliverables, eq(deliverables.matchId, matches.id))
     .where(whereClause)
     .orderBy(desc(matches.createdAt))
     .limit(100);
@@ -114,6 +122,17 @@ export async function GET(request: Request) {
         campaignCode: r.campaignCode,
         createdAt: r.createdAt.toISOString(),
         acceptedAt: r.acceptedAt?.toISOString() ?? null,
+        deliverable: r.deliverableStatus
+          ? {
+              status: r.deliverableStatus,
+              dueAt: r.deliverableDueAt?.toISOString() ?? null,
+              submittedAt: r.deliverableSubmittedAt?.toISOString() ?? null,
+              submittedPermalink: r.deliverableSubmittedPermalink ?? null,
+              submittedNotes: r.deliverableSubmittedNotes ?? null,
+              verifiedAt: r.deliverableVerifiedAt?.toISOString() ?? null,
+              verifiedPermalink: r.deliverableVerifiedPermalink ?? null,
+            }
+          : null,
         offer: { id: r.offerId, title: r.offerTitle },
         creator: {
           id: r.creatorId,

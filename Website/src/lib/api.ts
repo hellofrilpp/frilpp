@@ -301,6 +301,15 @@ export type BrandMatch = {
   campaignCode: string;
   createdAt: string;
   acceptedAt: string | null;
+  deliverable: {
+    status: "DUE" | "VERIFIED" | "FAILED";
+    dueAt: string | null;
+    submittedAt: string | null;
+    submittedPermalink: string | null;
+    submittedNotes: string | null;
+    verifiedAt: string | null;
+    verifiedPermalink: string | null;
+  } | null;
   offer: { id: string; title: string };
   creator: {
     id: string;
