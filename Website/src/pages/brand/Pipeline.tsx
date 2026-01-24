@@ -41,6 +41,11 @@ interface Influencer {
 }
 
 const kmToMiles = (km: number) => km / 1.609344;
+const normalizeUrl = (value?: string | null) => {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
 
 const stages: { key: Stage; label: string; icon: React.ElementType; color: string }[] = [
   { key: "applied", label: "APPLIED", icon: Clock, color: "border-border" },
@@ -574,6 +579,41 @@ const BrandPipeline = () => {
                       <div className="px-2 py-1 bg-muted text-xs font-mono inline-block">
                         {influencer.campaign}
                       </div>
+
+                      {influencer.stage === "posted" && deliverableByMatch.has(influencer.id) && (
+                        <div className="mt-3 space-y-2 text-xs font-mono">
+                          {(() => {
+                            const deliverable = deliverableByMatch.get(influencer.id);
+                            const link = normalizeUrl(deliverable?.submittedPermalink ?? null);
+                            if (!deliverable) return null;
+                            return (
+                              <>
+                                {link ? (
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className="text-muted-foreground">POST:</span>
+                                    <a
+                                      href={link}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="text-neon-blue underline break-all"
+                                      onMouseDown={(event) => event.stopPropagation()}
+                                    >
+                                      {deliverable.submittedPermalink}
+                                    </a>
+                                  </div>
+                                ) : (
+                                  <div className="text-muted-foreground">POST: —</div>
+                                )}
+                                {deliverable.submittedNotes?.trim() ? (
+                                  <div className="text-muted-foreground">
+                                    NOTES: <span className="text-foreground">{deliverable.submittedNotes}</span>
+                                  </div>
+                                ) : null}
+                              </>
+                            );
+                          })()}
+                        </div>
+                      )}
 
                       {influencer.stage === "applied" && (
                         <div className="mt-3 flex gap-2">
