@@ -679,23 +679,6 @@ const BrandPipeline = () => {
                         </div>
                       )}
 
-                      {influencer.stage === "approved" && (
-                        <div className="mt-3 flex gap-2">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="border-2 font-mono text-[10px]"
-                            onMouseDown={(event) => event.stopPropagation()}
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              toggleExpanded(influencer.id);
-                            }}
-                          >
-                            MARK_SHIPPED
-                          </Button>
-                        </div>
-                      )}
-
                       {influencer.stage === "approved" &&
                         expandedCards[influencer.id] &&
                         manualShipmentByMatch.has(influencer.id) && (() => {
