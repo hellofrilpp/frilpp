@@ -106,41 +106,57 @@ export async function PATCH(request: Request) {
   }
 
   const userId = sessionOrResponse.user.id;
-  const existing = await db.select({ id: creators.id }).from(creators).where(eq(creators.id, userId)).limit(1);
-
   const now = new Date();
 
-  if (existing[0]) {
-    await db
-      .update(creators)
-      .set({
-        ...parsed.data,
-        updatedAt: now,
-      })
-      .where(eq(creators.id, userId));
-  } else {
-    await db.insert(creators).values({
-      id: userId,
-      igUserId: null,
-      username: parsed.data.username ?? null,
-      followersCount: parsed.data.followersCount ?? null,
-      categories: parsed.data.categories ?? null,
-      categoriesOther: parsed.data.categoriesOther ?? null,
-      fullName: parsed.data.fullName ?? null,
-      email: parsed.data.email ?? null,
-      phone: parsed.data.phone ?? null,
-      address1: parsed.data.address1 ?? null,
-      address2: parsed.data.address2 ?? null,
-      city: parsed.data.city ?? null,
-      province: parsed.data.province ?? null,
-      zip: parsed.data.zip ?? null,
-      createdAt: now,
-      updatedAt: now,
-    });
-  }
+  try {
+    const existing = await db
+      .select({ id: creators.id })
+      .from(creators)
+      .where(eq(creators.id, userId))
+      .limit(1);
 
-  if (parsed.data.email !== undefined) {
-    await db.update(users).set({ email: parsed.data.email, updatedAt: now }).where(eq(users.id, userId));
+    if (existing[0]) {
+      await db
+        .update(creators)
+        .set({
+          ...parsed.data,
+          updatedAt: now,
+        })
+        .where(eq(creators.id, userId));
+    } else {
+      await db.insert(creators).values({
+        id: userId,
+        igUserId: null,
+        username: parsed.data.username ?? null,
+        followersCount: parsed.data.followersCount ?? null,
+        categories: parsed.data.categories ?? null,
+        categoriesOther: parsed.data.categoriesOther ?? null,
+        fullName: parsed.data.fullName ?? null,
+        email: parsed.data.email ?? null,
+        phone: parsed.data.phone ?? null,
+        address1: parsed.data.address1 ?? null,
+        address2: parsed.data.address2 ?? null,
+        city: parsed.data.city ?? null,
+        province: parsed.data.province ?? null,
+        zip: parsed.data.zip ?? null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    if (parsed.data.email !== undefined) {
+      await db
+        .update(users)
+        .set({ email: parsed.data.email, updatedAt: now })
+        .where(eq(users.id, userId));
+    }
+  } catch (err) {
+    console.error("creator profile save failed", err);
+    const message = err instanceof Error ? err.message : "Failed to save creator profile";
+    if (message.includes("users_email_unique")) {
+      return Response.json({ ok: false, error: "Email is already in use" }, { status: 409 });
+    }
+    return Response.json({ ok: false, error: "Failed to save creator profile" }, { status: 500 });
   }
 
   const updatedRows = await db.select().from(creators).where(eq(creators.id, userId)).limit(1);
