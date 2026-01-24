@@ -143,9 +143,18 @@ const BrandCampaignDetails = () => {
     }
   };
 
+  const isMatchShipped = (match: (typeof matches)[number]) => {
+    const shippedStatuses = new Set(["DRAFT_CREATED", "COMPLETED", "FULFILLED"]);
+    const orderShipped =
+      match.shipment?.orderStatus && shippedStatuses.has(match.shipment.orderStatus);
+    const manualShipped = match.shipment?.manualStatus === "SHIPPED";
+    return Boolean(orderShipped || manualShipped);
+  };
+
   const formatMatchStatus = (match: (typeof matches)[number]) => {
     if (match.deliverable?.status === "VERIFIED") return "COMPLETE";
     if (match.deliverable?.submittedAt) return "POSTED";
+    if (isMatchShipped(match)) return "SHIPPED";
     return formatStatus(match.status);
   };
 
@@ -536,22 +545,24 @@ const BrandCampaignDetails = () => {
                       </div>
                     ) : match.status === "ACCEPTED" ? (
                       <div className="flex items-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="border-2 font-mono text-[10px] text-destructive"
-                          onClick={() => {
-                            setRejectTarget({
-                              id: match.matchId,
-                              name: match.creator.username
-                                ? `@${match.creator.username}`
-                                : match.creator.fullName || "Creator",
-                            });
-                            setRejectOpen(true);
-                          }}
-                        >
-                          REJECT
-                        </Button>
+                        {!isMatchShipped(match) && match.deliverable?.status !== "VERIFIED" ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-2 font-mono text-[10px] text-destructive"
+                            onClick={() => {
+                              setRejectTarget({
+                                id: match.matchId,
+                                name: match.creator.username
+                                  ? `@${match.creator.username}`
+                                  : match.creator.fullName || "Creator",
+                              });
+                              setRejectOpen(true);
+                            }}
+                          >
+                            REJECT
+                          </Button>
+                        ) : null}
                       </div>
                     ) : null}
                   </div>

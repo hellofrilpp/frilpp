@@ -310,6 +310,15 @@ export type BrandMatch = {
     verifiedAt: string | null;
     verifiedPermalink: string | null;
   } | null;
+  shipment: {
+    orderStatus: "PENDING" | "DRAFT_CREATED" | "COMPLETED" | "FULFILLED" | "CANCELED" | "ERROR" | null;
+    orderTrackingNumber: string | null;
+    orderTrackingUrl: string | null;
+    manualStatus: "PENDING" | "SHIPPED" | null;
+    manualCarrier: string | null;
+    manualTrackingNumber: string | null;
+    manualTrackingUrl: string | null;
+  };
   offer: { id: string; title: string };
   creator: {
     id: string;

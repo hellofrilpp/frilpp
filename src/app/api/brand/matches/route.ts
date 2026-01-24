@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { brands, creators, deliverables, matches, offers } from "@/db/schema";
+import { brands, creators, deliverables, manualShipments, matches, offers, shopifyOrders } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -83,6 +83,13 @@ export async function GET(request: Request) {
       deliverableSubmittedNotes: deliverables.submittedNotes,
       deliverableVerifiedAt: deliverables.verifiedAt,
       deliverableVerifiedPermalink: deliverables.verifiedPermalink,
+      orderStatus: shopifyOrders.status,
+      orderTrackingNumber: shopifyOrders.trackingNumber,
+      orderTrackingUrl: shopifyOrders.trackingUrl,
+      manualStatus: manualShipments.status,
+      manualCarrier: manualShipments.carrier,
+      manualTrackingNumber: manualShipments.trackingNumber,
+      manualTrackingUrl: manualShipments.trackingUrl,
       offerId: offers.id,
       offerTitle: offers.title,
       creatorId: creators.id,
@@ -102,6 +109,8 @@ export async function GET(request: Request) {
     .innerJoin(offers, eq(matches.offerId, offers.id))
     .innerJoin(creators, eq(matches.creatorId, creators.id))
     .leftJoin(deliverables, eq(deliverables.matchId, matches.id))
+    .leftJoin(shopifyOrders, eq(shopifyOrders.matchId, matches.id))
+    .leftJoin(manualShipments, eq(manualShipments.matchId, matches.id))
     .where(whereClause)
     .orderBy(desc(matches.createdAt))
     .limit(100);
@@ -133,6 +142,15 @@ export async function GET(request: Request) {
               verifiedPermalink: r.deliverableVerifiedPermalink ?? null,
             }
           : null,
+        shipment: {
+          orderStatus: r.orderStatus ?? null,
+          orderTrackingNumber: r.orderTrackingNumber ?? null,
+          orderTrackingUrl: r.orderTrackingUrl ?? null,
+          manualStatus: r.manualStatus ?? null,
+          manualCarrier: r.manualCarrier ?? null,
+          manualTrackingNumber: r.manualTrackingNumber ?? null,
+          manualTrackingUrl: r.manualTrackingUrl ?? null,
+        },
         offer: { id: r.offerId, title: r.offerTitle },
         creator: {
           id: r.creatorId,
