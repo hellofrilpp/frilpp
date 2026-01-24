@@ -17,11 +17,12 @@ function mapDealStatus(params: {
 
   if (params.deliverableStatus === "VERIFIED") return "complete";
   if (params.submittedAt) return "posted";
-  if (params.deliverableStatus === "DUE") return "post_required";
 
   const shippedStatuses = new Set(["DRAFT_CREATED", "COMPLETED", "FULFILLED"]);
-  if (params.orderStatus && shippedStatuses.has(params.orderStatus)) return "shipped";
-  if (params.manualStatus === "SHIPPED") return "shipped";
+  const shipped =
+    (params.orderStatus && shippedStatuses.has(params.orderStatus)) || params.manualStatus === "SHIPPED";
+  if (params.deliverableStatus === "DUE" && shipped) return "post_required";
+  if (shipped) return "shipped";
 
   return "approved";
 }
