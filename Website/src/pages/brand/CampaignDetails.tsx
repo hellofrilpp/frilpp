@@ -48,6 +48,8 @@ const BrandCampaignDetails = () => {
   });
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     if (error instanceof ApiError && error.status === 401) {
@@ -208,6 +210,13 @@ const BrandCampaignDetails = () => {
       const message = err instanceof ApiError ? err.message : "Reject failed";
       toast({ title: "REJECT FAILED", description: message });
     }
+  };
+
+  const handleRejectConfirmed = async () => {
+    if (!rejectTarget) return;
+    await handleReject(rejectTarget.id);
+    setRejectTarget(null);
+    setRejectOpen(false);
   };
 
   if (!offerId) {
@@ -467,6 +476,25 @@ const BrandCampaignDetails = () => {
                           REJECT
                         </Button>
                       </div>
+                    ) : match.status === "ACCEPTED" ? (
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="border-2 font-mono text-[10px] text-destructive"
+                          onClick={() => {
+                            setRejectTarget({
+                              id: match.matchId,
+                              name: match.creator.username
+                                ? `@${match.creator.username}`
+                                : match.creator.fullName || "Creator",
+                            });
+                            setRejectOpen(true);
+                          }}
+                        >
+                          REJECT
+                        </Button>
+                      </div>
                     ) : null}
                   </div>
                 </div>
@@ -513,6 +541,40 @@ const BrandCampaignDetails = () => {
               disabled={deleteConfirm.trim() !== "DELETE"}
             >
               DELETE PERMANENTLY
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog open={rejectOpen} onOpenChange={setRejectOpen}>
+        <AlertDialogContent className="border-4 border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-pixel text-sm text-neon-pink">
+              REJECT CREATOR
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-xs">
+              This removes{" "}
+              <span className="text-foreground">{rejectTarget?.name ?? "this creator"}</span>{" "}
+              from the campaign and prevents them from re-applying.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              className="border-2 font-mono text-xs"
+              onClick={() => {
+                setRejectTarget(null);
+                setRejectOpen(false);
+              }}
+            >
+              CANCEL
+            </Button>
+            <Button
+              variant="outline"
+              className="border-2 font-mono text-xs text-destructive"
+              onClick={handleRejectConfirmed}
+              disabled={!rejectTarget}
+            >
+              REJECT
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
