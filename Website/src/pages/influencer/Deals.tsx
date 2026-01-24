@@ -88,8 +88,10 @@ const InfluencerDeals = () => {
     filter === "all"
       ? deals
       : filter === "approved"
-        ? deals.filter((deal) => deal.status === "approved" || deal.status === "post_required")
-        : deals.filter((deal) => deal.status === filter);
+        ? deals.filter((deal) => deal.status === "approved")
+        : filter === "shipped"
+          ? deals.filter((deal) => deal.status === "shipped" || deal.status === "post_required")
+          : deals.filter((deal) => deal.status === filter);
 
   const activeDeals = deals.filter(d => d.status !== "complete").length;
   const completedDeals = deals.filter(d => d.status === "complete").length;
@@ -209,7 +211,7 @@ const InfluencerDeals = () => {
                         </div>
                       )}
 
-                      {deal.status === "post_required" && deal.deadline && (
+                      {(deal.status === "shipped" || deal.status === "post_required") && deal.deadline && (
                         <div className="mt-3 flex items-center gap-2 text-neon-pink">
                           <Camera className="w-4 h-4" />
                           <span className="text-xs font-mono">DUE: {deal.deadline}</span>
@@ -227,7 +229,7 @@ const InfluencerDeals = () => {
                   </div>
 
                   {/* Action Buttons */}
-                  {deal.status === "post_required" && (
+                  {(deal.status === "shipped" || deal.status === "post_required") && (
                     <div className="px-4 pb-4">
                       <Button
                         className="w-full bg-neon-pink text-background font-pixel text-xs pixel-btn glow-pink"

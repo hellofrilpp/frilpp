@@ -21,7 +21,6 @@ function mapDealStatus(params: {
   const shippedStatuses = new Set(["DRAFT_CREATED", "COMPLETED", "FULFILLED"]);
   const shipped =
     (params.orderStatus && shippedStatuses.has(params.orderStatus)) || params.manualStatus === "SHIPPED";
-  if (params.deliverableStatus === "DUE" && shipped) return "post_required";
   if (shipped) return "shipped";
 
   return "approved";
