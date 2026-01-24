@@ -635,6 +635,18 @@ const BrandPipeline = () => {
                                     NOTES: <span className="text-foreground">{deliverable.submittedNotes}</span>
                                   </div>
                                 ) : null}
+                                {deliverable.reviews?.length ? (
+                                  <div className="mt-2 space-y-1 text-muted-foreground">
+                                    <div className="text-foreground">HISTORY</div>
+                                    {deliverable.reviews.slice(0, 3).map((review, idx) => (
+                                      <div key={`${deliverable.deliverableId}:${idx}`} className="text-xs">
+                                        {new Date(review.createdAt).toLocaleDateString()} ·{" "}
+                                        {review.action.replace("_", " ")}
+                                        {review.reason ? ` — ${review.reason}` : ""}
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null}
                               </>
                             );
                           })()}

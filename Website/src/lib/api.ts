@@ -405,6 +405,14 @@ export type BrandDeliverable = {
     followersCount: number | null;
     email: string | null;
   };
+  reviews: Array<{
+    action: "REQUEST_CHANGES" | "FAILED" | "VERIFIED";
+    reason: string | null;
+    submittedPermalink: string | null;
+    submittedNotes: string | null;
+    reviewedByUserId: string | null;
+    createdAt: string;
+  }>;
 };
 
 export async function getBrandDeliverables(status?: BrandDeliverable["status"]) {
@@ -727,6 +735,14 @@ export type CreatorDeliverable = {
   match: { id: string; campaignCode: string };
   offer: { title: string; usageRightsRequired: boolean; usageRightsScope: string | null };
   brand: { name: string };
+  reviews: Array<{
+    action: "REQUEST_CHANGES" | "FAILED" | "VERIFIED";
+    reason: string | null;
+    submittedPermalink: string | null;
+    submittedNotes: string | null;
+    reviewedByUserId: string | null;
+    createdAt: string;
+  }>;
 };
 
 export async function getCreatorDeliverables() {

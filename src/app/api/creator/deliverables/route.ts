@@ -1,6 +1,6 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, deliverables, matches, offers } from "@/db/schema";
+import { brands, deliverableReviews, deliverables, matches, offers } from "@/db/schema";
 import { requireCreatorContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -45,6 +45,30 @@ export async function GET(request: Request) {
     .orderBy(desc(deliverables.dueAt))
     .limit(50);
 
+  const deliverableIds = rows.map((r) => r.deliverableId);
+  const reviewRows = deliverableIds.length
+    ? await db
+        .select({
+          deliverableId: deliverableReviews.deliverableId,
+          action: deliverableReviews.action,
+          reason: deliverableReviews.reason,
+          submittedPermalink: deliverableReviews.submittedPermalink,
+          submittedNotes: deliverableReviews.submittedNotes,
+          reviewedByUserId: deliverableReviews.reviewedByUserId,
+          createdAt: deliverableReviews.createdAt,
+        })
+        .from(deliverableReviews)
+        .where(inArray(deliverableReviews.deliverableId, deliverableIds))
+        .orderBy(desc(deliverableReviews.createdAt))
+    : [];
+
+  const reviewsByDeliverable = new Map<string, typeof reviewRows>();
+  for (const review of reviewRows) {
+    const existing = reviewsByDeliverable.get(review.deliverableId) ?? [];
+    existing.push(review);
+    reviewsByDeliverable.set(review.deliverableId, existing);
+  }
+
   return Response.json({
     ok: true,
     deliverables: rows.map((r) => ({
@@ -67,6 +91,15 @@ export async function GET(request: Request) {
         usageRightsScope: r.offerUsageRightsScope ?? null,
       },
       brand: { name: r.brandName },
+      reviews:
+        reviewsByDeliverable.get(r.deliverableId)?.map((review) => ({
+          action: review.action,
+          reason: review.reason ?? null,
+          submittedPermalink: review.submittedPermalink ?? null,
+          submittedNotes: review.submittedNotes ?? null,
+          reviewedByUserId: review.reviewedByUserId ?? null,
+          createdAt: review.createdAt.toISOString(),
+        })) ?? [],
     })),
   });
 }

@@ -1,7 +1,7 @@
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { deliverables, matches, offers, creators } from "@/db/schema";
+import { deliverableReviews, deliverables, matches, offers, creators } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -62,6 +62,30 @@ export async function GET(request: Request) {
     .orderBy(desc(deliverables.dueAt))
     .limit(100);
 
+  const deliverableIds = rows.map((r) => r.deliverableId);
+  const reviewRows = deliverableIds.length
+    ? await db
+        .select({
+          deliverableId: deliverableReviews.deliverableId,
+          action: deliverableReviews.action,
+          reason: deliverableReviews.reason,
+          submittedPermalink: deliverableReviews.submittedPermalink,
+          submittedNotes: deliverableReviews.submittedNotes,
+          reviewedByUserId: deliverableReviews.reviewedByUserId,
+          createdAt: deliverableReviews.createdAt,
+        })
+        .from(deliverableReviews)
+        .where(inArray(deliverableReviews.deliverableId, deliverableIds))
+        .orderBy(desc(deliverableReviews.createdAt))
+    : [];
+
+  const reviewsByDeliverable = new Map<string, typeof reviewRows>();
+  for (const review of reviewRows) {
+    const existing = reviewsByDeliverable.get(review.deliverableId) ?? [];
+    existing.push(review);
+    reviewsByDeliverable.set(review.deliverableId, existing);
+  }
+
   return Response.json({
     ok: true,
     deliverables: rows.map((r) => ({
@@ -90,6 +114,15 @@ export async function GET(request: Request) {
         fullName: r.creatorFullName ?? null,
         email: r.creatorEmail ?? null,
       },
+      reviews:
+        reviewsByDeliverable.get(r.deliverableId)?.map((review) => ({
+          action: review.action,
+          reason: review.reason ?? null,
+          submittedPermalink: review.submittedPermalink ?? null,
+          submittedNotes: review.submittedNotes ?? null,
+          reviewedByUserId: review.reviewedByUserId ?? null,
+          createdAt: review.createdAt.toISOString(),
+        })) ?? [],
     })),
   });
 }

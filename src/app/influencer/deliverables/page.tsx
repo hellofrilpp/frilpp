@@ -24,6 +24,14 @@ type Row = {
   match: { id: string; campaignCode: string };
   offer: { title: string; usageRightsRequired: boolean; usageRightsScope: string | null };
   brand: { name: string };
+  reviews: Array<{
+    action: "REQUEST_CHANGES" | "FAILED" | "VERIFIED";
+    reason: string | null;
+    submittedPermalink: string | null;
+    submittedNotes: string | null;
+    reviewedByUserId: string | null;
+    createdAt: string;
+  }>;
 };
 
 export default function CreatorDeliverablesPage() {
@@ -237,6 +245,20 @@ export default function CreatorDeliverablesPage() {
                         </div>
                         {r.failureReason ? (
                           <div className="mt-3 text-sm text-danger">{r.failureReason}</div>
+                        ) : null}
+                        {r.reviews?.length ? (
+                          <div className="mt-3 text-xs text-muted-foreground">
+                            <div className="font-semibold text-foreground">History</div>
+                            <div className="mt-2 space-y-1">
+                              {r.reviews.slice(0, 3).map((review, idx) => (
+                                <div key={`${r.deliverableId}:${idx}`}>
+                                  {new Date(review.createdAt).toLocaleDateString()} ·{" "}
+                                  {review.action.replace("_", " ")}
+                                  {review.reason ? ` — ${review.reason}` : ""}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         ) : null}
                         {r.verifiedPermalink ? (
                           <a className="mt-3 block break-all text-xs underline" href={r.verifiedPermalink} target="_blank" rel="noreferrer">
