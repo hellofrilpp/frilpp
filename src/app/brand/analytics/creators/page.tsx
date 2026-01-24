@@ -79,18 +79,20 @@ export default function BrandCreatorAnalyticsPage() {
         acc.matches += row.matchCount;
         acc.clicks += row.clickCount;
         acc.redemptions += row.redemptionCount;
-        acc.seedCostCents += row.seedCostCents;
-        acc.netRevenueCents += row.netRevenueCents;
+        acc.orderRevenueCents += row.revenueCents;
+        acc.redemptionRevenueCents += row.redemptionRevenueCents;
         return acc;
       },
-      { creators: 0, matches: 0, clicks: 0, redemptions: 0, seedCostCents: 0, netRevenueCents: 0 },
+      {
+        creators: 0,
+        matches: 0,
+        clicks: 0,
+        redemptions: 0,
+        orderRevenueCents: 0,
+        redemptionRevenueCents: 0,
+      },
     );
   }, [visible]);
-
-  const overallRoi =
-    summary.seedCostCents > 0
-      ? Math.round(((summary.netRevenueCents - summary.seedCostCents) / summary.seedCostCents) * 1000) / 10
-      : null;
 
   return (
     <div className="min-h-screen bg-background">
@@ -102,9 +104,9 @@ export default function BrandCreatorAnalyticsPage() {
               <Badge variant="secondary">Analytics</Badge>
               <Badge variant="secondary">Creators</Badge>
             </div>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Creator ROI</h1>
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Creator performance</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Aggregates clicks and redemptions per creator across accepted matches.
+              Aggregates clicks, orders, and redemptions per creator across accepted matches.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -140,17 +142,19 @@ export default function BrandCreatorAnalyticsPage() {
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>Revenue</CardTitle>
-              <CardDescription>Net + redemptions</CardDescription>
+              <CardTitle>Order revenue</CardTitle>
+              <CardDescription>Attributed</CardDescription>
             </CardHeader>
-            <CardContent className="text-2xl font-bold">{usd(summary.netRevenueCents)}</CardContent>
+            <CardContent className="text-2xl font-bold">{usd(summary.orderRevenueCents)}</CardContent>
           </Card>
           <Card>
             <CardHeader>
-              <CardTitle>ROI</CardTitle>
-              <CardDescription>Approx.</CardDescription>
+              <CardTitle>Redemption revenue</CardTitle>
+              <CardDescription>Manual</CardDescription>
             </CardHeader>
-            <CardContent className="text-2xl font-bold">{overallRoi === null ? "—" : `${overallRoi}%`}</CardContent>
+            <CardContent className="text-2xl font-bold">
+              {usd(summary.redemptionRevenueCents)}
+            </CardContent>
           </Card>
         </div>
 
@@ -178,49 +182,36 @@ export default function BrandCreatorAnalyticsPage() {
               <div className="text-sm text-muted-foreground">No creators yet.</div>
             ) : (
               <div className="grid gap-3">
-                {visible.map((row) => {
-                  const cvr = row.clickCount > 0 ? Math.round((row.orderCount / row.clickCount) * 10_000) / 100 : null;
-                  const epc = row.clickCount > 0 ? (row.netRevenueCents / 100) / row.clickCount : null;
-                  return (
-                    <div key={row.creatorId} className="rounded-lg border bg-card p-4">
-                      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold">
-                            {row.username ? `@${row.username}` : "Creator"}
-                          </div>
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            {row.followersCount ? `${row.followersCount.toLocaleString()} followers` : "followers n/a"}
-                          </div>
+                {visible.map((row) => (
+                  <div key={row.creatorId} className="rounded-lg border bg-card p-4">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-sm font-semibold">
+                          {row.username ? `@${row.username}` : "Creator"}
                         </div>
-                        <div className="flex flex-wrap gap-2">
-                          <Badge>Matches: {row.matchCount}</Badge>
-                          <Badge>Verified: {row.verifiedCount}</Badge>
-                          <Badge>Clicks: {row.clickCount}</Badge>
-                          <Badge>Orders: {row.orderCount}</Badge>
-                          <Badge>Redemptions: {row.redemptionCount}</Badge>
-                          <Badge variant={row.netRevenueCents > 0 ? "success" : "outline"}>
-                            Revenue: {usd(row.netRevenueCents)}
-                          </Badge>
-                          <Badge variant={row.seedCostCents > 0 ? "secondary" : "outline"}>
-                            Seed cost: {usd(row.seedCostCents)}
-                          </Badge>
-                          <Badge variant={row.roiPercent !== null ? (row.roiPercent >= 0 ? "success" : "warning") : "outline"}>
-                            ROI: {row.roiPercent === null ? "—" : `${row.roiPercent}%`}
-                          </Badge>
-                          <Badge variant={cvr !== null ? "secondary" : "outline"}>
-                            CVR: {cvr === null ? "—" : `${cvr}%`}
-                          </Badge>
-                          <Badge variant={epc !== null ? "secondary" : "outline"}>
-                            EPC: {epc === null ? "—" : `$${epc.toFixed(2)}`}
-                          </Badge>
-                          <Badge variant={row.repeatBuyerCount > 0 ? "secondary" : "outline"}>
-                            Repeat buyers: {row.repeatBuyerCount}
-                          </Badge>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {row.followersCount ? `${row.followersCount.toLocaleString()} followers` : "followers n/a"}
                         </div>
                       </div>
+                      <div className="flex flex-wrap gap-2">
+                        <Badge>Matches: {row.matchCount}</Badge>
+                        <Badge>Verified: {row.verifiedCount}</Badge>
+                        <Badge>Clicks: {row.clickCount}</Badge>
+                        <Badge>Orders: {row.orderCount}</Badge>
+                        <Badge>Redemptions: {row.redemptionCount}</Badge>
+                        <Badge variant={row.revenueCents > 0 ? "success" : "outline"}>
+                          Order revenue: {usd(row.revenueCents)}
+                        </Badge>
+                        <Badge variant={row.redemptionRevenueCents > 0 ? "secondary" : "outline"}>
+                          Redemption revenue: {usd(row.redemptionRevenueCents)}
+                        </Badge>
+                        <Badge variant={row.refundCents > 0 ? "destructive" : "outline"}>
+                          Refunds: {usd(row.refundCents)}
+                        </Badge>
+                      </div>
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             )}
           </CardContent>

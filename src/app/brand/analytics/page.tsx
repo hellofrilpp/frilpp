@@ -124,20 +124,14 @@ export default function BrandAnalyticsPage() {
                         <Badge>Clicks: {r.clickCount}</Badge>
                         <Badge>Orders: {r.orderCount}</Badge>
                         <Badge>Redemptions: {r.redemptionCount}</Badge>
-                        <Badge variant={r.clickCount > 0 ? "secondary" : "outline"}>
-                          CVR:{" "}
-                          {r.clickCount > 0
-                            ? `${Math.round((r.orderCount / r.clickCount) * 10_000) / 100}%`
-                            : "—"}
+                        <Badge variant={r.revenueCents > 0 ? "success" : "outline"}>
+                          Order revenue: ${(r.revenueCents / 100).toFixed(2)}
                         </Badge>
-                        <Badge variant={r.totalRevenueCents > 0 ? "success" : "outline"}>
-                          Revenue: ${(r.totalRevenueCents / 100).toFixed(2)}
+                        <Badge variant={r.redemptionRevenueCents > 0 ? "secondary" : "outline"}>
+                          Redemption revenue: ${(r.redemptionRevenueCents / 100).toFixed(2)}
                         </Badge>
-                        <Badge variant={r.clickCount > 0 ? "secondary" : "outline"}>
-                          EPC:{" "}
-                          {r.clickCount > 0
-                            ? `$${((r.totalRevenueCents / 100) / r.clickCount).toFixed(2)}`
-                            : "—"}
+                        <Badge variant={r.refundCents && r.refundCents > 0 ? "destructive" : "outline"}>
+                          Refunds: ${((r.refundCents ?? 0) / 100).toFixed(2)}
                         </Badge>
                       </div>
                     </div>

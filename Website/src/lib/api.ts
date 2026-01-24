@@ -477,8 +477,10 @@ export type BrandAnalyticsOffer = {
   matchCount: number;
   clickCount: number;
   orderCount: number;
+  redemptionCount: number;
   revenueCents: number;
   refundCents: number;
+  redemptionRevenueCents: number;
   netRevenueCents: number;
 };
 
@@ -495,8 +497,10 @@ export type BrandCreatorAnalytics = {
   verifiedCount: number;
   clickCount: number;
   orderCount: number;
+  redemptionCount: number;
   revenueCents: number;
   refundCents: number;
+  redemptionRevenueCents: number;
   netRevenueCents: number;
   seedCostCents: number;
   earningsCents?: number;

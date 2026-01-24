@@ -88,7 +88,7 @@ export default function CreatorPerformancePage() {
               <Badge variant="secondary">Creator</Badge>
               <Badge variant="secondary">Performance</Badge>
             </div>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Your ROI</h1>
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Your performance</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               Tracks clicks from your Frilpp link and redemptions logged by the brand.
             </p>
