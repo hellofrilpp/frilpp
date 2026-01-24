@@ -61,11 +61,13 @@ const InfluencerDeals = () => {
   const queryClient = useQueryClient();
   const [filter, setFilter] = useState<DealStatus | "all">("all");
   const [submitOpen, setSubmitOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [submitUrl, setSubmitUrl] = useState("");
   const [submitNotes, setSubmitNotes] = useState("");
   const [submitUsageRights, setSubmitUsageRights] = useState(false);
   const [activeDeliverable, setActiveDeliverable] = useState<CreatorDeliverable | null>(null);
+  const [detailsDeal, setDetailsDeal] = useState<Deal | null>(null);
 
   const deals = useMemo<Deal[]>(() => {
     const rows = data?.deals ?? [];
@@ -87,6 +89,13 @@ const InfluencerDeals = () => {
     const deliverables = deliverablesData?.deliverables ?? [];
     return new Map(deliverables.map((deliverable) => [deliverable.match.id, deliverable]));
   }, [deliverablesData]);
+
+  const openDetails = (deal: Deal) => {
+    setDetailsDeal(deal);
+    setDetailsOpen(true);
+  };
+
+  const detailsDeliverable = detailsDeal ? deliverableByMatch.get(detailsDeal.id) ?? null : null;
 
   const filteredDeals =
     filter === "all"
@@ -183,7 +192,18 @@ const InfluencerDeals = () => {
               const config = statusConfig[deal.status];
               return (
                 <div key={deal.id} className="border-4 border-border bg-card hover:border-neon-pink transition-colors">
-                  <div className="p-4 flex items-start gap-4">
+                  <div
+                    className="p-4 flex items-start gap-4 cursor-pointer"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => openDetails(deal)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        openDetails(deal);
+                      }
+                    }}
+                  >
                     {/* Product Image */}
                     <div className="w-14 h-14 border-2 border-neon-purple bg-neon-purple/10 flex items-center justify-center flex-shrink-0">
                       <Package className="w-7 h-7 text-neon-purple" />
@@ -261,7 +281,8 @@ const InfluencerDeals = () => {
                       <Button
                         className="w-full bg-neon-pink text-background font-pixel text-xs pixel-btn glow-pink"
                         disabled={Boolean(deliverableByMatch.get(deal.id)?.submittedAt)}
-                        onClick={() => {
+                        onClick={(event) => {
+                          event.stopPropagation();
                           const deliverable = deliverableByMatch.get(deal.id) ?? null;
                           setActiveDeliverable(deliverable);
                           setSubmitUrl(deliverable?.submittedPermalink ?? "");
@@ -360,6 +381,124 @@ const InfluencerDeals = () => {
               {submitting ? "SENDING..." : "SUBMIT NOW"}
             </Button>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="border-4 border-border bg-card">
+          <DialogHeader>
+            <DialogTitle className="font-pixel text-sm text-neon-green">DEAL DETAILS</DialogTitle>
+          </DialogHeader>
+          {detailsDeal ? (
+            <div className="space-y-4">
+              <div>
+                <div className="font-pixel text-sm text-foreground">{detailsDeal.product}</div>
+                <div className="text-xs font-mono text-muted-foreground">by {detailsDeal.brand}</div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 text-xs font-mono">
+                <div>
+                  <div className="text-muted-foreground">STATUS</div>
+                  <div className="text-neon-green">{statusConfig[detailsDeal.status].label}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">MATCHED</div>
+                  <div className="text-foreground">{detailsDeal.matchDate}</div>
+                </div>
+                {detailsDeal.deadline ? (
+                  <div>
+                    <div className="text-muted-foreground">DUE</div>
+                    <div className="text-foreground">{detailsDeal.deadline}</div>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="border-2 border-border bg-muted p-3">
+                <div className="text-xs font-pixel text-neon-yellow mb-2">TRACKING</div>
+                {detailsDeal.carrier || detailsDeal.trackingNumber || detailsDeal.trackingUrl ? (
+                  <div className="space-y-1 text-xs font-mono">
+                    {detailsDeal.carrier ? (
+                      <div>
+                        <span className="text-muted-foreground">CARRIER: </span>
+                        <span className="text-foreground">{detailsDeal.carrier}</span>
+                      </div>
+                    ) : null}
+                    {detailsDeal.trackingNumber ? (
+                      <div>
+                        <span className="text-muted-foreground">NUMBER: </span>
+                        <span className="text-foreground">{detailsDeal.trackingNumber}</span>
+                      </div>
+                    ) : null}
+                    {detailsDeal.trackingUrl ? (
+                      <div>
+                        <span className="text-muted-foreground">LINK: </span>
+                        <a
+                          href={detailsDeal.trackingUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-neon-green underline"
+                        >
+                          Open tracking
+                        </a>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="text-xs font-mono text-muted-foreground">Not provided.</div>
+                )}
+              </div>
+
+              <div className="border-2 border-border bg-muted p-3">
+                <div className="text-xs font-pixel text-neon-pink mb-2">POST DETAILS</div>
+                {detailsDeliverable ? (
+                  <div className="space-y-2 text-xs font-mono">
+                    {detailsDeliverable.submittedPermalink ? (
+                      <div>
+                        <span className="text-muted-foreground">SUBMITTED: </span>
+                        <a
+                          href={detailsDeliverable.submittedPermalink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-neon-green underline"
+                        >
+                          View post
+                        </a>
+                      </div>
+                    ) : null}
+                    {detailsDeliverable.verifiedPermalink ? (
+                      <div>
+                        <span className="text-muted-foreground">VERIFIED: </span>
+                        <a
+                          href={detailsDeliverable.verifiedPermalink}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-neon-green underline"
+                        >
+                          View verified post
+                        </a>
+                      </div>
+                    ) : null}
+                    {detailsDeliverable.submittedNotes ? (
+                      <div>
+                        <span className="text-muted-foreground">NOTES: </span>
+                        <span className="text-foreground">{detailsDeliverable.submittedNotes}</span>
+                      </div>
+                    ) : null}
+                    {detailsDeliverable.verifiedAt ? (
+                      <div>
+                        <span className="text-muted-foreground">VERIFIED AT: </span>
+                        <span className="text-foreground">
+                          {new Date(detailsDeliverable.verifiedAt).toLocaleString()}
+                        </span>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <div className="text-xs font-mono text-muted-foreground">No post details found.</div>
+                )}
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </InfluencerLayout>
