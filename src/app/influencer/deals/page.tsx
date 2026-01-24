@@ -16,6 +16,8 @@ type Deal = {
   matchDate: string;
   deadline: string | null;
   trackingNumber: string | null;
+  trackingUrl: string | null;
+  carrier: string | null;
 };
 
 const statusLabel: Record<Deal["status"], string> = {
@@ -73,7 +75,9 @@ export default function CreatorDealsPage() {
         row.brand.toLowerCase().includes(q) ||
         row.product.toLowerCase().includes(q) ||
         row.status.toLowerCase().includes(q) ||
-        (row.trackingNumber ?? "").toLowerCase().includes(q)
+        (row.trackingNumber ?? "").toLowerCase().includes(q) ||
+        (row.trackingUrl ?? "").toLowerCase().includes(q) ||
+        (row.carrier ?? "").toLowerCase().includes(q)
       );
     });
   }, [query, rows]);
@@ -154,8 +158,14 @@ export default function CreatorDealsPage() {
                           <div className="mt-3 flex flex-wrap gap-2">
                             <Badge variant={statusVariant[deal.status]}>{statusLabel[deal.status]}</Badge>
                             {deadlineLabel ? <Badge variant="secondary">Due: {deadlineLabel}</Badge> : null}
+                            {deal.carrier ? <Badge variant="secondary">Carrier: {deal.carrier}</Badge> : null}
                             {deal.trackingNumber ? (
                               <Badge variant="secondary">Tracking: {deal.trackingNumber}</Badge>
+                            ) : null}
+                            {deal.trackingUrl ? (
+                              <a href={deal.trackingUrl} target="_blank" rel="noreferrer">
+                                <Badge variant="secondary">Open tracking</Badge>
+                              </a>
                             ) : null}
                           </div>
                         </div>
@@ -184,4 +194,3 @@ export default function CreatorDealsPage() {
     </div>
   );
 }
-

@@ -46,8 +46,11 @@ export async function GET(request: Request) {
       brandName: brands.name,
       orderStatus: shopifyOrders.status,
       trackingNumber: shopifyOrders.trackingNumber,
+      trackingUrl: shopifyOrders.trackingUrl,
       manualStatus: manualShipments.status,
+      manualCarrier: manualShipments.carrier,
       manualTrackingNumber: manualShipments.trackingNumber,
+      manualTrackingUrl: manualShipments.trackingUrl,
       deliverableStatus: deliverables.status,
       deliverableDueAt: deliverables.dueAt,
       deliverableSubmittedAt: deliverables.submittedAt,
@@ -84,6 +87,8 @@ export async function GET(request: Request) {
       matchDate: row.matchCreatedAt.toISOString(),
       deadline: row.deliverableDueAt ? row.deliverableDueAt.toISOString() : null,
       trackingNumber: row.trackingNumber ?? row.manualTrackingNumber ?? null,
+      trackingUrl: row.trackingUrl ?? row.manualTrackingUrl ?? null,
+      carrier: row.manualCarrier ?? null,
     })),
   });
 }

@@ -761,6 +761,8 @@ export type CreatorDeal = {
   matchDate: string;
   deadline: string | null;
   trackingNumber: string | null;
+  trackingUrl: string | null;
+  carrier: string | null;
 };
 
 export async function getCreatorDeals() {

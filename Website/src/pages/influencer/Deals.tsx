@@ -35,6 +35,8 @@ interface Deal {
   matchDate: string;
   deadline?: string;
   trackingNumber?: string;
+  trackingUrl?: string;
+  carrier?: string;
 }
 
 const statusConfig: Record<DealStatus, { label: string; icon: React.ElementType; color: string }> = {
@@ -76,6 +78,8 @@ const InfluencerDeals = () => {
       matchDate: new Date(deal.matchDate).toLocaleDateString(),
       deadline: deal.deadline ? new Date(deal.deadline).toLocaleDateString() : undefined,
       trackingNumber: deal.trackingNumber ?? undefined,
+      trackingUrl: deal.trackingUrl ?? undefined,
+      carrier: deal.carrier ?? undefined,
     }));
   }, [data]);
 
@@ -204,10 +208,33 @@ const InfluencerDeals = () => {
                       </div>
 
                       {/* Status-specific content */}
-                      {deal.status === "shipped" && deal.trackingNumber && (
-                        <div className="mt-3 p-2 bg-muted text-xs font-mono border-2 border-border">
-                          <span className="text-muted-foreground">TRACKING: </span>
-                          <span className="text-neon-yellow">{deal.trackingNumber}</span>
+                      {deal.status === "shipped" && (deal.trackingNumber || deal.carrier || deal.trackingUrl) && (
+                        <div className="mt-3 p-2 bg-muted text-xs font-mono border-2 border-border space-y-1">
+                          {deal.carrier && (
+                            <div>
+                              <span className="text-muted-foreground">CARRIER: </span>
+                              <span className="text-neon-yellow">{deal.carrier}</span>
+                            </div>
+                          )}
+                          {deal.trackingNumber && (
+                            <div>
+                              <span className="text-muted-foreground">TRACKING: </span>
+                              <span className="text-neon-yellow">{deal.trackingNumber}</span>
+                            </div>
+                          )}
+                          {deal.trackingUrl && (
+                            <div>
+                              <span className="text-muted-foreground">LINK: </span>
+                              <a
+                                href={deal.trackingUrl}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-neon-green underline"
+                              >
+                                Open tracking
+                              </a>
+                            </div>
+                          )}
                         </div>
                       )}
 
