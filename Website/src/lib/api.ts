@@ -434,6 +434,16 @@ export async function failBrandDeliverable(
   });
 }
 
+export async function requestBrandDeliverableChanges(
+  deliverableId: string,
+  payload?: { reason?: string },
+) {
+  return apiFetch<{ ok: boolean }>(`/api/brand/deliverables/${deliverableId}/request-changes`, {
+    method: "POST",
+    body: JSON.stringify(payload ?? {}),
+  });
+}
+
 export type BrandAnalyticsOffer = {
   offerId: string;
   title: string;

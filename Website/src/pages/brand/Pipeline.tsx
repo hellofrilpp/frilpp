@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, BrandDeliverable, BrandMatch, BrandShipment, getBrandDeliverables, getBrandMatches, getBrandShipments, approveBrandMatch, rejectBrandMatch, verifyBrandDeliverable, failBrandDeliverable, updateManualShipment } from "@/lib/api";
+import { ApiError, BrandDeliverable, BrandMatch, BrandShipment, getBrandDeliverables, getBrandMatches, getBrandShipments, approveBrandMatch, rejectBrandMatch, verifyBrandDeliverable, requestBrandDeliverableChanges, updateManualShipment } from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type Stage = "applied" | "approved" | "shipped" | "posted" | "complete";
@@ -387,17 +387,17 @@ const BrandPipeline = () => {
     }
   };
 
-  const handleRejectPost = async (matchId: string) => {
+  const handleRequestChanges = async (matchId: string) => {
     const deliverable = deliverableByMatch.get(matchId);
     if (!deliverable) return;
-    const reason = window.prompt("Reason for rejection?", "Missing brand tag") ?? undefined;
+    const reason = window.prompt("What needs to change?", "Missing brand tag") ?? undefined;
     try {
-      await failBrandDeliverable(deliverable.deliverableId, { reason: reason || undefined });
-      toast({ title: "REJECTED", description: "Deliverable rejected." });
+      await requestBrandDeliverableChanges(deliverable.deliverableId, { reason: reason || undefined });
+      toast({ title: "CHANGES REQUESTED", description: "Creator can resubmit." });
       await queryClient.invalidateQueries({ queryKey: ["brand-deliverables"] });
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Reject failed";
-      toast({ title: "REJECT FAILED", description: message });
+      toast({ title: "REQUEST FAILED", description: message });
     }
   };
 
@@ -540,24 +540,26 @@ const BrandPipeline = () => {
                                   className="font-mono text-xs text-destructive"
                                   onSelect={async (event) => {
                                     event.preventDefault();
-                                    await handleRejectPost(influencer.id);
+                                    await handleRequestChanges(influencer.id);
                                   }}
                                 >
                                   <XCircle className="w-4 h-4 mr-2" />
-                                  REJECT_POST
+                                  REQUEST_CHANGES
                                 </DropdownMenuItem>
                               </>
                             )}
-                            <DropdownMenuItem
-                              className="font-mono text-xs text-destructive"
-                              onSelect={(event) => {
-                                event.preventDefault();
-                                void handleReject(influencer.id);
-                              }}
-                            >
-                              <XCircle className="w-4 h-4 mr-2" />
-                              REJECT
-                            </DropdownMenuItem>
+                            {influencer.stage !== "posted" && (
+                              <DropdownMenuItem
+                                className="font-mono text-xs text-destructive"
+                                onSelect={(event) => {
+                                  event.preventDefault();
+                                  void handleReject(influencer.id);
+                                }}
+                              >
+                                <XCircle className="w-4 h-4 mr-2" />
+                                REJECT
+                              </DropdownMenuItem>
+                            )}
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -668,9 +670,9 @@ const BrandPipeline = () => {
                             variant="outline"
                             className="border-2 font-mono text-[10px] text-destructive"
                             onMouseDown={(event) => event.stopPropagation()}
-                            onClick={() => void handleRejectPost(influencer.id)}
+                            onClick={() => void handleRequestChanges(influencer.id)}
                           >
-                            REJECT
+                            REQUEST_CHANGES
                           </Button>
                         </div>
                       )}
