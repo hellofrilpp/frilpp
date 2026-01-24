@@ -198,6 +198,8 @@ export type BrandOffer = {
   maxClaims: number;
   deadlineDaysAfterDelivery: number;
   deliverableType: "REELS" | "FEED" | "UGC_ONLY";
+  usageRightsRequired: boolean;
+  usageRightsScope: string | null;
   acceptanceFollowersThreshold: number;
   acceptanceAboveThresholdAutoAccept: boolean;
   metadata: Record<string, unknown>;

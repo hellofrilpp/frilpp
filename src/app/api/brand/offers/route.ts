@@ -62,6 +62,8 @@ export async function GET(request: Request) {
           maxClaims: offers.maxClaims,
           deadlineDaysAfterDelivery: offers.deadlineDaysAfterDelivery,
           deliverableType: offers.deliverableType,
+          usageRightsRequired: offers.usageRightsRequired,
+          usageRightsScope: offers.usageRightsScope,
           acceptanceFollowersThreshold: offers.acceptanceFollowersThreshold,
           acceptanceAboveThresholdAutoAccept: offers.acceptanceAboveThresholdAutoAccept,
           metadata: offers.metadata,

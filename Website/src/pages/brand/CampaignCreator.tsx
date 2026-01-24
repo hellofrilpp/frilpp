@@ -67,17 +67,22 @@ type CampaignFormData = {
   productImage: string;
   presetId: string;
   fulfillmentType: FulfillmentType;
+  manualFulfillmentMethod: "" | "PICKUP" | "LOCAL_DELIVERY";
+  manualFulfillmentNotes: string;
   platforms: string[];
   platformOther: string;
   contentTypes: string[];
   contentTypeOther: string;
   hashtags: string;
   guidelines: string;
+  usageRightsRequired: boolean;
+  usageRightsScope: "PAID_ADS_12MO" | "PAID_ADS_6MO" | "PAID_ADS_UNLIMITED" | "ORGANIC_ONLY";
   minFollowers: string;
   maxFollowers: string;
   niches: string[];
   nicheOther: string;
   locationRadiusMiles: string;
+  ctaUrl: string;
   campaignName: string;
   quantity: string;
 };
@@ -91,17 +96,22 @@ const initialFormData: CampaignFormData = {
   productImage: "",
   presetId: "",
   fulfillmentType: "MANUAL",
+  manualFulfillmentMethod: "PICKUP",
+  manualFulfillmentNotes: "",
   platforms: [],
   platformOther: "",
   contentTypes: [],
   contentTypeOther: "",
   hashtags: "",
   guidelines: "",
+  usageRightsRequired: false,
+  usageRightsScope: "PAID_ADS_12MO",
   minFollowers: "1000",
   maxFollowers: "50000",
   niches: [],
   nicheOther: "",
   locationRadiusMiles: "",
+  ctaUrl: "",
   campaignName: "",
   quantity: "10",
 };
@@ -122,8 +132,11 @@ type OfferMetadata = Partial<{
   nicheOther: string;
   presetId: string;
   fulfillmentType: FulfillmentType;
+  manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY";
+  manualFulfillmentNotes: string;
   locationRadiusKm: number | string;
   locationRadiusMiles: number | string;
+  ctaUrl: string;
 }>;
 
 const milesToKm = (miles: number) => miles * 1.609344;
@@ -266,7 +279,12 @@ const CampaignCreator = () => {
           minFollowers: String(offer.acceptanceFollowersThreshold ?? prev.minFollowers),
           presetId: meta.presetId || "",
           fulfillmentType: meta.fulfillmentType || prev.fulfillmentType,
+          manualFulfillmentMethod: meta.manualFulfillmentMethod || prev.manualFulfillmentMethod,
+          manualFulfillmentNotes: meta.manualFulfillmentNotes || "",
+          usageRightsRequired: offer.usageRightsRequired ?? prev.usageRightsRequired,
+          usageRightsScope: (offer.usageRightsScope as CampaignFormData["usageRightsScope"]) ?? prev.usageRightsScope,
           locationRadiusMiles: radiusInput !== null ? String(Math.round(radiusInput * 10) / 10) : "",
+          ctaUrl: meta.ctaUrl || "",
         }));
         toast.success("Draft loaded");
       } catch (err) {
@@ -421,7 +439,13 @@ const CampaignCreator = () => {
       nicheOther: formData.niches.includes("OTHER") ? formData.nicheOther.trim() || null : null,
       campaignName: formData.campaignName || null,
       fulfillmentType,
+      manualFulfillmentMethod:
+        fulfillmentType === "MANUAL" && formData.manualFulfillmentMethod
+          ? formData.manualFulfillmentMethod
+          : null,
+      manualFulfillmentNotes: formData.manualFulfillmentNotes.trim() || null,
       locationRadiusKm: Number.isFinite(radiusKm) && radiusKm > 0 ? radiusKm : null,
+      ctaUrl: formData.ctaUrl.trim() || null,
       presetId: formData.presetId || null,
     };
   };
@@ -446,6 +470,8 @@ const CampaignCreator = () => {
       deadlineDaysAfterDelivery: 14,
       followersThreshold: Number.isFinite(minFollowers) ? minFollowers : 0,
       aboveThresholdAutoAccept: true,
+      usageRightsRequired: formData.usageRightsRequired,
+      usageRightsScope: formData.usageRightsRequired ? formData.usageRightsScope : undefined,
       products: buildOfferProducts(),
       metadata: buildOfferMetadata(fulfillmentType),
     };
@@ -549,6 +575,8 @@ const CampaignCreator = () => {
       deadlineDaysAfterDelivery: 14,
       followersThreshold: Number.isFinite(minFollowers) ? minFollowers : 0,
       aboveThresholdAutoAccept: true,
+      usageRightsRequired: formData.usageRightsRequired,
+      usageRightsScope: formData.usageRightsRequired ? formData.usageRightsScope : undefined,
       products,
       metadata,
     };
@@ -673,7 +701,12 @@ const CampaignCreator = () => {
         minFollowers: String(last.acceptanceFollowersThreshold ?? prev.minFollowers),
         presetId: meta.presetId || "",
         fulfillmentType: meta.fulfillmentType || prev.fulfillmentType,
+        manualFulfillmentMethod: meta.manualFulfillmentMethod || prev.manualFulfillmentMethod,
+        manualFulfillmentNotes: meta.manualFulfillmentNotes || "",
+        usageRightsRequired: last.usageRightsRequired ?? prev.usageRightsRequired,
+        usageRightsScope: (last.usageRightsScope as CampaignFormData["usageRightsScope"]) ?? prev.usageRightsScope,
         locationRadiusMiles: radiusInput !== null ? String(Math.round(radiusInput * 10) / 10) : "",
+        ctaUrl: meta.ctaUrl || "",
       }));
       toast.success("Last offer copied");
     } catch (err) {
@@ -823,6 +856,51 @@ const CampaignCreator = () => {
                       </button>
                     </div>
                   </div>
+
+                  {formData.fulfillmentType === "MANUAL" && (
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label className="font-mono text-sm">MANUAL_METHOD</Label>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            type="button"
+                            onClick={() => updateField("manualFulfillmentMethod", "PICKUP")}
+                            className={`p-3 border-2 text-center transition-all pixel-btn ${
+                              formData.manualFulfillmentMethod === "PICKUP"
+                                ? "border-neon-green bg-neon-green/20 text-neon-green"
+                                : "border-border hover:border-neon-green"
+                            }`}
+                          >
+                            <span className="font-pixel text-xs">PICKUP</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateField("manualFulfillmentMethod", "LOCAL_DELIVERY")}
+                            className={`p-3 border-2 text-center transition-all pixel-btn ${
+                              formData.manualFulfillmentMethod === "LOCAL_DELIVERY"
+                                ? "border-neon-green bg-neon-green/20 text-neon-green"
+                                : "border-border hover:border-neon-green"
+                            }`}
+                          >
+                            <span className="font-pixel text-xs">LOCAL_DELIVERY</span>
+                          </button>
+                        </div>
+                        <p className="text-xs font-mono text-muted-foreground">
+                          Pickup uses your brand address. Local delivery asks creators for their address at claim time.
+                        </p>
+                      </div>
+
+                      <div className="space-y-2">
+                        <Label className="font-mono text-sm">MANUAL_NOTES</Label>
+                        <Input
+                          value={formData.manualFulfillmentNotes}
+                          onChange={(e) => updateField("manualFulfillmentNotes", e.target.value)}
+                          placeholder="Pickup window / delivery notes..."
+                          className="border-2 border-border font-mono focus:border-primary"
+                        />
+                      </div>
+                    </div>
+                  )}
 
                   <div className="space-y-2">
                     <Label className="font-mono text-sm">PRODUCT_VALUE ($)</Label>
@@ -1000,6 +1078,64 @@ const CampaignCreator = () => {
                       className="border-2 border-border font-mono focus:border-primary min-h-[100px]"
                     />
                   </div>
+
+                  <div className="space-y-2">
+                    <Label className="font-mono text-sm">USAGE_RIGHTS</Label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => updateField("usageRightsRequired", true)}
+                        className={`p-3 border-2 text-center transition-all pixel-btn ${
+                          formData.usageRightsRequired
+                            ? "border-neon-yellow bg-neon-yellow/20 text-neon-yellow"
+                            : "border-border hover:border-neon-yellow"
+                        }`}
+                      >
+                        <span className="font-pixel text-xs">REQUIRED</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => updateField("usageRightsRequired", false)}
+                        className={`p-3 border-2 text-center transition-all pixel-btn ${
+                          !formData.usageRightsRequired
+                            ? "border-neon-yellow bg-neon-yellow/20 text-neon-yellow"
+                            : "border-border hover:border-neon-yellow"
+                        }`}
+                      >
+                        <span className="font-pixel text-xs">NOT_REQUIRED</span>
+                      </button>
+                    </div>
+                    <p className="text-xs font-mono text-muted-foreground">
+                      If required, creators must grant usage rights so you can run their content as ads.
+                    </p>
+                  </div>
+
+                  {formData.usageRightsRequired && (
+                    <div className="space-y-2">
+                      <Label className="font-mono text-sm">USAGE_RIGHTS_SCOPE</Label>
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          { id: "PAID_ADS_12MO", label: "PAID_ADS_12MO" },
+                          { id: "PAID_ADS_6MO", label: "PAID_ADS_6MO" },
+                          { id: "PAID_ADS_UNLIMITED", label: "PAID_ADS_UNLIMITED" },
+                          { id: "ORGANIC_ONLY", label: "ORGANIC_ONLY" },
+                        ].map((scope) => (
+                          <button
+                            key={scope.id}
+                            type="button"
+                            onClick={() => updateField("usageRightsScope", scope.id as CampaignFormData["usageRightsScope"])}
+                            className={`p-3 border-2 text-center transition-all pixel-btn ${
+                              formData.usageRightsScope === scope.id
+                                ? "border-neon-yellow bg-neon-yellow/20 text-neon-yellow"
+                                : "border-border hover:border-neon-yellow"
+                            }`}
+                          >
+                            <span className="font-mono text-xs">{scope.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -1081,6 +1217,19 @@ const CampaignCreator = () => {
                     />
                     <p className="text-xs font-mono text-muted-foreground">
                       Optional: show this offer only to creators within this distance. No radius = global visibility.
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="font-mono text-sm">CTA_URL</Label>
+                    <Input
+                      value={formData.ctaUrl}
+                      onChange={(e) => updateField("ctaUrl", e.target.value)}
+                      placeholder="https://your-site.com/order (optional)"
+                      className="border-2 border-border font-mono focus:border-primary"
+                    />
+                    <p className="text-xs font-mono text-muted-foreground">
+                      Optional: link for creators or customers (e.g. product page, booking, or signup).
                     </p>
                   </div>
                 </div>
