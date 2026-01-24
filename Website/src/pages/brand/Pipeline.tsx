@@ -70,6 +70,7 @@ const BrandPipeline = () => {
   const [draggedInfluencer, setDraggedInfluencer] = useState<Influencer | null>(null);
   const [influencersList, setInfluencersList] = useState<Influencer[]>([]);
   const [manualForms, setManualForms] = useState<Record<string, { carrier: string; trackingNumber: string; trackingUrl: string }>>({});
+  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestReason, setRequestReason] = useState("Missing brand tag");
   const [requestTarget, setRequestTarget] = useState<string | null>(null);
@@ -96,9 +97,6 @@ const BrandPipeline = () => {
     queryKey: ["brand-deliverables", "verified"],
     queryFn: () => getBrandDeliverables("VERIFIED"),
   });
-  const manualShipments = (shipmentsData?.shipments ?? []).filter(
-    (shipment) => shipment.fulfillmentType === "MANUAL" && shipment.status !== "SHIPPED",
-  );
   const manualShipmentByMatch = useMemo(() => {
     const shipments = shipmentsData?.shipments ?? [];
     const map = new Map<string, BrandShipment>();
@@ -300,6 +298,10 @@ const BrandPipeline = () => {
 
   const handleDragStart = (influencer: Influencer) => {
     setDraggedInfluencer(influencer);
+  };
+
+  const toggleExpanded = (matchId: string) => {
+    setExpandedCards((prev) => ({ ...prev, [matchId]: !prev[matchId] }));
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -505,6 +507,7 @@ const BrandPipeline = () => {
                       draggable
                       onDragStart={() => handleDragStart(influencer)}
                       className="bg-card border-2 border-border p-4 cursor-grab hover:border-primary transition-all active:cursor-grabbing"
+                      onClick={() => toggleExpanded(influencer.id)}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -549,11 +552,11 @@ const BrandPipeline = () => {
                                 className="font-mono text-xs"
                                 onSelect={async (event) => {
                                   event.preventDefault();
-                                  await handleMarkShipped(influencer.id);
+                                  toggleExpanded(influencer.id);
                                 }}
                               >
                                 <Package className="w-4 h-4 mr-2" />
-                                MARK_SHIPPED
+                                OPEN_SHIPMENT
                               </DropdownMenuItem>
                             )}
                             {influencer.stage === "posted" && deliverableByMatch.has(influencer.id) && (
@@ -683,12 +686,99 @@ const BrandPipeline = () => {
                             variant="outline"
                             className="border-2 font-mono text-[10px]"
                             onMouseDown={(event) => event.stopPropagation()}
-                            onClick={() => void handleMarkShipped(influencer.id)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              toggleExpanded(influencer.id);
+                            }}
                           >
                             MARK_SHIPPED
                           </Button>
                         </div>
                       )}
+
+                      {influencer.stage === "approved" &&
+                        expandedCards[influencer.id] &&
+                        manualShipmentByMatch.has(influencer.id) && (() => {
+                          const shipment = manualShipmentByMatch.get(influencer.id);
+                          if (!shipment) return null;
+                          return (
+                            <div
+                              className="mt-3 border-2 border-border bg-muted p-3 space-y-3"
+                              onMouseDown={(event) => event.stopPropagation()}
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <div className="text-xs font-pixel text-neon-yellow">SHIPMENT DETAILS</div>
+                              <div className="grid md:grid-cols-3 gap-3">
+                                <Input
+                                  value={manualForms[shipment.id]?.carrier ?? ""}
+                                  onChange={(event) =>
+                                    setManualForms((prev) => ({
+                                      ...prev,
+                                      [shipment.id]: {
+                                        ...prev[shipment.id],
+                                        carrier: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                  placeholder="Carrier (optional)"
+                                  className="border-2 border-border font-mono text-xs"
+                                />
+                                <Input
+                                  value={manualForms[shipment.id]?.trackingNumber ?? ""}
+                                  onChange={(event) =>
+                                    setManualForms((prev) => ({
+                                      ...prev,
+                                      [shipment.id]: {
+                                        ...prev[shipment.id],
+                                        trackingNumber: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                  placeholder="Tracking number (optional)"
+                                  className="border-2 border-border font-mono text-xs"
+                                />
+                                <Input
+                                  value={manualForms[shipment.id]?.trackingUrl ?? ""}
+                                  onChange={(event) =>
+                                    setManualForms((prev) => ({
+                                      ...prev,
+                                      [shipment.id]: {
+                                        ...prev[shipment.id],
+                                        trackingUrl: event.target.value,
+                                      },
+                                    }))
+                                  }
+                                  placeholder="Tracking URL (optional)"
+                                  className="border-2 border-border font-mono text-xs"
+                                />
+                              </div>
+                              <div className="flex justify-end">
+                                <Button
+                                  size="sm"
+                                  className="bg-neon-yellow text-background font-pixel text-xs pixel-btn"
+                                  onClick={async () => {
+                                    await handleMarkShipped(influencer.id);
+                                    setExpandedCards((prev) => ({ ...prev, [influencer.id]: false }));
+                                  }}
+                                >
+                                  MARK_SHIPPED
+                                </Button>
+                              </div>
+                            </div>
+                          );
+                        })()}
+
+                      {influencer.stage === "approved" &&
+                        expandedCards[influencer.id] &&
+                        !manualShipmentByMatch.has(influencer.id) && (
+                          <div
+                            className="mt-3 border-2 border-border bg-muted p-3 text-xs font-mono text-muted-foreground"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            Shipping for this campaign is handled automatically. No manual tracking needed.
+                          </div>
+                        )}
 
                       {influencer.stage === "posted" && (
                         <div className="mt-3 flex gap-2">
@@ -717,107 +807,6 @@ const BrandPipeline = () => {
                 </div>
               </div>
             ))}
-          </div>
-        </div>
-        <div className="mt-8 border-4 border-border bg-card">
-          <div className="p-4 border-b-4 border-border flex items-center justify-between">
-            <h2 className="font-pixel text-sm text-neon-yellow">[MANUAL_SHIPMENTS]</h2>
-            <span className="text-xs font-mono text-muted-foreground">
-              {manualShipments.length} pending
-            </span>
-          </div>
-          <div className="divide-y-2 divide-border">
-            {manualShipments.length ? (
-              manualShipments.map((shipment) => (
-                <div key={shipment.id} className="p-4 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-mono text-sm">{shipment.creator.username ?? "Creator"}</p>
-                      <p className="text-xs font-mono text-muted-foreground">{shipment.offer.title}</p>
-                    </div>
-                    <span className="text-xs font-pixel text-neon-yellow">
-                      {shipment.status}
-                    </span>
-                  </div>
-                  <div className="grid md:grid-cols-3 gap-3">
-                    <Input
-                      value={manualForms[shipment.id]?.carrier ?? ""}
-                      onChange={(event) =>
-                        setManualForms((prev) => ({
-                          ...prev,
-                          [shipment.id]: {
-                            ...prev[shipment.id],
-                            carrier: event.target.value,
-                          },
-                        }))
-                      }
-                      placeholder="Carrier"
-                      className="border-2 border-border font-mono text-xs"
-                    />
-                    <Input
-                      value={manualForms[shipment.id]?.trackingNumber ?? ""}
-                      onChange={(event) =>
-                        setManualForms((prev) => ({
-                          ...prev,
-                          [shipment.id]: {
-                            ...prev[shipment.id],
-                            trackingNumber: event.target.value,
-                          },
-                        }))
-                      }
-                      placeholder="Tracking number"
-                      className="border-2 border-border font-mono text-xs"
-                    />
-                    <Input
-                      value={manualForms[shipment.id]?.trackingUrl ?? ""}
-                      onChange={(event) =>
-                        setManualForms((prev) => ({
-                          ...prev,
-                          [shipment.id]: {
-                            ...prev[shipment.id],
-                            trackingUrl: event.target.value,
-                          },
-                        }))
-                      }
-                      placeholder="Tracking URL"
-                      className="border-2 border-border font-mono text-xs"
-                    />
-                  </div>
-                  <div className="flex justify-end">
-                    <Button
-                      size="sm"
-                      className="bg-neon-yellow text-background font-pixel text-xs pixel-btn"
-                      onClick={async () => {
-                        try {
-                          const payload = manualForms[shipment.id] ?? {
-                            carrier: "",
-                            trackingNumber: "",
-                            trackingUrl: "",
-                          };
-                          await updateManualShipment(shipment.id, {
-                            status: "SHIPPED",
-                            carrier: payload.carrier || undefined,
-                            trackingNumber: payload.trackingNumber || undefined,
-                            trackingUrl: payload.trackingUrl || undefined,
-                          });
-                          toast({ title: "SHIPPED", description: "Tracking saved." });
-                          await queryClient.invalidateQueries({ queryKey: ["brand-shipments"] });
-                        } catch (err) {
-                          const message = err instanceof ApiError ? err.message : "Update failed";
-                          toast({ title: "UPDATE FAILED", description: message });
-                        }
-                      }}
-                    >
-                      MARK_SHIPPED
-                    </Button>
-                  </div>
-                </div>
-              ))
-            ) : (
-              <div className="p-4 text-xs font-mono text-muted-foreground">
-                Manual shipments will appear here once they’re created.
-              </div>
-            )}
           </div>
         </div>
         <AlertDialog open={requestOpen} onOpenChange={setRequestOpen}>
