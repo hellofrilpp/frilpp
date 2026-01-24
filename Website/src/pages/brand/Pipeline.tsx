@@ -14,12 +14,21 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, BrandDeliverable, BrandMatch, BrandShipment, getBrandDeliverables, getBrandMatches, getBrandShipments, approveBrandMatch, rejectBrandMatch, verifyBrandDeliverable, requestBrandDeliverableChanges, updateManualShipment } from "@/lib/api";
@@ -61,6 +70,9 @@ const BrandPipeline = () => {
   const [draggedInfluencer, setDraggedInfluencer] = useState<Influencer | null>(null);
   const [influencersList, setInfluencersList] = useState<Influencer[]>([]);
   const [manualForms, setManualForms] = useState<Record<string, { carrier: string; trackingNumber: string; trackingUrl: string }>>({});
+  const [requestOpen, setRequestOpen] = useState(false);
+  const [requestReason, setRequestReason] = useState("Missing brand tag");
+  const [requestTarget, setRequestTarget] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -387,17 +399,37 @@ const BrandPipeline = () => {
     }
   };
 
-  const handleRequestChanges = async (matchId: string) => {
+  const openRequestChanges = (matchId: string) => {
     const deliverable = deliverableByMatch.get(matchId);
-    if (!deliverable) return;
-    const reason = window.prompt("What needs to change?", "Missing brand tag") ?? undefined;
+    if (!deliverable) {
+      toast({ title: "MISSING LINK", description: "Creator has not provided a permalink." });
+      return;
+    }
+    setRequestTarget(matchId);
+    setRequestReason("Missing brand tag");
+    setRequestOpen(true);
+  };
+
+  const submitRequestChanges = async () => {
+    if (!requestTarget) return;
+    const deliverable = deliverableByMatch.get(requestTarget);
+    if (!deliverable) {
+      toast({ title: "MISSING LINK", description: "Creator has not provided a permalink." });
+      setRequestOpen(false);
+      setRequestTarget(null);
+      return;
+    }
+    const reason = requestReason.trim() || undefined;
     try {
-      await requestBrandDeliverableChanges(deliverable.deliverableId, { reason: reason || undefined });
+      await requestBrandDeliverableChanges(deliverable.deliverableId, { reason });
       toast({ title: "CHANGES REQUESTED", description: "Creator can resubmit." });
       await queryClient.invalidateQueries({ queryKey: ["brand-deliverables"] });
     } catch (err) {
       const message = err instanceof ApiError ? err.message : "Reject failed";
       toast({ title: "REQUEST FAILED", description: message });
+    } finally {
+      setRequestOpen(false);
+      setRequestTarget(null);
     }
   };
 
@@ -540,7 +572,7 @@ const BrandPipeline = () => {
                                   className="font-mono text-xs text-destructive"
                                   onSelect={async (event) => {
                                     event.preventDefault();
-                                    await handleRequestChanges(influencer.id);
+                                    openRequestChanges(influencer.id);
                                   }}
                                 >
                                   <XCircle className="w-4 h-4 mr-2" />
@@ -564,19 +596,11 @@ const BrandPipeline = () => {
                         </DropdownMenu>
                       </div>
 
-                      <div className="flex gap-3 text-xs font-mono text-muted-foreground mb-3">
-                        <span className="text-neon-green">{influencer.followers}</span>
-                        <span>|</span>
-                        <span className="text-neon-yellow">{influencer.engagement} eng</span>
-                        {formatDistance(influencer) && (
-                          <>
-                            <span>|</span>
-                            <span className="text-neon-blue">
-                              {formatDistance(influencer)}
-                            </span>
-                          </>
-                        )}
-                      </div>
+                      {formatDistance(influencer) && (
+                        <div className="text-xs font-mono text-neon-blue mb-3">
+                          Distance: {formatDistance(influencer)}
+                        </div>
+                      )}
 
                       <div className="px-2 py-1 bg-muted text-xs font-mono inline-block">
                         {influencer.campaign}
@@ -670,7 +694,7 @@ const BrandPipeline = () => {
                             variant="outline"
                             className="border-2 font-mono text-[10px] text-destructive"
                             onMouseDown={(event) => event.stopPropagation()}
-                            onClick={() => void handleRequestChanges(influencer.id)}
+                            onClick={() => openRequestChanges(influencer.id)}
                           >
                             REQUEST_CHANGES
                           </Button>
@@ -784,6 +808,45 @@ const BrandPipeline = () => {
             )}
           </div>
         </div>
+        <AlertDialog open={requestOpen} onOpenChange={setRequestOpen}>
+          <AlertDialogContent className="border-4 border-border bg-card">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-pixel text-sm text-neon-pink">
+                REQUEST CHANGES
+              </AlertDialogTitle>
+              <AlertDialogDescription className="font-mono text-xs">
+                Tell the creator what to fix so they can resubmit.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="mt-3">
+              <Textarea
+                value={requestReason}
+                onChange={(event) => setRequestReason(event.target.value)}
+                placeholder="Missing brand tag"
+                className="border-2 border-border font-mono text-xs min-h-[90px]"
+              />
+            </div>
+            <AlertDialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs"
+                onClick={() => {
+                  setRequestOpen(false);
+                  setRequestTarget(null);
+                }}
+              >
+                CANCEL
+              </Button>
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs text-destructive"
+                onClick={submitRequestChanges}
+              >
+                REQUEST CHANGES
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </BrandLayout>
   );
