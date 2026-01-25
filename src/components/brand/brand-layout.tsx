@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   BarChart3,
   ChevronLeft,
@@ -70,7 +70,6 @@ type BrandLayoutProps = {
 
 export default function BrandLayout({ children }: BrandLayoutProps) {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [authLoading, setAuthLoading] = useState(true);
@@ -84,10 +83,7 @@ export default function BrandLayout({ children }: BrandLayoutProps) {
   const autoSelectRef = useRef(false);
   const pendingCreateRef = useRef(false);
 
-  const currentPath = useMemo(() => {
-    const query = searchParams?.toString();
-    return `${pathname}${query ? `?${query}` : ""}`;
-  }, [pathname, searchParams]);
+  const currentPath = useMemo(() => pathname, [pathname]);
 
   useEffect(() => {
     let cancelled = false;
@@ -120,7 +116,11 @@ export default function BrandLayout({ children }: BrandLayoutProps) {
     }
 
     if (!user.tosAcceptedAt || !user.privacyAcceptedAt) {
-      window.location.href = `/legal/accept?next=${encodeURIComponent(currentPath)}`;
+      const nextPath =
+        typeof window !== "undefined"
+          ? `${window.location.pathname}${window.location.search}`
+          : currentPath;
+      window.location.href = `/legal/accept?next=${encodeURIComponent(nextPath)}`;
       return;
     }
 
