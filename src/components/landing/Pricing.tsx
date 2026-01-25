@@ -6,7 +6,20 @@ export default function Pricing() {
   const businessPrice = 29;
   const creatorPrice = 10;
 
-  const plans = [
+  type Plan = {
+    name: string;
+    price: string;
+    period?: string;
+    description: string;
+    icon: typeof Zap;
+    color: keyof typeof colorClasses;
+    features: string[];
+    cta: string;
+    href: string;
+    popular: boolean;
+  };
+
+  const plans: Plan[] = [
     {
       name: "BUSINESS",
       price: `${currency}${businessPrice}`,
@@ -59,7 +72,7 @@ export default function Pricing() {
       href: "mailto:hello@frilpp.com",
       popular: false,
     },
-  ] as const;
+  ];
 
   const colorClasses = {
     "neon-green": {
