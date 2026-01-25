@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { 
   Search,
   MoreVertical,
-  Mail,
   Package,
   CheckCircle,
   XCircle,
@@ -544,10 +543,6 @@ const BrandPipeline = () => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="border-2 border-border">
-                            <DropdownMenuItem className="font-mono text-xs">
-                              <Mail className="w-4 h-4 mr-2" />
-                              MESSAGE
-                            </DropdownMenuItem>
                             {influencer.stage === "applied" && (
                               <DropdownMenuItem
                                 className="font-mono text-xs"
@@ -603,7 +598,7 @@ const BrandPipeline = () => {
                                 </DropdownMenuItem>
                               </>
                             )}
-                            {influencer.stage !== "posted" && (
+                            {(influencer.stage === "applied" || influencer.stage === "approved") && (
                               <DropdownMenuItem
                                 className="font-mono text-xs text-destructive"
                                 onSelect={(event) => {
