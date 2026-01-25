@@ -233,7 +233,7 @@ export default function BrandLayout({ children }: BrandLayoutProps) {
                 </div>
               </div>
 
-              <AlertDialogFooter>
+              <AlertDialogFooter className="mt-4">
                 <AlertDialogAction
                   className="font-pixel text-xs bg-neon-pink text-background"
                   disabled={gateSubmitting || gateBrandName.trim().length < 2}
