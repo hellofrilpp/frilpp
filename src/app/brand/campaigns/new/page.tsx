@@ -279,13 +279,18 @@ export default function BrandCampaignCreatorPage() {
         draftOfferId: unknown;
       }>;
 
-      if (draft.formData && typeof draft.formData === "object") {
+      const draftForm =
+        draft.formData && typeof draft.formData === "object"
+          ? (draft.formData as Partial<CampaignFormData>)
+          : null;
+
+      if (draftForm) {
         setFormData((prev) => ({
           ...prev,
-          ...draft.formData,
-          platforms: Array.isArray(draft.formData.platforms) ? draft.formData.platforms : prev.platforms,
-          contentTypes: Array.isArray(draft.formData.contentTypes) ? draft.formData.contentTypes : prev.contentTypes,
-          niches: Array.isArray(draft.formData.niches) ? draft.formData.niches : prev.niches,
+          ...draftForm,
+          platforms: Array.isArray(draftForm.platforms) ? draftForm.platforms : prev.platforms,
+          contentTypes: Array.isArray(draftForm.contentTypes) ? draftForm.contentTypes : prev.contentTypes,
+          niches: Array.isArray(draftForm.niches) ? draftForm.niches : prev.niches,
           fulfillmentType: "MANUAL",
         }));
       }
