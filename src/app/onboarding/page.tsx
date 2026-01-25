@@ -61,6 +61,17 @@ export default function OnboardingPage() {
     }
   }, []);
 
+  useEffect(() => {
+    if (!requestedNextPath) return;
+    if (requestedNextPath.startsWith("/brand/")) {
+      window.location.replace(requestedNextPath);
+      return;
+    }
+    if (requestedNextPath.startsWith("/influencer/")) {
+      window.location.replace("/influencer/onboarding");
+    }
+  }, [requestedNextPath]);
+
   const primaryNextLink = useMemo(() => {
     const laneAllows = (path: string) => {
       if (lane === "brand") return path.startsWith("/brand/");
