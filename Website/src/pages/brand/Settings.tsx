@@ -1,18 +1,27 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { 
+import {
   Building2,
   Bell,
   Link as LinkIcon,
   CreditCard,
   Save,
-  Settings
+  Settings,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import BrandLayout from "@/components/brand/BrandLayout";
 import LocationPicker from "@/components/LocationPicker";
 import {
@@ -34,6 +43,9 @@ const BrandSettings = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [saving, setSaving] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [profile, setProfile] = useState({
     name: "",
     website: "",
@@ -111,6 +123,23 @@ const BrandSettings = () => {
 
   const subscribed = billingStatus?.brand?.subscribed ?? false;
   const billingEnabled = billingStatus?.billingEnabled ?? true;
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm.trim() !== "DELETE") return;
+    setDeleting(true);
+    try {
+      await fetch(apiUrl("/api/account/delete"), { method: "POST", credentials: "include" });
+      toast({ title: "ACCOUNT DELETED", description: "Your account has been removed." });
+      window.location.href = "/";
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Account deletion failed";
+      toast({ title: "FAILED", description: message });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm("");
+      setDeleteOpen(false);
+    }
+  };
 
   return (
     <BrandLayout>
@@ -406,6 +435,26 @@ const BrandSettings = () => {
           </section>
         ) : null}
 
+        {/* Account Deletion */}
+        <section className="mb-8 border-4 border-border bg-card">
+          <div className="p-4 border-b-4 border-border flex items-center gap-3">
+            <Trash2 className="w-5 h-5 text-destructive" />
+            <h2 className="font-pixel text-sm text-destructive">[DELETE_ACCOUNT]</h2>
+          </div>
+          <div className="p-6 space-y-3">
+            <p className="text-xs font-mono text-muted-foreground">
+              This permanently deletes your account and removes access to all brand workspaces.
+            </p>
+            <Button
+              variant="outline"
+              className="border-2 font-mono text-xs text-destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
+              DELETE_ACCOUNT
+            </Button>
+          </div>
+        </section>
+
         {/* Save Button */}
         <div className="flex justify-end">
           <Button
@@ -439,6 +488,47 @@ const BrandSettings = () => {
             {saving ? "SAVING..." : "SAVE_CHANGES"}
           </Button>
         </div>
+        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <AlertDialogContent className="border-4 border-border bg-card">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-pixel text-sm text-neon-pink">
+                DELETE ACCOUNT
+              </AlertDialogTitle>
+              <AlertDialogDescription className="font-mono text-xs">
+                This permanently deletes your account and removes access to all brand workspaces.
+                Type DELETE to confirm.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="mt-3">
+              <Input
+                value={deleteConfirm}
+                onChange={(event) => setDeleteConfirm(event.target.value)}
+                placeholder="DELETE"
+                className="border-2 border-border font-mono text-xs"
+              />
+            </div>
+            <AlertDialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs"
+                onClick={() => {
+                  setDeleteConfirm("");
+                  setDeleteOpen(false);
+                }}
+              >
+                CANCEL
+              </Button>
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs text-destructive"
+                onClick={handleDeleteAccount}
+                disabled={deleting || deleteConfirm.trim() !== "DELETE"}
+              >
+                {deleting ? "DELETING..." : "DELETE PERMANENTLY"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </BrandLayout>
   );

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { db } from "@/db";
-import { brandMemberships, brands, userSocialAccounts, users } from "@/db/schema";
+import { brandMemberships, brands, creators, userSocialAccounts, users } from "@/db/schema";
 import { requireUser, requireBrandMembership } from "@/lib/auth";
 import { and, eq } from "drizzle-orm";
 
@@ -26,6 +26,18 @@ export async function POST(request: Request) {
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
     return Response.json({ ok: false, error: "Invalid request" }, { status: 400 });
+  }
+
+  const creatorRow = await db
+    .select({ id: creators.id })
+    .from(creators)
+    .where(eq(creators.id, sessionOrResponse.user.id))
+    .limit(1);
+  if (creatorRow[0]) {
+    return Response.json(
+      { ok: false, error: "This account is already registered as a creator.", code: "ROLE_CONFLICT" },
+      { status: 409 },
+    );
   }
 
   const brandId = crypto.randomUUID();

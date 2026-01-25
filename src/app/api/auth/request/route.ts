@@ -2,7 +2,7 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { db } from "@/db";
-import { loginTokens, pendingSocialAccounts, userSocialAccounts, users } from "@/db/schema";
+import { brandMemberships, creators, loginTokens, pendingSocialAccounts, userSocialAccounts, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { generateLoginToken, hashLoginToken } from "@/lib/auth";
 import { sendEmail } from "@/lib/email";
@@ -51,6 +51,7 @@ export async function POST(request: Request) {
   const jar = await cookies();
 
   const isBrandFlow = nextPath.startsWith("/brand/");
+  const isCreatorFlow = nextPath.startsWith("/influencer/");
   if (!magicLinkEnabled() && !isBrandFlow) {
     return Response.json(
       { ok: false, error: "Magic link login is disabled. Continue with TikTok." },
@@ -60,6 +61,38 @@ export async function POST(request: Request) {
 
   const userRows = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1);
   const user = userRows[0] ?? null;
+  if (user) {
+    const [creatorRow, brandRow] = await Promise.all([
+      db.select({ id: creators.id }).from(creators).where(eq(creators.id, user.id)).limit(1),
+      db
+        .select({ id: brandMemberships.id })
+        .from(brandMemberships)
+        .where(eq(brandMemberships.userId, user.id))
+        .limit(1),
+    ]);
+    const hasCreator = Boolean(creatorRow[0]);
+    const hasBrand = Boolean(brandRow[0]);
+    if (isBrandFlow && hasCreator && !hasBrand) {
+      return Response.json(
+        {
+          ok: false,
+          error: "This email is already registered as a creator. Use a different email.",
+          code: "ROLE_CONFLICT",
+        },
+        { status: 409 },
+      );
+    }
+    if (isCreatorFlow && hasBrand && !hasCreator) {
+      return Response.json(
+        {
+          ok: false,
+          error: "This email is already registered as a brand. Use a different email.",
+          code: "ROLE_CONFLICT",
+        },
+        { status: 409 },
+      );
+    }
+  }
   if (!user) {
     const pendingSocialId = jar.get("pending_social_id")?.value ?? null;
     const allowEmailSignup = isBrandFlow;

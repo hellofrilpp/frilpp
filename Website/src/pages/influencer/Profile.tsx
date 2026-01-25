@@ -12,6 +12,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import InfluencerLayout from "@/components/influencer/InfluencerLayout";
 import LocationPicker from "@/components/LocationPicker";
+import {
+  AlertDialog,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApiError, CreatorDeal, apiUrl, getCreatorDeals, getCreatorProfile, getSocialAccounts, updateCreatorProfile } from "@/lib/api";
 import { useEffect, useMemo, useState } from "react";
@@ -22,6 +30,9 @@ const InfluencerProfile = () => {
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const [savingProfile, setSavingProfile] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+  const [deleting, setDeleting] = useState(false);
   const [profileForm, setProfileForm] = useState({
     fullName: "",
     email: "",
@@ -103,6 +114,23 @@ const InfluencerProfile = () => {
     .join("")
     .toUpperCase();
   const featuredAchievements = achievements.slice(0, 6);
+
+  const handleDeleteAccount = async () => {
+    if (deleteConfirm.trim() !== "DELETE") return;
+    setDeleting(true);
+    try {
+      await fetch(apiUrl("/api/account/delete"), { method: "POST", credentials: "include" });
+      toast({ title: "ACCOUNT DELETED", description: "Your account has been removed." });
+      window.location.href = "/";
+    } catch (err) {
+      const message = err instanceof ApiError ? err.message : "Account deletion failed";
+      toast({ title: "FAILED", description: message });
+    } finally {
+      setDeleting(false);
+      setDeleteConfirm("");
+      setDeleteOpen(false);
+    }
+  };
 
   return (
     <InfluencerLayout>
@@ -405,8 +433,60 @@ const InfluencerProfile = () => {
             >
               {savingProfile ? "SAVING..." : "SAVE PROFILE"}
             </Button>
+            <div className="mt-6 border-t-2 border-border pt-4">
+              <p className="text-xs font-mono text-muted-foreground mb-3">
+                Permanently delete your account and remove access to all deals.
+              </p>
+              <Button
+                variant="outline"
+                className="w-full border-2 font-mono text-xs text-destructive"
+                onClick={() => setDeleteOpen(true)}
+              >
+                DELETE ACCOUNT
+              </Button>
+            </div>
           </div>
         </div>
+        <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+          <AlertDialogContent className="border-4 border-border bg-card">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-pixel text-sm text-neon-pink">
+                DELETE ACCOUNT
+              </AlertDialogTitle>
+              <AlertDialogDescription className="font-mono text-xs">
+                This permanently deletes your account and removes access to all deals. Type DELETE to confirm.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <div className="mt-3">
+              <Input
+                value={deleteConfirm}
+                onChange={(event) => setDeleteConfirm(event.target.value)}
+                placeholder="DELETE"
+                className="border-2 border-border font-mono text-xs"
+              />
+            </div>
+            <AlertDialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs"
+                onClick={() => {
+                  setDeleteConfirm("");
+                  setDeleteOpen(false);
+                }}
+              >
+                CANCEL
+              </Button>
+              <Button
+                variant="outline"
+                className="border-2 font-mono text-xs text-destructive"
+                onClick={handleDeleteAccount}
+                disabled={deleting || deleteConfirm.trim() !== "DELETE"}
+              >
+                {deleting ? "DELETING..." : "DELETE PERMANENTLY"}
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </InfluencerLayout>
   );

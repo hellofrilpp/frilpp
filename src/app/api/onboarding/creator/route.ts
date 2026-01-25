@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { db } from "@/db";
-import { creatorMeta, creators, userSocialAccounts, users } from "@/db/schema";
+import { brandMemberships, creatorMeta, creators, userSocialAccounts, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { and, eq } from "drizzle-orm";
 import { CREATOR_CATEGORIES } from "@/lib/picklists";
@@ -61,6 +61,17 @@ export async function POST(request: Request) {
 
   const userId = sessionOrResponse.user.id;
   const userEmail = sessionOrResponse.user.email;
+  const brandMembership = await db
+    .select({ id: brandMemberships.id })
+    .from(brandMemberships)
+    .where(eq(brandMemberships.userId, userId))
+    .limit(1);
+  if (brandMembership[0]) {
+    return Response.json(
+      { ok: false, error: "This account is already registered as a brand.", code: "ROLE_CONFLICT" },
+      { status: 409 },
+    );
+  }
   const existing = await db.select({ id: creators.id }).from(creators).where(eq(creators.id, userId)).limit(1);
   const now = new Date();
 

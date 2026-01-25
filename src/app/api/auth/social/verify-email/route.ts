@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
+import { brandMemberships, creators, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
 import { getSessionUser, SESSION_COOKIE_NAME } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -105,6 +105,7 @@ export async function POST(request: Request) {
 
   const normalizedEmail = parsed.data.email.trim().toLowerCase();
   const now = new Date();
+  const desiredRole = jar.get("social_oauth_role")?.value ?? null;
 
   const userId = (() => {
     if (session) return session.user.id;
@@ -113,6 +114,44 @@ export async function POST(request: Request) {
   })();
 
   const finalUserId = userId ?? crypto.randomUUID();
+
+  if (desiredRole) {
+    const roleUserId = userId
+      ?? (await db.select({ id: users.id }).from(users).where(eq(users.email, normalizedEmail)).limit(1))[0]?.id
+      ?? null;
+    if (roleUserId) {
+      const [creatorRow, brandRow] = await Promise.all([
+        db.select({ id: creators.id }).from(creators).where(eq(creators.id, roleUserId)).limit(1),
+        db
+          .select({ id: brandMemberships.id })
+          .from(brandMemberships)
+          .where(eq(brandMemberships.userId, roleUserId))
+          .limit(1),
+      ]);
+      const hasCreator = Boolean(creatorRow[0]);
+      const hasBrand = Boolean(brandRow[0]);
+      if (desiredRole === "brand" && hasCreator && !hasBrand) {
+        return Response.json(
+          {
+            ok: false,
+            error: "This email is already registered as a creator. Use a different email.",
+            code: "ROLE_CONFLICT",
+          },
+          { status: 409 },
+        );
+      }
+      if (desiredRole === "creator" && hasBrand && !hasCreator) {
+        return Response.json(
+          {
+            ok: false,
+            error: "This email is already registered as a brand. Use a different email.",
+            code: "ROLE_CONFLICT",
+          },
+          { status: 409 },
+        );
+      }
+    }
+  }
 
   if (!session && !social) {
     const existingUser = await db
@@ -211,4 +250,3 @@ export async function POST(request: Request) {
 
   return Response.json({ ok: true });
 }
-
