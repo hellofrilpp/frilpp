@@ -70,7 +70,8 @@ const BrandPipeline = () => {
   const [draggedInfluencer, setDraggedInfluencer] = useState<Influencer | null>(null);
   const [influencersList, setInfluencersList] = useState<Influencer[]>([]);
   const [manualForms, setManualForms] = useState<Record<string, { carrier: string; trackingNumber: string; trackingUrl: string }>>({});
-  const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
+  const [shipmentOpen, setShipmentOpen] = useState(false);
+  const [shipmentTarget, setShipmentTarget] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestReason, setRequestReason] = useState("Missing brand tag");
   const [requestTarget, setRequestTarget] = useState<string | null>(null);
@@ -300,19 +301,22 @@ const BrandPipeline = () => {
     setDraggedInfluencer(influencer);
   };
 
-  const toggleExpanded = (matchId: string) => {
-    setExpandedCards((prev) => ({ ...prev, [matchId]: !prev[matchId] }));
-  };
-
   const openShipment = (matchId: string) => {
-    setExpandedCards((prev) => ({ ...prev, [matchId]: true }));
     if (!manualShipmentByMatch.has(matchId)) {
       toast({
         title: "AUTO SHIPMENT",
         description: "Shipping is handled automatically. No manual tracking needed.",
       });
+      return;
     }
+    setShipmentTarget(matchId);
+    setShipmentOpen(true);
   };
+
+  const activeShipment = useMemo(() => {
+    if (!shipmentTarget) return null;
+    return manualShipmentByMatch.get(shipmentTarget) ?? null;
+  }, [manualShipmentByMatch, shipmentTarget]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -517,7 +521,6 @@ const BrandPipeline = () => {
                       draggable
                       onDragStart={() => handleDragStart(influencer)}
                       className="bg-card border-2 border-border p-4 cursor-grab hover:border-primary transition-all active:cursor-grabbing"
-                      onClick={() => toggleExpanded(influencer.id)}
                     >
                       <div className="flex items-start justify-between mb-3">
                         <div className="flex items-center gap-3">
@@ -696,90 +699,6 @@ const BrandPipeline = () => {
                         </div>
                       )}
 
-                      {influencer.stage === "approved" &&
-                        expandedCards[influencer.id] &&
-                        manualShipmentByMatch.has(influencer.id) && (() => {
-                          const shipment = manualShipmentByMatch.get(influencer.id);
-                          if (!shipment) return null;
-                          return (
-                            <div
-                              className="mt-3 border-2 border-border bg-muted p-3 space-y-3"
-                              onMouseDown={(event) => event.stopPropagation()}
-                              onClick={(event) => event.stopPropagation()}
-                            >
-                              <div className="text-xs font-pixel text-neon-yellow">SHIPMENT DETAILS</div>
-                              <div className="grid gap-3 md:grid-cols-3">
-                                <Input
-                                  value={manualForms[shipment.id]?.carrier ?? ""}
-                                  onChange={(event) =>
-                                    setManualForms((prev) => ({
-                                      ...prev,
-                                      [shipment.id]: {
-                                        ...prev[shipment.id],
-                                        carrier: event.target.value,
-                                      },
-                                    }))
-                                  }
-                                  placeholder="Carrier (optional)"
-                                  className="border-2 border-border font-mono text-xs h-10 w-full px-3"
-                                />
-                                <Input
-                                  value={manualForms[shipment.id]?.trackingNumber ?? ""}
-                                  onChange={(event) =>
-                                    setManualForms((prev) => ({
-                                      ...prev,
-                                      [shipment.id]: {
-                                        ...prev[shipment.id],
-                                        trackingNumber: event.target.value,
-                                      },
-                                    }))
-                                  }
-                                  placeholder="Tracking number (optional)"
-                                  className="border-2 border-border font-mono text-xs h-10 w-full px-3"
-                                />
-                                <Input
-                                  value={manualForms[shipment.id]?.trackingUrl ?? ""}
-                                  onChange={(event) =>
-                                    setManualForms((prev) => ({
-                                      ...prev,
-                                      [shipment.id]: {
-                                        ...prev[shipment.id],
-                                        trackingUrl: event.target.value,
-                                      },
-                                    }))
-                                  }
-                                  placeholder="Tracking URL (optional)"
-                                  className="border-2 border-border font-mono text-xs h-10 w-full px-3"
-                                />
-                              </div>
-                              <div className="flex justify-end">
-                                <Button
-                                  size="sm"
-                                  className="bg-neon-yellow text-background font-pixel text-xs pixel-btn"
-                                  onClick={async () => {
-                                    await handleMarkShipped(influencer.id);
-                                    setExpandedCards((prev) => ({ ...prev, [influencer.id]: false }));
-                                  }}
-                                >
-                                  MARK_SHIPPED
-                                </Button>
-                              </div>
-                            </div>
-                          );
-                        })()}
-
-                      {influencer.stage === "approved" &&
-                        expandedCards[influencer.id] &&
-                        !manualShipmentByMatch.has(influencer.id) && (
-                          <div
-                            className="mt-3 border-2 border-border bg-muted p-3 text-xs font-mono text-muted-foreground"
-                            onMouseDown={(event) => event.stopPropagation()}
-                            onClick={(event) => event.stopPropagation()}
-                          >
-                            Shipping for this campaign is handled automatically. No manual tracking needed.
-                          </div>
-                        )}
-
                       {influencer.stage === "posted" && (
                         <div className="mt-3 flex gap-2">
                           <Button
@@ -846,6 +765,91 @@ const BrandPipeline = () => {
                 REQUEST CHANGES
               </Button>
             </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={shipmentOpen}
+          onOpenChange={(open) => {
+            setShipmentOpen(open);
+            if (!open) setShipmentTarget(null);
+          }}
+        >
+          <AlertDialogContent className="border-4 border-border bg-card max-w-2xl w-[95vw]">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-pixel text-sm text-neon-yellow">
+                SHIPMENT DETAILS
+              </AlertDialogTitle>
+              <AlertDialogDescription className="font-mono text-xs">
+                Add tracking if you have it, then mark the shipment as sent.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            {activeShipment ? (
+              <div className="space-y-3">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Input
+                    value={manualForms[activeShipment.id]?.carrier ?? ""}
+                    onChange={(event) =>
+                      setManualForms((prev) => ({
+                        ...prev,
+                        [activeShipment.id]: {
+                          ...prev[activeShipment.id],
+                          carrier: event.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="Carrier (optional)"
+                    className="border-2 border-border font-mono text-xs h-11 w-full px-3"
+                  />
+                  <Input
+                    value={manualForms[activeShipment.id]?.trackingNumber ?? ""}
+                    onChange={(event) =>
+                      setManualForms((prev) => ({
+                        ...prev,
+                        [activeShipment.id]: {
+                          ...prev[activeShipment.id],
+                          trackingNumber: event.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="Tracking number (optional)"
+                    className="border-2 border-border font-mono text-xs h-11 w-full px-3"
+                  />
+                  <Input
+                    value={manualForms[activeShipment.id]?.trackingUrl ?? ""}
+                    onChange={(event) =>
+                      setManualForms((prev) => ({
+                        ...prev,
+                        [activeShipment.id]: {
+                          ...prev[activeShipment.id],
+                          trackingUrl: event.target.value,
+                        },
+                      }))
+                    }
+                    placeholder="Tracking URL (optional)"
+                    className="border-2 border-border font-mono text-xs h-11 w-full px-3"
+                  />
+                </div>
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    className="bg-neon-yellow text-background font-pixel text-xs pixel-btn"
+                    onClick={async () => {
+                      await handleMarkShipped(activeShipment.match.id);
+                      setShipmentOpen(false);
+                      setShipmentTarget(null);
+                    }}
+                  >
+                    MARK_SHIPPED
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <div className="text-xs font-mono text-muted-foreground">
+                Shipping for this campaign is handled automatically. No manual tracking needed.
+              </div>
+            )}
           </AlertDialogContent>
         </AlertDialog>
       </div>
