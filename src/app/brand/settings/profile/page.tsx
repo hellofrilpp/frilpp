@@ -138,7 +138,7 @@ export default function BrandProfileSettingsPage() {
       setBrandDeleteStatus("done");
       setBrandDeleteMessage("Brand workspace deleted. Redirecting...");
       setTimeout(() => {
-        window.location.href = "/onboarding";
+        window.location.href = "/brand/dashboard";
       }, 900);
     } catch (err) {
       setBrandDeleteStatus("error");

@@ -103,7 +103,13 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   const providerCookie = jar.get("social_oauth_provider")?.value;
   const nextCookie = jar.get("social_oauth_next")?.value;
   const roleCookie = jar.get("social_oauth_role")?.value ?? null;
-  const nextPath = sanitizeNextPath(nextCookie, "/onboarding");
+  let nextPath = sanitizeNextPath(nextCookie, "/");
+
+  if (nextPath === "/" && roleCookie === "brand") {
+    nextPath = "/brand/dashboard";
+  } else if (nextPath === "/" && roleCookie === "creator") {
+    nextPath = "/influencer/discover";
+  }
 
   if (!stateCookie || stateCookie !== parsed.data.state || providerCookie !== provider) {
     return redirectWithError(url.origin, "Invalid state");

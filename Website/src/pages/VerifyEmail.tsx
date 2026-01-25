@@ -17,7 +17,7 @@ const VerifyEmail = () => {
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  const nextPath = searchParams.get("next") || "/onboarding";
+  const nextPath = searchParams.get("next") || "/";
   const provider = searchParams.get("provider");
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {

@@ -47,7 +47,7 @@ export async function POST(request: Request) {
   }
 
   const email = parsed.data.email.trim().toLowerCase();
-  const nextPath = sanitizeNextPath(parsed.data.next, "/onboarding");
+  const nextPath = sanitizeNextPath(parsed.data.next, "/");
   const jar = await cookies();
 
   const isBrandFlow = nextPath.startsWith("/brand/");

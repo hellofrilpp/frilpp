@@ -183,10 +183,18 @@ async function redeemToken(token: string): Promise<RedeemResult> {
     jar.delete("pending_social_id");
   }
 
-  let nextPath = sanitizeNextPath(jar.get("auth_next")?.value ?? null, "/onboarding");
+  let nextPath = sanitizeNextPath(jar.get("auth_next")?.value ?? null, "/");
   jar.delete("auth_next");
   jar.delete("pending_tos");
   jar.delete("pending_privacy");
+
+  const laneCookie = jar.get("frilpp_lane")?.value ?? null;
+
+  if (nextPath === "/" && laneCookie === "brand") {
+    nextPath = "/brand/dashboard";
+  } else if (nextPath === "/" && laneCookie === "creator") {
+    nextPath = "/influencer/discover";
+  }
 
   if (nextPath.startsWith("/brand/")) {
     jar.set("frilpp_lane", "brand", {

@@ -27,7 +27,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
 
   const provider = providerParsed.data;
   const url = new URL(request.url);
-  const nextPath = sanitizeNextPath(url.searchParams.get("next"), "/onboarding");
+  const nextPath = sanitizeNextPath(url.searchParams.get("next"), "/");
   const roleParsed = roleSchema.safeParse(url.searchParams.get("role"));
   const role = roleParsed.success ? roleParsed.data : null;
   const origin = process.env.NEXT_PUBLIC_APP_URL ?? url.origin;

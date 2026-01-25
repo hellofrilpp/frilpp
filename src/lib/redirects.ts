@@ -1,4 +1,4 @@
-export function sanitizeNextPath(input: string | null | undefined, fallback = "/onboarding") {
+export function sanitizeNextPath(input: string | null | undefined, fallback = "/") {
   if (!input) return fallback;
   const trimmed = input.trim();
   if (!trimmed.startsWith("/")) return fallback;

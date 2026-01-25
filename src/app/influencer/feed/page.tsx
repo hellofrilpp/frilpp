@@ -258,7 +258,7 @@ export default function InfluencerFeedPage() {
             <Link href="/influencer/achievements">
               <Button variant="outline">Achievements</Button>
             </Link>
-            <Link href="/onboarding">
+            <Link href="/influencer/onboarding">
               <Button variant="outline">Onboarding</Button>
             </Link>
             <Link href="/">
@@ -341,7 +341,7 @@ export default function InfluencerFeedPage() {
                       <Button variant="secondary">Login</Button>
                     </Link>
                   ) : gate?.type === "onboarding" ? (
-                    <Link href="/onboarding">
+                    <Link href="/influencer/onboarding">
                       <Button variant="secondary">Go to onboarding</Button>
                     </Link>
                   ) : gate?.type === "blocked" ? (

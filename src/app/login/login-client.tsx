@@ -9,7 +9,18 @@ import { sanitizeNextPath } from "@/lib/redirects";
 
 export default function LoginClient() {
   const search = useSearchParams();
-  const nextPath = sanitizeNextPath(search.get("next"), "/onboarding");
+  const lane = (() => {
+    if (typeof document === "undefined") return null;
+    const match = document.cookie
+      .split(/;\s*/g)
+      .map((part) => part.split("="))
+      .find(([key]) => key === "frilpp_lane");
+    const value = match?.[1] ? decodeURIComponent(match[1]) : null;
+    return value === "brand" || value === "creator" ? value : null;
+  })();
+  const fallback =
+    lane === "brand" ? "/brand/dashboard" : lane === "creator" ? "/influencer/discover" : "/";
+  const nextPath = sanitizeNextPath(search.get("next"), fallback);
 
   return (
     <div className="min-h-screen bg-background">
