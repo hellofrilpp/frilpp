@@ -130,3 +130,41 @@ export function AlertDialogDescription({
     <p className={cn("text-sm text-muted-foreground", className)} {...props} />
   );
 }
+
+type AlertDialogActionProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
+
+export function AlertDialogAction({ className, ...props }: AlertDialogActionProps) {
+  return (
+    <button
+      type="button"
+      className={cn(
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border px-4 py-2 text-sm font-medium transition-colors",
+        "bg-primary text-primary-foreground hover:bg-primary/90",
+        className,
+      )}
+      {...props}
+    />
+  );
+}
+
+type AlertDialogCancelProps = React.ButtonHTMLAttributes<HTMLButtonElement>;
+
+export function AlertDialogCancel({ className, onClick, ...props }: AlertDialogCancelProps) {
+  const { setOpen } = useAlertDialogContext();
+
+  return (
+    <button
+      type="button"
+      className={cn(
+        "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md border px-4 py-2 text-sm font-medium transition-colors",
+        "border-input bg-background text-foreground hover:bg-accent/10",
+        className,
+      )}
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented) setOpen(false);
+      }}
+      {...props}
+    />
+  );
+}

@@ -16,6 +16,13 @@ const config: Config = {
     },
     extend: {
       colors: {
+        "neon-green": "hsl(var(--neon-green))",
+        "neon-pink": "hsl(var(--neon-pink))",
+        "neon-blue": "hsl(var(--neon-blue))",
+        "neon-yellow": "hsl(var(--neon-yellow))",
+        "neon-purple": "hsl(var(--neon-purple))",
+        "portal-green": "hsl(var(--portal-green))",
+        "portal-pink": "hsl(var(--portal-pink))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",

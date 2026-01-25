@@ -2,9 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
+import {
+  Camera,
+  CheckCircle,
+  Clock,
+  Package,
+  Plus,
+  Sparkles,
+  TrendingUp,
+  Users,
+  Zap,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/cn";
 
 type BrandOffer = {
   id: string;
@@ -50,6 +60,33 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   }
   return data;
 }
+
+const STAT_STYLES = {
+  "neon-green": {
+    border: "border-neon-green",
+    hover: "hover:border-neon-green",
+    text: "text-neon-green",
+    bg: "bg-neon-green/10",
+  },
+  "neon-pink": {
+    border: "border-neon-pink",
+    hover: "hover:border-neon-pink",
+    text: "text-neon-pink",
+    bg: "bg-neon-pink/10",
+  },
+  "neon-purple": {
+    border: "border-neon-purple",
+    hover: "hover:border-neon-purple",
+    text: "text-neon-purple",
+    bg: "bg-neon-purple/10",
+  },
+  "neon-yellow": {
+    border: "border-neon-yellow",
+    hover: "hover:border-neon-yellow",
+    text: "text-neon-yellow",
+    bg: "bg-neon-yellow/10",
+  },
+};
 
 export default function BrandDashboardPage() {
   const [offers, setOffers] = useState<BrandOffer[]>([]);
@@ -97,7 +134,10 @@ export default function BrandDashboardPage() {
         setBillingStatus(billingRes ?? null);
         setStatus("idle");
       } catch (err) {
-        const statusCode = err && typeof err === "object" && "status" in err ? (err as { status?: number }).status : undefined;
+        const statusCode =
+          err && typeof err === "object" && "status" in err
+            ? (err as { status?: number }).status
+            : undefined;
         if (statusCode === 401) {
           window.location.href = "/brand/auth";
           return;
@@ -128,27 +168,35 @@ export default function BrandDashboardPage() {
   const stats = useMemo(
     () => [
       {
-        label: "Active campaigns",
+        label: "ACTIVE CAMPAIGNS",
         value: `${offers.filter((offer) => offer.status === "PUBLISHED").length}`,
+        icon: Package,
         change: `${offers.length} total`,
+        color: "neon-green" as const,
         href: "/brand/campaigns",
       },
       {
-        label: "Pending matches",
+        label: "PENDING MATCHES",
         value: `${pendingMatches.length}`,
+        icon: Users,
         change: `${pendingMatches.length} awaiting`,
+        color: "neon-pink" as const,
         href: "/brand/pipeline",
       },
       {
-        label: "Content received",
+        label: "CONTENT RECEIVED",
         value: `${verifiedDeliverables.length}`,
+        icon: Camera,
         change: `${verifiedDeliverables.length} verified`,
+        color: "neon-purple" as const,
         href: "/brand/pipeline",
       },
       {
-        label: "Est. reach",
+        label: "EST. REACH",
         value: formatReach(reachEstimate),
+        icon: TrendingUp,
         change: `${acceptedMatches.length} active`,
+        color: "neon-yellow" as const,
         href: "/brand/analytics",
       },
     ],
@@ -222,149 +270,213 @@ export default function BrandDashboardPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-10 md:px-8">
-        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">Brand</Badge>
-              <Badge variant="secondary">Dashboard</Badge>
-            </div>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">
-              Welcome back
-            </h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Campaign status overview and activity.
-            </p>
+    <div className="p-6 md:p-10">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-10">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <Zap className="w-5 h-5 text-neon-green animate-pulse-neon" />
+            <span className="text-xs font-pixel text-neon-green">[DASHBOARD]</span>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {!isSubscribed ? (
-              <Link href="/brand/billing">
-                <Button variant="secondary">Subscribe</Button>
-              </Link>
-            ) : null}
-            <Link href="/brand/campaigns/new">
-              <Button>New campaign</Button>
+          <h1 className="text-xl md:text-2xl font-pixel text-foreground">WELCOME BACK</h1>
+          <p className="font-mono text-sm text-muted-foreground mt-1">&gt; Campaign status: ACTIVE</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {!isSubscribed ? (
+            <Link
+              href="/brand/billing"
+              className="inline-flex items-center bg-neon-yellow text-background hover:bg-neon-yellow/90 font-pixel text-xs px-6 py-2 border-2 border-border pixel-btn"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              SUBSCRIBE
             </Link>
-          </div>
+          ) : null}
+          <Link
+            href="/brand/campaigns/new"
+            className="inline-flex items-center bg-primary text-primary-foreground hover:bg-primary/90 font-pixel text-xs px-6 py-2 border-2 border-border pixel-btn glow-green"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            NEW CAMPAIGN
+          </Link>
         </div>
+      </div>
 
-        {status === "error" ? (
-          <div className="mt-6 rounded-lg border bg-muted p-4 text-sm text-muted-foreground">
-            {message ?? "Failed to load dashboard."}
-          </div>
-        ) : null}
-
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-            <Link key={stat.label} href={stat.href}>
-              <Card className="transition hover:shadow-card-hover">
-                <CardHeader>
-                  <CardDescription>{stat.label}</CardDescription>
-                  <CardTitle className="text-2xl">{stat.value}</CardTitle>
-                </CardHeader>
-                <CardContent className="text-xs text-muted-foreground">
-                  {stat.change}
-                </CardContent>
-              </Card>
-            </Link>
-          ))}
+      {status === "error" ? (
+        <div className="mb-6 border-4 border-border bg-card p-4 text-xs font-mono text-muted-foreground">
+          {message ?? "Failed to load dashboard."}
         </div>
+      ) : null}
 
-        <div className="mt-8 grid gap-6 lg:grid-cols-3">
-          <Card className="lg:col-span-2">
-            <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <CardTitle>Recent activity</CardTitle>
-                <CardDescription>Latest creator activity across offers.</CardDescription>
-              </div>
-              <Link href="/brand/pipeline">
-                <Button variant="outline" size="sm">
-                  View pipeline
-                </Button>
-              </Link>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {!recentActivity.length ? (
-                <div className="text-sm text-muted-foreground">No recent activity yet.</div>
-              ) : (
-                recentActivity.map((activity, index) => (
-                  <Link key={index} href={activity.href} className="rounded-lg border p-3">
-                    <div className="text-sm font-medium">{activity.message}</div>
-                    <div className="text-xs text-muted-foreground">{activity.time}</div>
-                  </Link>
-                ))
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        {stats.map((stat, index) => {
+          const style = STAT_STYLES[stat.color];
+          return (
+            <Link
+              key={stat.label}
+              href={stat.href}
+              className={cn(
+                "p-5 border-4 border-border bg-card transition-all group block",
+                style.hover,
               )}
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Active campaigns</CardTitle>
-              <CardDescription>Snapshot of your latest offers.</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {!activeCampaigns.length ? (
-                <div className="text-sm text-muted-foreground">No campaigns yet.</div>
-              ) : (
-                activeCampaigns.map((campaign) => (
-                  <Link key={campaign.id} href={`/brand/campaigns/${campaign.id}`}>
-                    <div className="rounded-lg border p-3">
-                      <div className="text-sm font-medium">{campaign.name}</div>
-                      <div className="mt-2 text-xs text-muted-foreground">
-                        {campaign.complete} done · {campaign.pending} pending
-                      </div>
-                      <div className="mt-2 h-2 overflow-hidden rounded bg-muted">
-                        <div
-                          className="h-full bg-primary"
-                          style={{
-                            width: campaign.matches
-                              ? `${(campaign.complete / campaign.matches) * 100}%`
-                              : "0%",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              )}
-              <Link href="/brand/campaigns">
-                <Button variant="ghost" size="sm" className="w-full">
-                  View all
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="mt-8">
-          <CardHeader className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle>AI match suggestions</CardTitle>
-              <CardDescription>Generate high-potential creator recommendations.</CardDescription>
-            </div>
-            <Button variant="outline" size="sm" onClick={fetchRecommendations}>
-              {recommendationsLoading ? "Thinking..." : "Generate"}
-            </Button>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            {recommendations.length ? (
-              recommendations.map((creator) => (
-                <div key={creator.creatorId} className="flex items-center justify-between rounded-lg border p-3">
-                  <div>
-                    <div className="text-sm font-medium">{creator.username}</div>
-                    <div className="text-xs text-muted-foreground">{creator.reason}</div>
-                  </div>
-                  <div className="text-sm font-semibold">{creator.score}</div>
+              aria-label={stat.label}
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div
+                  className={cn(
+                    "w-10 h-10 border-2 flex items-center justify-center",
+                    style.border,
+                    style.bg,
+                  )}
+                >
+                  <stat.icon className={cn("w-5 h-5", style.text)} />
                 </div>
-              ))
-            ) : (
-              <div className="text-sm text-muted-foreground">
-                Generate AI matches to see creators.
+                <span className="text-xs font-pixel text-muted-foreground">
+                  [{String(index + 1).padStart(2, "0")}]
+                </span>
               </div>
+              <p className={cn("text-2xl font-pixel mb-1", style.text)}>{stat.value}</p>
+              <p className="text-xs font-mono text-muted-foreground mb-2">{stat.label}</p>
+              <p className="text-xs font-mono text-neon-green">{stat.change}</p>
+            </Link>
+          );
+        })}
+      </div>
+
+      <div className="grid lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 border-4 border-border bg-card">
+          <div className="p-4 border-b-4 border-border flex items-center justify-between">
+            <h2 className="font-pixel text-sm text-neon-purple">[ACTIVITY_LOG]</h2>
+            <Link
+              href="/brand/pipeline"
+              className="text-xs font-mono hover:text-neon-green"
+            >
+              VIEW_ALL →
+            </Link>
+          </div>
+          <div className="divide-y-2 divide-border">
+            {!recentActivity.length ? (
+              <div className="p-4 text-xs font-mono text-muted-foreground">
+                No recent activity yet.
+              </div>
+            ) : (
+              recentActivity.map((activity, index) => (
+                <Link
+                  key={index}
+                  href={activity.href}
+                  className="p-4 flex items-start gap-4 hover:bg-muted/50 transition-colors"
+                >
+                  <div
+                    className={cn(
+                      "w-8 h-8 flex items-center justify-center flex-shrink-0 border-2",
+                      activity.status === "complete"
+                        ? "bg-neon-green border-neon-green text-background"
+                        : "border-border text-muted-foreground",
+                    )}
+                  >
+                    {activity.status === "complete" ? (
+                      <CheckCircle className="w-4 h-4" />
+                    ) : (
+                      <Clock className="w-4 h-4" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-mono">{activity.message}</p>
+                    <p className="text-xs font-mono text-muted-foreground mt-1">
+                      {activity.time}
+                    </p>
+                  </div>
+                </Link>
+              ))
             )}
-          </CardContent>
-        </Card>
+          </div>
+        </div>
+
+        <div className="border-4 border-border bg-card">
+          <div className="p-4 border-b-4 border-border">
+            <h2 className="font-pixel text-sm text-neon-pink">[CAMPAIGNS]</h2>
+          </div>
+          <div className="divide-y-2 divide-border">
+            {!activeCampaigns.length ? (
+              <div className="p-4 text-xs font-mono text-muted-foreground">No campaigns yet.</div>
+            ) : (
+              activeCampaigns.map((campaign) => (
+                <Link
+                  key={campaign.id}
+                  href={`/brand/campaigns/${campaign.id}`}
+                  className="p-4 block hover:bg-muted/50 transition-colors"
+                >
+                  <p className="text-sm font-mono mb-3">{campaign.name}</p>
+                  <div className="flex gap-3 text-xs font-mono text-muted-foreground mb-3">
+                    <span className="text-neon-green">{campaign.complete} done</span>
+                    <span>{campaign.pending} pending</span>
+                  </div>
+                  <div className="h-2 bg-muted flex overflow-hidden">
+                    <div
+                      className="h-full bg-neon-green"
+                      style={{
+                        width: `${
+                          campaign.matches ? (campaign.complete / campaign.matches) * 100 : 0
+                        }%`,
+                      }}
+                    />
+                    <div
+                      className="h-full bg-neon-yellow"
+                      style={{
+                        width: `${
+                          campaign.matches ? (campaign.shipped / campaign.matches) * 100 : 0
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </Link>
+              ))
+            )}
+          </div>
+          <div className="p-4 border-t-4 border-border">
+            <Link
+              href="/brand/campaigns"
+              className="w-full inline-flex justify-center text-xs font-mono hover:text-neon-pink"
+            >
+              VIEW_ALL →
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-6 border-4 border-border bg-card">
+        <div className="p-4 border-b-4 border-border flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-neon-yellow" />
+            <h2 className="font-pixel text-sm text-neon-yellow">[AI_MATCHES]</h2>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="border-2 border-border font-mono text-xs"
+            onClick={fetchRecommendations}
+          >
+            {recommendationsLoading ? "THINKING..." : "GENERATE"}
+          </Button>
+        </div>
+        <div className="divide-y-2 divide-border">
+          {recommendations.length ? (
+            recommendations.map((creator) => (
+              <div key={creator.creatorId} className="p-4 flex items-center justify-between">
+                <div>
+                  <p className="font-mono text-sm">{creator.username}</p>
+                  <p className="text-xs font-mono text-muted-foreground">{creator.reason}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-pixel text-sm text-neon-green">{creator.score}</p>
+                  <p className="text-xs font-mono text-muted-foreground">AI score</p>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="p-4 text-xs font-mono text-muted-foreground">
+              Generate AI matches to see high-potential creators.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

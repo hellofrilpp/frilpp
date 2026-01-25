@@ -1,20 +1,22 @@
 import type { Metadata } from "next";
-import { Inter, JetBrains_Mono, Outfit } from "next/font/google";
+import { Press_Start_2P, Space_Mono } from "next/font/google";
 import "../index.css";
-import { ThemeAccessibilityControls } from "@/components/theme-accessibility-controls";
 
-const displayFont = Outfit({
+const displayFont = Press_Start_2P({
   variable: "--font-display",
+  weight: "400",
   subsets: ["latin"],
 });
 
-const bodyFont = Inter({
+const bodyFont = Space_Mono({
   variable: "--font-body",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
-const monoFont = JetBrains_Mono({
+const monoFont = Space_Mono({
   variable: "--font-mono",
+  weight: ["400", "700"],
   subsets: ["latin"],
 });
 
@@ -43,7 +45,6 @@ export default function RootLayout({
             __html: `(function(){try{var t=localStorage.getItem('theme');var dark=(t==='dark')||(t!=='light'&&((t==='system'||!t)&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches));document.documentElement.classList.toggle('dark',!!dark);var a=localStorage.getItem('frilpp-a11y')==='1';document.documentElement.classList.toggle('a11y',a);}catch(e){}})();`,
           }}
         />
-        <ThemeAccessibilityControls />
         {children}
       </body>
     </html>
