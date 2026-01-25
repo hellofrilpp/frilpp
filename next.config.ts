@@ -22,11 +22,11 @@ const nextConfig: NextConfig = {
         { source: "/favicon.ico", destination: "/site/favicon.ico" },
         { source: "/robots.txt", destination: "/site/robots.txt" },
         { source: "/placeholder.svg", destination: "/site/placeholder.svg" },
-        {
-          source:
-            "/:path((?!api|_next|site|legal(?:/|$)|auth/callback(?:/|$)|verify-email(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$|brand/auth(?:/|$)|brand/login(?:/|$)|brand/signup(?:/|$)|brand/dashboard(?:/|$)|brand/campaigns(?:/|$)|influencer/auth(?:/|$)|influencer/login(?:/|$)|influencer/signup(?:/|$)|onboarding(?:/|$)|.*\\.txt$).*)",
-          destination: "/site/index.html",
-        },
+          {
+            source:
+              "/:path((?!api|_next|site|legal(?:/|$)|auth/callback(?:/|$)|verify-email(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$|brand/auth(?:/|$)|brand/login(?:/|$)|brand/signup(?:/|$)|brand/dashboard(?:/|$)|brand/campaigns(?:/|$)|brand/pipeline(?:/|$)|influencer/auth(?:/|$)|influencer/login(?:/|$)|influencer/signup(?:/|$)|onboarding(?:/|$)|.*\\.txt$).*)",
+            destination: "/site/index.html",
+          },
       ],
     };
   },
