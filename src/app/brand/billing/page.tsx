@@ -22,9 +22,12 @@ type BillingConfig = { enabled: boolean; mode: BillingProviderMode };
 
 type GeoResponse = { market?: unknown } | null;
 
-const enabledBillingProviders = (market: BillingMarket, mode: BillingProviderMode) => {
-  if (mode === "STRIPE") return ["STRIPE"] as BillingProvider[];
-  if (mode === "RAZORPAY") return ["RAZORPAY"] as BillingProvider[];
+const enabledBillingProviders = (
+  market: BillingMarket,
+  mode: BillingProviderMode,
+): BillingProvider[] => {
+  if (mode === "STRIPE") return ["STRIPE"];
+  if (mode === "RAZORPAY") return ["RAZORPAY"];
   return [market === "IN" ? "RAZORPAY" : "STRIPE"];
 };
 
