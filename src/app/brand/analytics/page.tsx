@@ -136,7 +136,8 @@ export default function BrandAnalyticsPage() {
     { icon: Receipt, label: "REFUNDS", value: formatMoney(totalRefundCents), textClass: "text-neon-yellow" },
   ];
 
-  const creatorsEmpty = creatorStatus !== "loading" && !creators.length;
+  const creatorsEmpty = !creators.length;
+  const creatorsLoading = creatorStatus === "loading";
   const offersEmpty = !offers.length;
   const offersLoading = status === "loading";
 
@@ -247,7 +248,7 @@ export default function BrandAnalyticsPage() {
               {creatorsEmpty ? (
                 <tr>
                   <td className="p-4 text-xs font-mono text-muted-foreground" colSpan={9}>
-                    {creatorStatus === "loading"
+                    {creatorsLoading
                       ? "Loading creator analytics..."
                       : "No creator performance data yet."}
                   </td>
