@@ -304,6 +304,16 @@ const BrandPipeline = () => {
     setExpandedCards((prev) => ({ ...prev, [matchId]: !prev[matchId] }));
   };
 
+  const openShipment = (matchId: string) => {
+    setExpandedCards((prev) => ({ ...prev, [matchId]: true }));
+    if (!manualShipmentByMatch.has(matchId)) {
+      toast({
+        title: "AUTO SHIPMENT",
+        description: "Shipping is handled automatically. No manual tracking needed.",
+      });
+    }
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
   };
@@ -550,9 +560,16 @@ const BrandPipeline = () => {
                             {influencer.stage === "approved" && (
                               <DropdownMenuItem
                                 className="font-mono text-xs"
-                                onSelect={async (event) => {
+                                onSelect={(event) => {
                                   event.preventDefault();
-                                  toggleExpanded(influencer.id);
+                                  if ("stopPropagation" in event) {
+                                    (event as Event).stopPropagation();
+                                  }
+                                  openShipment(influencer.id);
+                                }}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  openShipment(influencer.id);
                                 }}
                               >
                                 <Package className="w-4 h-4 mr-2" />
