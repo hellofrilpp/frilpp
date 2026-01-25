@@ -84,7 +84,7 @@ export default function CreatorBillingPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/influencer/feed">
+            <Link href="/influencer/discover">
               <Button variant="outline">Feed</Button>
             </Link>
             <Link href="/">
@@ -98,7 +98,7 @@ export default function CreatorBillingPage() {
             {emailRequired ? (
               <span>
                 {message}{" "}
-                <Link className="underline" href="/influencer/settings">
+                <Link className="underline" href="/influencer/profile">
                   Update email
                 </Link>
                 .

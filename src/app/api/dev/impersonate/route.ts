@@ -15,7 +15,7 @@ function normalizeNextPath(params: { role: "brand" | "creator"; next?: string })
   if (params.role === "brand" && (raw === "/brand/offers" || raw.startsWith("/brand/offers/"))) {
     return "/brand/dashboard";
   }
-  if (params.role === "creator" && (raw === "/influencer/feed" || raw.startsWith("/influencer/feed/"))) {
+  if (params.role === "creator" && (raw === "/influencer/discover" || raw.startsWith("/influencer/discover/"))) {
     return "/influencer/discover";
   }
   return raw;

@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
         { source: "/placeholder.svg", destination: "/site/placeholder.svg" },
           {
             source:
-              "/:path((?!api|_next|site|legal(?:/|$)|auth/callback(?:/|$)|verify-email(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$|brand/auth(?:/|$)|brand/login(?:/|$)|brand/signup(?:/|$)|brand/dashboard(?:/|$)|brand/campaigns(?:/|$)|brand/pipeline(?:/|$)|brand/analytics(?:/|$)|brand/settings(?:/|$)|brand/billing(?:/|$)|influencer/auth(?:/|$)|influencer/login(?:/|$)|influencer/signup(?:/|$)|onboarding(?:/|$)|.*\\.txt$).*)",
+              "/:path((?!api|_next|site|legal(?:/|$)|auth/callback(?:/|$)|verify-email(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$|brand/auth(?:/|$)|brand/login(?:/|$)|brand/signup(?:/|$)|brand/setup(?:/|$)|brand/dashboard(?:/|$)|brand/campaigns(?:/|$)|brand/pipeline(?:/|$)|brand/analytics(?:/|$)|brand/settings(?:/|$)|brand/billing(?:/|$)|influencer/auth(?:/|$)|influencer/login(?:/|$)|influencer/signup(?:/|$)|influencer/onboarding(?:/|$)|influencer/discover(?:/|$)|influencer/deals(?:/|$)|influencer/profile(?:/|$)|influencer/settings(?:/|$)|influencer/feed(?:/|$)|influencer/achievements(?:/|$)|achievements(?:/|$)|leaderboard(?:/|$)|onboarding(?:/|$)|.*\\.txt$).*)",
             destination: "/site/index.html",
           },
       ],

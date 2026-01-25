@@ -102,5 +102,5 @@ export async function GET(request: Request) {
   }
 
   jar.delete("meta_oauth_state");
-  return Response.redirect(new URL("/influencer/settings?meta=connected", url.origin), 302);
+  return Response.redirect(new URL("/influencer/profile?meta=connected", url.origin), 302);
 }

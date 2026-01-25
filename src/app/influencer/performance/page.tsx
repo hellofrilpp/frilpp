@@ -94,7 +94,7 @@ export default function CreatorPerformancePage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/influencer/feed">
+            <Link href="/influencer/discover">
               <Button variant="secondary">Feed</Button>
             </Link>
             <Link href="/influencer/deals">
@@ -106,7 +106,7 @@ export default function CreatorPerformancePage() {
             <Link href="/influencer/achievements">
               <Button variant="outline">Achievements</Button>
             </Link>
-            <Link href="/influencer/settings">
+            <Link href="/influencer/profile">
               <Button variant="outline">Profile</Button>
             </Link>
           </div>

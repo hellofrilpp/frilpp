@@ -116,7 +116,7 @@ export default function ShareKitClient(props: { matchId: string }) {
             <Link href="/influencer/deliverables">
               <Button variant="secondary">Deliverables</Button>
             </Link>
-            <Link href="/influencer/feed">
+            <Link href="/influencer/discover">
               <Button variant="outline">Feed</Button>
             </Link>
           </div>
@@ -184,7 +184,7 @@ export default function ShareKitClient(props: { matchId: string }) {
                     kit.offer.manualFulfillmentMethod === "LOCAL_DELIVERY" ? (
                     <>
                       Local delivery: add your delivery address in{" "}
-                      <Link className="underline" href="/influencer/settings">
+                      <Link className="underline" href="/influencer/profile">
                         Profile
                       </Link>{" "}
                       before claiming (required).

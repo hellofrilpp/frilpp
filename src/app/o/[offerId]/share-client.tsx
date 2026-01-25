@@ -176,7 +176,7 @@ export default function OfferShareClient(props: { offerId: string }) {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/influencer/feed">
+            <Link href="/influencer/discover">
               <Button variant="secondary" size="sm">
                 Feed
               </Button>
@@ -256,7 +256,7 @@ export default function OfferShareClient(props: { offerId: string }) {
                       <Button variant="secondary">Subscribe</Button>
                     </Link>
                   ) : null}
-                  <Link href="/influencer/settings">
+                  <Link href="/influencer/profile">
                     <Button variant="outline">Update profile</Button>
                   </Link>
                   {claimStatus === "claimed" ? <Badge variant="success">Claimed</Badge> : null}

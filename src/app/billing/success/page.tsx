@@ -8,7 +8,7 @@ export default async function BillingSuccessPage(props: {
 }) {
   const sp = (await props.searchParams) ?? {};
   const lane = sp.lane === "creator" ? "creator" : "brand";
-  const next = lane === "creator" ? "/influencer/feed" : "/brand/offers";
+  const next = lane === "creator" ? "/influencer/discover" : "/brand/offers";
 
   return (
     <div className="min-h-screen bg-background">
