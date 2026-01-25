@@ -137,7 +137,8 @@ export default function BrandAnalyticsPage() {
   ];
 
   const creatorsEmpty = creatorStatus !== "loading" && !creators.length;
-  const offersEmpty = status !== "loading" && !offers.length;
+  const offersEmpty = !offers.length;
+  const offersLoading = status === "loading";
 
   const creatorRows = useMemo(() => creators, [creators]);
 
@@ -187,7 +188,7 @@ export default function BrandAnalyticsPage() {
               {offersEmpty ? (
                 <tr>
                   <td className="p-4 text-xs font-mono text-muted-foreground" colSpan={5}>
-                    {status === "loading" ? "Loading offers..." : "No campaign data yet."}
+                    {offersLoading ? "Loading offers..." : "No campaign data yet."}
                   </td>
                 </tr>
               ) : (
