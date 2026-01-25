@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
         { source: "/placeholder.svg", destination: "/site/placeholder.svg" },
         {
           source:
-            "/:path((?!api|_next|site|legal(?:/|$)|auth/callback(?:/|$)|verify-email(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$|brand/auth(?:/|$)|brand/login(?:/|$)|brand/signup(?:/|$)|brand/dashboard(?:/|$)|influencer/auth(?:/|$)|influencer/login(?:/|$)|influencer/signup(?:/|$)|onboarding(?:/|$)|.*\\.txt$).*)",
+            "/:path((?!api|_next|site|legal(?:/|$)|auth/callback(?:/|$)|verify-email(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$|brand/auth(?:/|$)|brand/login(?:/|$)|brand/signup(?:/|$)|brand/dashboard(?:/|$)|brand/campaigns(?:/|$)|influencer/auth(?:/|$)|influencer/login(?:/|$)|influencer/signup(?:/|$)|onboarding(?:/|$)|.*\\.txt$).*)",
           destination: "/site/index.html",
         },
       ],
