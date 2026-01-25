@@ -174,7 +174,7 @@ export default function AuthCallbackPage() {
                       Get a new link
                     </Link>
                     <Link
-                      href="/login"
+                      href="/influencer/auth"
                       className="w-full border-2 border-[#3a4157] bg-[#0b0c10] py-3 text-center text-xs font-mono uppercase tracking-[0.2em] text-[#cbd5e1] shadow-[4px_4px_0_#000] transition hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0_#000]"
                     >
                       Other sign-in options
