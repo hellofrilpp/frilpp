@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { 
   Search,
-  MoreVertical,
+  Eye,
   Package,
   CheckCircle,
   XCircle,
@@ -14,12 +14,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -71,6 +65,8 @@ const BrandPipeline = () => {
   const [manualForms, setManualForms] = useState<Record<string, { carrier: string; trackingNumber: string; trackingUrl: string }>>({});
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [shipmentTarget, setShipmentTarget] = useState<string | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [detailsTarget, setDetailsTarget] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestReason, setRequestReason] = useState("Missing brand tag");
   const [requestTarget, setRequestTarget] = useState<string | null>(null);
@@ -106,6 +102,26 @@ const BrandPipeline = () => {
     });
     return map;
   }, [shipmentsData]);
+
+  const shipmentByMatch = useMemo(() => {
+    const shipments = shipmentsData?.shipments ?? [];
+    const map = new Map<string, BrandShipment>();
+    shipments.forEach((shipment) => {
+      map.set(shipment.match.id, shipment);
+    });
+    return map;
+  }, [shipmentsData]);
+
+  const matchById = useMemo(() => {
+    const map = new Map<string, BrandMatch>();
+    (pendingMatchesData?.matches ?? []).forEach((match) => {
+      map.set(match.matchId, match);
+    });
+    (acceptedMatchesData?.matches ?? []).forEach((match) => {
+      map.set(match.matchId, match);
+    });
+    return map;
+  }, [pendingMatchesData, acceptedMatchesData]);
 
   useEffect(() => {
     if (matchesError instanceof ApiError && matchesError.status === 401) {
@@ -274,9 +290,15 @@ const BrandPipeline = () => {
   ]);
 
   const deliverableByMatch = useMemo(() => {
-    const deliverables = dueDeliverablesData?.deliverables ?? [];
-    return new Map(deliverables.map((deliverable) => [deliverable.match.id, deliverable]));
-  }, [dueDeliverablesData]);
+    const map = new Map<string, BrandDeliverable>();
+    (dueDeliverablesData?.deliverables ?? []).forEach((deliverable) => {
+      map.set(deliverable.match.id, deliverable);
+    });
+    (verifiedDeliverablesData?.deliverables ?? []).forEach((deliverable) => {
+      map.set(deliverable.match.id, deliverable);
+    });
+    return map;
+  }, [dueDeliverablesData, verifiedDeliverablesData]);
 
   useEffect(() => {
     setInfluencersList(computedInfluencers);
@@ -316,6 +338,95 @@ const BrandPipeline = () => {
     if (!shipmentTarget) return null;
     return manualShipmentByMatch.get(shipmentTarget) ?? null;
   }, [manualShipmentByMatch, shipmentTarget]);
+
+  const openDetails = (matchId: string) => {
+    setDetailsTarget(matchId);
+    setDetailsOpen(true);
+  };
+
+  const detailsInfluencer = useMemo(() => {
+    if (!detailsTarget) return null;
+    return influencersList.find((inf) => inf.id === detailsTarget) ?? null;
+  }, [detailsTarget, influencersList]);
+
+  const detailsMatch = useMemo(() => {
+    if (!detailsTarget) return null;
+    return matchById.get(detailsTarget) ?? null;
+  }, [detailsTarget, matchById]);
+
+  const detailsShipment = useMemo(() => {
+    if (!detailsTarget) return null;
+    return shipmentByMatch.get(detailsTarget) ?? null;
+  }, [detailsTarget, shipmentByMatch]);
+
+  const detailsDeliverable = useMemo(() => {
+    if (!detailsTarget) return null;
+    return deliverableByMatch.get(detailsTarget) ?? null;
+  }, [detailsTarget, deliverableByMatch]);
+
+  const detailsTimeline = useMemo(() => {
+    const events: Array<{ label: string; time: string | null; note?: string | null }> = [];
+    if (detailsMatch?.createdAt) {
+      events.push({ label: "Applied", time: detailsMatch.createdAt });
+    }
+    if (detailsMatch?.acceptedAt) {
+      events.push({ label: "Approved", time: detailsMatch.acceptedAt });
+    }
+    if (detailsShipment) {
+      const shipped =
+        detailsShipment.fulfillmentType === "MANUAL"
+          ? detailsShipment.status === "SHIPPED"
+          : ["FULFILLED", "COMPLETED"].includes(detailsShipment.status);
+      if (shipped) {
+        events.push({
+          label: "Shipped",
+          time: detailsShipment.updatedAt,
+          note:
+            detailsShipment.trackingNumber ||
+            detailsShipment.trackingUrl ||
+            detailsShipment.carrier
+              ? [detailsShipment.carrier, detailsShipment.trackingNumber]
+                  .filter(Boolean)
+                  .join(" • ")
+              : null,
+        });
+      }
+    } else if (detailsMatch?.shipment?.manualStatus === "SHIPPED") {
+      events.push({
+        label: "Shipped",
+        time: detailsMatch.acceptedAt ?? null,
+        note: detailsMatch.shipment.manualTrackingNumber ?? null,
+      });
+    }
+    const deliverable = detailsDeliverable ?? null;
+    if (deliverable?.submittedAt) {
+      events.push({ label: "Posted", time: deliverable.submittedAt });
+    } else if (detailsMatch?.deliverable?.submittedAt) {
+      events.push({ label: "Posted", time: detailsMatch.deliverable.submittedAt });
+    }
+    if (deliverable?.reviews?.length) {
+      deliverable.reviews.forEach((review) => {
+        events.push({
+          label:
+            review.action === "REQUEST_CHANGES"
+              ? "Changes requested"
+              : review.action === "FAILED"
+                ? "Rejected"
+                : "Verified",
+          time: review.createdAt,
+          note: review.reason ?? review.submittedPermalink ?? null,
+        });
+      });
+    }
+    if (deliverable?.verifiedAt) {
+      events.push({ label: "Completed", time: deliverable.verifiedAt });
+    } else if (detailsMatch?.deliverable?.verifiedAt) {
+      events.push({ label: "Completed", time: detailsMatch.deliverable.verifiedAt });
+    }
+    return events
+      .filter((event) => event.time)
+      .sort((a, b) => new Date(a.time ?? 0).getTime() - new Date(b.time ?? 0).getTime());
+  }, [detailsMatch, detailsShipment, detailsDeliverable]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -531,87 +642,15 @@ const BrandPipeline = () => {
                             <p className="text-xs font-mono text-muted-foreground">{influencer.handle}</p>
                           </div>
                         </div>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="h-8 w-8"
-                              onMouseDown={(event) => event.stopPropagation()}
-                            >
-                              <MoreVertical className="w-4 h-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="border-2 border-border">
-                            {influencer.stage === "applied" && (
-                              <DropdownMenuItem
-                                className="font-mono text-xs"
-                                onSelect={(event) => {
-                                  event.preventDefault();
-                                  void handleApprove(influencer.id);
-                                }}
-                              >
-                                <CheckCircle className="w-4 h-4 mr-2" />
-                                APPROVE
-                              </DropdownMenuItem>
-                            )}
-                            {influencer.stage === "approved" && (
-                              <DropdownMenuItem
-                                className="font-mono text-xs"
-                                onSelect={(event) => {
-                                  event.preventDefault();
-                                  if ("stopPropagation" in event) {
-                                    (event as Event).stopPropagation();
-                                  }
-                                  openShipment(influencer.id);
-                                }}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  openShipment(influencer.id);
-                                }}
-                              >
-                                <Package className="w-4 h-4 mr-2" />
-                                OPEN_SHIPMENT
-                              </DropdownMenuItem>
-                            )}
-                            {influencer.stage === "posted" && deliverableByMatch.has(influencer.id) && (
-                              <>
-                                <DropdownMenuItem
-                                  className="font-mono text-xs"
-                                  onSelect={async (event) => {
-                                    event.preventDefault();
-                                    await handleVerifyPost(influencer.id);
-                                  }}
-                                >
-                                  <CheckCircle className="w-4 h-4 mr-2" />
-                                  VERIFY_POST
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  className="font-mono text-xs text-destructive"
-                                  onSelect={async (event) => {
-                                    event.preventDefault();
-                                    openRequestChanges(influencer.id);
-                                  }}
-                                >
-                                  <XCircle className="w-4 h-4 mr-2" />
-                                  REQUEST_CHANGES
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                            {(influencer.stage === "applied" || influencer.stage === "approved") && (
-                              <DropdownMenuItem
-                                className="font-mono text-xs text-destructive"
-                                onSelect={(event) => {
-                                  event.preventDefault();
-                                  void handleReject(influencer.id);
-                                }}
-                              >
-                                <XCircle className="w-4 h-4 mr-2" />
-                                REJECT
-                              </DropdownMenuItem>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 border-2 border-border"
+                          onClick={() => openDetails(influencer.id)}
+                          aria-label="View details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                       </div>
 
                       {formatDistance(influencer) && (
@@ -694,6 +733,29 @@ const BrandPipeline = () => {
                         </div>
                       )}
 
+                      {influencer.stage === "approved" && (
+                        <div className="mt-3 flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-2 font-mono text-[10px]"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={() => openShipment(influencer.id)}
+                          >
+                            OPEN_SHIPMENT
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="border-2 font-mono text-[10px] text-destructive"
+                            onMouseDown={(event) => event.stopPropagation()}
+                            onClick={() => void handleReject(influencer.id)}
+                          >
+                            REJECT
+                          </Button>
+                        </div>
+                      )}
+
                       {influencer.stage === "posted" && (
                         <div className="mt-3 flex gap-2">
                           <Button
@@ -760,6 +822,98 @@ const BrandPipeline = () => {
                 REQUEST CHANGES
               </Button>
             </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <AlertDialog
+          open={detailsOpen}
+          onOpenChange={(open) => {
+            setDetailsOpen(open);
+            if (!open) setDetailsTarget(null);
+          }}
+        >
+          <AlertDialogContent className="border-4 border-border bg-card max-w-3xl w-[95vw]">
+            <AlertDialogHeader>
+              <AlertDialogTitle className="font-pixel text-sm text-neon-green">
+                CAMPAIGN DETAILS
+              </AlertDialogTitle>
+              <AlertDialogDescription className="font-mono text-xs">
+                Review creator info, shipment status, and timeline history.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+
+            <div className="space-y-4">
+              <div className="grid gap-3 md:grid-cols-2 text-xs font-mono">
+                <div className="border-2 border-border bg-muted p-3">
+                  <div className="text-[10px] text-muted-foreground">CREATOR</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {detailsInfluencer?.name ?? "Creator"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {detailsInfluencer?.handle ?? detailsMatch?.creator.username ?? "—"}
+                  </div>
+                </div>
+                <div className="border-2 border-border bg-muted p-3">
+                  <div className="text-[10px] text-muted-foreground">CAMPAIGN</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {detailsMatch?.offer.title ?? detailsInfluencer?.campaign ?? "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Code: {detailsMatch?.campaignCode ?? detailsShipment?.match.campaignCode ?? "—"}
+                  </div>
+                </div>
+                <div className="border-2 border-border bg-muted p-3">
+                  <div className="text-[10px] text-muted-foreground">STATUS</div>
+                  <div className="mt-1 text-sm font-semibold">{detailsInfluencer?.stage ?? "—"}</div>
+                  <div className="text-xs text-muted-foreground">
+                    Followers: {detailsMatch?.creator.followersCount?.toLocaleString() ?? "—"}
+                  </div>
+                </div>
+                <div className="border-2 border-border bg-muted p-3">
+                  <div className="text-[10px] text-muted-foreground">SHIPMENT</div>
+                  <div className="mt-1 text-sm font-semibold">
+                    {detailsShipment?.status ??
+                      detailsMatch?.shipment?.manualStatus ??
+                      detailsMatch?.shipment?.orderStatus ??
+                      "—"}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    {detailsShipment?.trackingNumber ??
+                      detailsMatch?.shipment?.manualTrackingNumber ??
+                      detailsMatch?.shipment?.orderTrackingNumber ??
+                      "No tracking"}
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-2 border-border bg-muted p-3">
+                <div className="text-xs font-pixel text-neon-pink">TIMELINE</div>
+                {!detailsTimeline.length ? (
+                  <div className="mt-2 text-xs font-mono text-muted-foreground">
+                    No activity recorded yet.
+                  </div>
+                ) : (
+                  <div className="mt-3 space-y-2">
+                    {detailsTimeline.map((event, index) => (
+                      <div
+                        key={`${event.label}-${index}`}
+                        className="flex items-start justify-between gap-3 border-2 border-border bg-card px-3 py-2"
+                      >
+                        <div>
+                          <div className="text-xs font-mono text-foreground">{event.label}</div>
+                          {event.note ? (
+                            <div className="text-[10px] text-muted-foreground">{event.note}</div>
+                          ) : null}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          {event.time ? new Date(event.time).toLocaleString() : "—"}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </AlertDialogContent>
         </AlertDialog>
 
