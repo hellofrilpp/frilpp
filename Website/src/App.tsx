@@ -24,7 +24,6 @@ import InfluencerOnboarding from "./pages/influencer/Onboarding";
 import InfluencerDiscover from "./pages/influencer/Discover";
 import InfluencerDeals from "./pages/influencer/Deals";
 import InfluencerProfile from "./pages/influencer/Profile";
-import VerifyEmail from "./pages/VerifyEmail";
 import LegalTerms from "./pages/LegalTerms";
 import LegalPrivacy from "./pages/LegalPrivacy";
 
@@ -71,7 +70,6 @@ const App = () => (
             {/* Other Routes */}
             <Route path="/leaderboard" element={<Leaderboard />} />
             <Route path="/achievements" element={<Achievements />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/legal/terms" element={<LegalTerms />} />
             <Route path="/legal/privacy" element={<LegalPrivacy />} />
