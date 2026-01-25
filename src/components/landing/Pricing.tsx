@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Check, ArrowRight, Zap, Crown, Rocket } from "lucide-react";
+import ContactForm from "@/components/landing/ContactForm";
 
 export default function Pricing() {
   const currency = "USD ";
@@ -69,7 +70,7 @@ export default function Pricing() {
         "Integrations",
       ],
       cta: "CONTACT",
-      href: "mailto:hello@frilpp.com",
+      href: "#contact",
       popular: false,
     },
   ];
@@ -179,6 +180,18 @@ export default function Pricing() {
               </div>
             );
           })}
+        </div>
+
+        <div id="contact" className="mt-16 border-4 border-border bg-background p-6 md:p-8">
+          <div className="flex items-center gap-2 mb-4">
+            <Crown className="w-4 h-4 text-neon-yellow" />
+            <span className="text-xs font-pixel text-neon-yellow">[CONTACT]</span>
+          </div>
+          <h3 className="text-base font-pixel mb-2">CONTACT SALES</h3>
+          <p className="text-xs font-mono text-muted-foreground mb-6">
+            Tell us about your brand and we will get back to you.
+          </p>
+          <ContactForm />
         </div>
       </div>
     </section>

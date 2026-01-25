@@ -7,6 +7,7 @@ export async function sendEmail(params: {
   subject: string;
   html: string;
   text?: string;
+  replyTo?: string;
 }) {
   const apiKey = process.env.RESEND_API_KEY;
   const from = process.env.AUTH_EMAIL_FROM ?? process.env.RESEND_FROM;
@@ -27,6 +28,7 @@ export async function sendEmail(params: {
       subject: params.subject,
       html: params.html,
       text: params.text,
+      reply_to: params.replyTo,
     }),
     timeoutMs: 10_000,
   });
