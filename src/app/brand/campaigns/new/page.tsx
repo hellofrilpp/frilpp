@@ -1152,6 +1152,7 @@ function BrandCampaignCreatorContent() {
                     {contentTypeOptions.map((type) => (
                       <button
                         key={type.id}
+                        type="button"
                         onClick={() => toggleArrayField("contentTypes", type.id)}
                         className={`p-4 border-2 flex items-center justify-between transition-all pixel-btn ${
                           formData.contentTypes.includes(type.id)
