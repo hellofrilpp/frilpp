@@ -167,11 +167,12 @@ export default function InfluencerProfilePage() {
   const totalValue = deals.reduce((sum, deal) => sum + (deal.valueUsd ?? 0), 0);
 
   const stats = useMemo(
-    () => [
-      { label: "DEALS", value: `${totalDeals}`, icon: Package, color: "neon-green" },
-      { label: "CONTENT", value: `${completedDeals}`, icon: Camera, color: "neon-pink" },
-      { label: "VALUE", value: `$${totalValue}`, icon: Star, color: "neon-yellow" },
-    ],
+    () =>
+      [
+        { label: "DEALS", value: `${totalDeals}`, icon: Package, color: "neon-green" },
+        { label: "CONTENT", value: `${completedDeals}`, icon: Camera, color: "neon-pink" },
+        { label: "VALUE", value: `$${totalValue}`, icon: Star, color: "neon-yellow" },
+      ] as const,
     [totalDeals, completedDeals, totalValue],
   );
 
