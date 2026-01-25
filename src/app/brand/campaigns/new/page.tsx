@@ -2,8 +2,8 @@
 
 export const dynamic = "force-dynamic";
 
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -198,7 +198,7 @@ async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   return data;
 }
 
-export default function BrandCampaignCreatorPage() {
+function BrandCampaignCreatorContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const offerIdParam = searchParams.get("offerId");
@@ -1529,5 +1529,21 @@ export default function BrandCampaignCreatorPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function BrandCampaignCreatorPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-background">
+          <div className="p-6 md:p-10">
+            <div className="font-mono text-xs text-muted-foreground">Loading campaign creator…</div>
+          </div>
+        </div>
+      }
+    >
+      <BrandCampaignCreatorContent />
+    </Suspense>
   );
 }
