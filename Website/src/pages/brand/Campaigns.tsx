@@ -64,10 +64,17 @@ const BrandCampaigns = () => {
 		}
 	}, [offersError]);
 
-  const statusLabel = (status: BrandOffer["status"]) => {
-    if (status === "PUBLISHED") return "active";
+  const statusLabel = (
+    status: BrandOffer["status"],
+    stats: { accepted: number; complete: number; pending: number },
+  ) => {
     if (status === "ARCHIVED") return "paused";
-    return "draft";
+    if (status === "DRAFT") return "draft";
+    const hasNoPending = stats.pending === 0;
+    const hasAllAcceptedComplete = stats.accepted > 0 && stats.complete >= stats.accepted;
+    const hasCompletedOnly = stats.complete > 0 && stats.accepted === 0 && hasNoPending;
+    if (hasNoPending && (hasAllAcceptedComplete || hasCompletedOnly)) return "complete";
+    return "active";
   };
 
   const templateLabel = (template: BrandOffer["template"]) => {
@@ -99,8 +106,13 @@ const BrandCampaigns = () => {
       return acc;
     }, {});
 
+    const offerIdByTitle = offers.reduce<Record<string, string>>((acc, offer) => {
+      acc[offer.title] = offer.id;
+      return acc;
+    }, {});
+
     const completeByOffer = verified.reduce<Record<string, number>>((acc, deliverable) => {
-      const offerId = offers.find((offer) => offer.title === deliverable.offer.title)?.id;
+      const offerId = offerIdByTitle[deliverable.offer.title];
       if (!offerId) return acc;
       acc[offerId] = (acc[offerId] ?? 0) + 1;
       return acc;
@@ -112,7 +124,11 @@ const BrandCampaigns = () => {
       product: offer.title,
       value: "$0",
       requirements: templateLabel(offer.template),
-      status: statusLabel(offer.status),
+      status: statusLabel(offer.status, {
+        accepted: acceptedByOffer[offer.id] ?? 0,
+        complete: completeByOffer[offer.id] ?? 0,
+        pending: pendingByOffer[offer.id] ?? 0,
+      }),
       matches: acceptedByOffer[offer.id] ?? 0,
       pending: pendingByOffer[offer.id] ?? 0,
       complete: completeByOffer[offer.id] ?? 0,
@@ -171,6 +187,7 @@ const BrandCampaigns = () => {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'active': return 'bg-neon-green text-background';
+      case 'complete': return 'bg-neon-green/20 text-neon-green border-2 border-neon-green';
       case 'paused': return 'bg-neon-yellow/20 text-neon-yellow border-2 border-neon-yellow';
       case 'draft': return 'border-2 border-border text-muted-foreground';
       default: return '';
@@ -210,7 +227,7 @@ const BrandCampaigns = () => {
             />
           </div>
           <div className="flex gap-2">
-            {["all", "active", "paused", "draft"].map((status) => (
+            {["all", "active", "complete", "paused", "draft"].map((status) => (
               <Button
                 key={status}
                 variant="outline"

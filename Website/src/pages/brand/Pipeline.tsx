@@ -1,15 +1,14 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { 
+import { useNavigate } from "react-router-dom";
+import {
   Search,
   Eye,
-  Package,
   CheckCircle,
-  XCircle,
   Clock,
   Truck,
   Camera,
   Star,
-  Users
+  Users,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -24,7 +23,21 @@ import {
 } from "@/components/ui/alert-dialog";
 import BrandLayout from "@/components/brand/BrandLayout";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { ApiError, BrandDeliverable, BrandMatch, BrandShipment, getBrandDeliverables, getBrandMatches, getBrandShipments, approveBrandMatch, rejectBrandMatch, verifyBrandDeliverable, requestBrandDeliverableChanges, updateManualShipment } from "@/lib/api";
+import {
+  ApiError,
+  BrandDeliverable,
+  BrandMatch,
+  BrandShipment,
+  getBrandDeliverables,
+  getBrandMatches,
+  getBrandOffers,
+  getBrandShipments,
+  approveBrandMatch,
+  rejectBrandMatch,
+  verifyBrandDeliverable,
+  requestBrandDeliverableChanges,
+  updateManualShipment,
+} from "@/lib/api";
 import { useToast } from "@/hooks/use-toast";
 
 type Stage = "applied" | "approved" | "shipped" | "posted" | "complete";
@@ -35,6 +48,7 @@ interface Influencer {
   handle: string;
   followers: string;
   campaign: string;
+  offerId?: string | null;
   stage: Stage;
   avatar: string;
   engagement: string;
@@ -65,13 +79,12 @@ const BrandPipeline = () => {
   const [manualForms, setManualForms] = useState<Record<string, { carrier: string; trackingNumber: string; trackingUrl: string }>>({});
   const [shipmentOpen, setShipmentOpen] = useState(false);
   const [shipmentTarget, setShipmentTarget] = useState<string | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
-  const [detailsTarget, setDetailsTarget] = useState<string | null>(null);
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestReason, setRequestReason] = useState("Missing brand tag");
   const [requestTarget, setRequestTarget] = useState<string | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: pendingMatchesData, error: matchesError } = useQuery({
     queryKey: ["brand-matches", "pending"],
@@ -80,6 +93,10 @@ const BrandPipeline = () => {
   const { data: acceptedMatchesData } = useQuery({
     queryKey: ["brand-matches", "accepted"],
     queryFn: () => getBrandMatches("ACCEPTED"),
+  });
+  const { data: offersData } = useQuery({
+    queryKey: ["brand-offers"],
+    queryFn: getBrandOffers,
   });
   const { data: shipmentsData } = useQuery({
     queryKey: ["brand-shipments"],
@@ -103,25 +120,24 @@ const BrandPipeline = () => {
     return map;
   }, [shipmentsData]);
 
-  const shipmentByMatch = useMemo(() => {
-    const shipments = shipmentsData?.shipments ?? [];
-    const map = new Map<string, BrandShipment>();
-    shipments.forEach((shipment) => {
-      map.set(shipment.match.id, shipment);
-    });
-    return map;
-  }, [shipmentsData]);
-
-  const matchById = useMemo(() => {
-    const map = new Map<string, BrandMatch>();
+  const offerIdByMatch = useMemo(() => {
+    const map = new Map<string, string>();
     (pendingMatchesData?.matches ?? []).forEach((match) => {
-      map.set(match.matchId, match);
+      map.set(match.matchId, match.offer.id);
     });
     (acceptedMatchesData?.matches ?? []).forEach((match) => {
-      map.set(match.matchId, match);
+      map.set(match.matchId, match.offer.id);
     });
     return map;
   }, [pendingMatchesData, acceptedMatchesData]);
+
+  const offerIdByTitle = useMemo(() => {
+    const map = new Map<string, string>();
+    (offersData?.offers ?? []).forEach((offer) => {
+      map.set(offer.title, offer.id);
+    });
+    return map;
+  }, [offersData]);
 
   useEffect(() => {
     if (matchesError instanceof ApiError && matchesError.status === 401) {
@@ -157,6 +173,7 @@ const BrandPipeline = () => {
     username: string | null,
     followersCount: number | null,
     campaign: string,
+    offerId: string | null | undefined,
     stage: Stage,
     distanceKm?: number | null,
     distanceMiles?: number | null,
@@ -176,6 +193,7 @@ const BrandPipeline = () => {
       handle,
       followers: formatFollowers(followersCount),
       campaign,
+      offerId: offerId ?? null,
       stage,
       avatar: avatar || "CR",
       engagement: "—",
@@ -202,6 +220,7 @@ const BrandPipeline = () => {
           match.creator.username ?? null,
           match.creator.followersCount,
           match.offer.title,
+          match.offer.id,
           "applied",
           match.creator.distanceKm ?? null,
           match.creator.distanceMiles ?? null,
@@ -218,6 +237,7 @@ const BrandPipeline = () => {
           match.creator.username ?? null,
           match.creator.followersCount,
           match.offer.title,
+          match.offer.id,
           "approved",
           match.creator.distanceKm ?? null,
           match.creator.distanceMiles ?? null,
@@ -239,6 +259,9 @@ const BrandPipeline = () => {
           shipment.creator.username ?? null,
           null,
           shipment.offer.title,
+          offerIdByMatch.get(shipment.match.id) ??
+            offerIdByTitle.get(shipment.offer.title) ??
+            null,
           "shipped",
           null,
           null,
@@ -256,6 +279,9 @@ const BrandPipeline = () => {
           deliverable.creator.username ?? null,
           deliverable.creator.followersCount,
           deliverable.offer.title,
+          offerIdByMatch.get(deliverable.match.id) ??
+            offerIdByTitle.get(deliverable.offer.title) ??
+            null,
           "posted",
           null,
           null,
@@ -272,6 +298,9 @@ const BrandPipeline = () => {
           deliverable.creator.username ?? null,
           deliverable.creator.followersCount,
           deliverable.offer.title,
+          offerIdByMatch.get(deliverable.match.id) ??
+            offerIdByTitle.get(deliverable.offer.title) ??
+            null,
           "complete",
           null,
           null,
@@ -284,9 +313,12 @@ const BrandPipeline = () => {
     buildInfluencer,
     pendingMatchesData,
     acceptedMatchesData,
+    offersData,
     shipmentsData,
     dueDeliverablesData,
     verifiedDeliverablesData,
+    offerIdByMatch,
+    offerIdByTitle,
   ]);
 
   const deliverableByMatch = useMemo(() => {
@@ -339,94 +371,16 @@ const BrandPipeline = () => {
     return manualShipmentByMatch.get(shipmentTarget) ?? null;
   }, [manualShipmentByMatch, shipmentTarget]);
 
-  const openDetails = (matchId: string) => {
-    setDetailsTarget(matchId);
-    setDetailsOpen(true);
+  const openCampaignDetails = (influencer: Influencer) => {
+    if (influencer.offerId) {
+      navigate(`/brand/campaigns/${influencer.offerId}`);
+      return;
+    }
+    toast({
+      title: "CAMPAIGN NOT FOUND",
+      description: "We could not locate this campaign. Try refreshing.",
+    });
   };
-
-  const detailsInfluencer = useMemo(() => {
-    if (!detailsTarget) return null;
-    return influencersList.find((inf) => inf.id === detailsTarget) ?? null;
-  }, [detailsTarget, influencersList]);
-
-  const detailsMatch = useMemo(() => {
-    if (!detailsTarget) return null;
-    return matchById.get(detailsTarget) ?? null;
-  }, [detailsTarget, matchById]);
-
-  const detailsShipment = useMemo(() => {
-    if (!detailsTarget) return null;
-    return shipmentByMatch.get(detailsTarget) ?? null;
-  }, [detailsTarget, shipmentByMatch]);
-
-  const detailsDeliverable = useMemo(() => {
-    if (!detailsTarget) return null;
-    return deliverableByMatch.get(detailsTarget) ?? null;
-  }, [detailsTarget, deliverableByMatch]);
-
-  const detailsTimeline = useMemo(() => {
-    const events: Array<{ label: string; time: string | null; note?: string | null }> = [];
-    if (detailsMatch?.createdAt) {
-      events.push({ label: "Applied", time: detailsMatch.createdAt });
-    }
-    if (detailsMatch?.acceptedAt) {
-      events.push({ label: "Approved", time: detailsMatch.acceptedAt });
-    }
-    if (detailsShipment) {
-      const shipped =
-        detailsShipment.fulfillmentType === "MANUAL"
-          ? detailsShipment.status === "SHIPPED"
-          : ["FULFILLED", "COMPLETED"].includes(detailsShipment.status);
-      if (shipped) {
-        events.push({
-          label: "Shipped",
-          time: detailsShipment.updatedAt,
-          note:
-            detailsShipment.trackingNumber ||
-            detailsShipment.trackingUrl ||
-            detailsShipment.carrier
-              ? [detailsShipment.carrier, detailsShipment.trackingNumber]
-                  .filter(Boolean)
-                  .join(" • ")
-              : null,
-        });
-      }
-    } else if (detailsMatch?.shipment?.manualStatus === "SHIPPED") {
-      events.push({
-        label: "Shipped",
-        time: detailsMatch.acceptedAt ?? null,
-        note: detailsMatch.shipment.manualTrackingNumber ?? null,
-      });
-    }
-    const deliverable = detailsDeliverable ?? null;
-    if (deliverable?.submittedAt) {
-      events.push({ label: "Posted", time: deliverable.submittedAt });
-    } else if (detailsMatch?.deliverable?.submittedAt) {
-      events.push({ label: "Posted", time: detailsMatch.deliverable.submittedAt });
-    }
-    if (deliverable?.reviews?.length) {
-      deliverable.reviews.forEach((review) => {
-        events.push({
-          label:
-            review.action === "REQUEST_CHANGES"
-              ? "Changes requested"
-              : review.action === "FAILED"
-                ? "Rejected"
-                : "Verified",
-          time: review.createdAt,
-          note: review.reason ?? review.submittedPermalink ?? null,
-        });
-      });
-    }
-    if (deliverable?.verifiedAt) {
-      events.push({ label: "Completed", time: deliverable.verifiedAt });
-    } else if (detailsMatch?.deliverable?.verifiedAt) {
-      events.push({ label: "Completed", time: detailsMatch.deliverable.verifiedAt });
-    }
-    return events
-      .filter((event) => event.time)
-      .sort((a, b) => new Date(a.time ?? 0).getTime() - new Date(b.time ?? 0).getTime());
-  }, [detailsMatch, detailsShipment, detailsDeliverable]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -646,7 +600,7 @@ const BrandPipeline = () => {
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8 border-2 border-border"
-                          onClick={() => openDetails(influencer.id)}
+                          onClick={() => openCampaignDetails(influencer)}
                           aria-label="View details"
                         >
                           <Eye className="w-4 h-4" />
@@ -822,98 +776,6 @@ const BrandPipeline = () => {
                 REQUEST CHANGES
               </Button>
             </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-
-        <AlertDialog
-          open={detailsOpen}
-          onOpenChange={(open) => {
-            setDetailsOpen(open);
-            if (!open) setDetailsTarget(null);
-          }}
-        >
-          <AlertDialogContent className="border-4 border-border bg-card max-w-3xl w-[95vw]">
-            <AlertDialogHeader>
-              <AlertDialogTitle className="font-pixel text-sm text-neon-green">
-                CAMPAIGN DETAILS
-              </AlertDialogTitle>
-              <AlertDialogDescription className="font-mono text-xs">
-                Review creator info, shipment status, and timeline history.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-
-            <div className="space-y-4">
-              <div className="grid gap-3 md:grid-cols-2 text-xs font-mono">
-                <div className="border-2 border-border bg-muted p-3">
-                  <div className="text-[10px] text-muted-foreground">CREATOR</div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {detailsInfluencer?.name ?? "Creator"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {detailsInfluencer?.handle ?? detailsMatch?.creator.username ?? "—"}
-                  </div>
-                </div>
-                <div className="border-2 border-border bg-muted p-3">
-                  <div className="text-[10px] text-muted-foreground">CAMPAIGN</div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {detailsMatch?.offer.title ?? detailsInfluencer?.campaign ?? "—"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Code: {detailsMatch?.campaignCode ?? detailsShipment?.match.campaignCode ?? "—"}
-                  </div>
-                </div>
-                <div className="border-2 border-border bg-muted p-3">
-                  <div className="text-[10px] text-muted-foreground">STATUS</div>
-                  <div className="mt-1 text-sm font-semibold">{detailsInfluencer?.stage ?? "—"}</div>
-                  <div className="text-xs text-muted-foreground">
-                    Followers: {detailsMatch?.creator.followersCount?.toLocaleString() ?? "—"}
-                  </div>
-                </div>
-                <div className="border-2 border-border bg-muted p-3">
-                  <div className="text-[10px] text-muted-foreground">SHIPMENT</div>
-                  <div className="mt-1 text-sm font-semibold">
-                    {detailsShipment?.status ??
-                      detailsMatch?.shipment?.manualStatus ??
-                      detailsMatch?.shipment?.orderStatus ??
-                      "—"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    {detailsShipment?.trackingNumber ??
-                      detailsMatch?.shipment?.manualTrackingNumber ??
-                      detailsMatch?.shipment?.orderTrackingNumber ??
-                      "No tracking"}
-                  </div>
-                </div>
-              </div>
-
-              <div className="border-2 border-border bg-muted p-3">
-                <div className="text-xs font-pixel text-neon-pink">TIMELINE</div>
-                {!detailsTimeline.length ? (
-                  <div className="mt-2 text-xs font-mono text-muted-foreground">
-                    No activity recorded yet.
-                  </div>
-                ) : (
-                  <div className="mt-3 space-y-2">
-                    {detailsTimeline.map((event, index) => (
-                      <div
-                        key={`${event.label}-${index}`}
-                        className="flex items-start justify-between gap-3 border-2 border-border bg-card px-3 py-2"
-                      >
-                        <div>
-                          <div className="text-xs font-mono text-foreground">{event.label}</div>
-                          {event.note ? (
-                            <div className="text-[10px] text-muted-foreground">{event.note}</div>
-                          ) : null}
-                        </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          {event.time ? new Date(event.time).toLocaleString() : "—"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
           </AlertDialogContent>
         </AlertDialog>
 
