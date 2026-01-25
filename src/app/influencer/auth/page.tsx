@@ -15,9 +15,9 @@ export default function InfluencerAuthPage() {
               <Badge variant="secondary">Creator</Badge>
               <Badge variant="secondary">Sign in</Badge>
             </div>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Get started</h1>
+            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Creator portal</h1>
             <p className="mt-2 text-sm text-muted-foreground">
-              Sign in with TikTok to get started.
+              Login with TikTok to continue.
             </p>
           </div>
           <Link href="/">
@@ -28,7 +28,7 @@ export default function InfluencerAuthPage() {
         <Card className="mt-8">
           <CardHeader>
             <CardTitle>Continue with</CardTitle>
-            <CardDescription>Claim local deals in minutes.</CardDescription>
+            <CardDescription>Connect TikTok to start matching with brands.</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-3">
             <a href="/api/auth/social/tiktok/connect?next=%2Finfluencer%2Fdiscover&role=creator">
@@ -36,6 +36,12 @@ export default function InfluencerAuthPage() {
                 TikTok
               </Button>
             </a>
+            <div className="text-center text-xs text-muted-foreground">
+              Are you a brand?{" "}
+              <Link className="underline" href="/brand/auth">
+                Join as brand
+              </Link>
+            </div>
           </CardContent>
         </Card>
       </div>
