@@ -708,7 +708,7 @@ const BrandPipeline = () => {
                               onClick={(event) => event.stopPropagation()}
                             >
                               <div className="text-xs font-pixel text-neon-yellow">SHIPMENT DETAILS</div>
-                              <div className="grid md:grid-cols-3 gap-3">
+                              <div className="grid gap-3 md:grid-cols-3">
                                 <Input
                                   value={manualForms[shipment.id]?.carrier ?? ""}
                                   onChange={(event) =>
@@ -721,7 +721,7 @@ const BrandPipeline = () => {
                                     }))
                                   }
                                   placeholder="Carrier (optional)"
-                                  className="border-2 border-border font-mono text-xs"
+                                  className="border-2 border-border font-mono text-xs h-10 w-full px-3"
                                 />
                                 <Input
                                   value={manualForms[shipment.id]?.trackingNumber ?? ""}
@@ -735,7 +735,7 @@ const BrandPipeline = () => {
                                     }))
                                   }
                                   placeholder="Tracking number (optional)"
-                                  className="border-2 border-border font-mono text-xs"
+                                  className="border-2 border-border font-mono text-xs h-10 w-full px-3"
                                 />
                                 <Input
                                   value={manualForms[shipment.id]?.trackingUrl ?? ""}
@@ -749,7 +749,7 @@ const BrandPipeline = () => {
                                     }))
                                   }
                                   placeholder="Tracking URL (optional)"
-                                  className="border-2 border-border font-mono text-xs"
+                                  className="border-2 border-border font-mono text-xs h-10 w-full px-3"
                                 />
                               </div>
                               <div className="flex justify-end">
