@@ -1,161 +1,208 @@
 "use client";
 
-import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+export const dynamic = "force-dynamic";
 
-type Market = "US" | "IN";
+import { useEffect, useMemo, useState } from "react";
+import { CreditCard, ShieldCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
 type BillingProvider = "STRIPE" | "RAZORPAY";
+type BillingMarket = "US" | "IN";
 type BillingProviderMode = "AUTO" | "STRIPE" | "RAZORPAY";
 
-function enabledProviders(market: Market, mode: BillingProviderMode): BillingProvider[] {
-  if (mode === "STRIPE") return ["STRIPE"];
-  if (mode === "RAZORPAY") return ["RAZORPAY"];
+type ApiError = Error & { status?: number };
+
+type BillingStatus = {
+  ok: boolean;
+  brand: { id: string; name: string | null; subscribed: boolean } | null;
+  billingEnabled?: boolean;
+};
+
+type BillingConfig = { enabled: boolean; mode: BillingProviderMode };
+
+type GeoResponse = { market?: unknown } | null;
+
+const enabledBillingProviders = (market: BillingMarket, mode: BillingProviderMode) => {
+  if (mode === "STRIPE") return ["STRIPE"] as BillingProvider[];
+  if (mode === "RAZORPAY") return ["RAZORPAY"] as BillingProvider[];
   return [market === "IN" ? "RAZORPAY" : "STRIPE"];
+};
+
+async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(url, { ...init, credentials: "include" });
+  const data = (await res.json().catch(() => null)) as T & { error?: string };
+  if (!res.ok) {
+    const err = new Error((data as { error?: string })?.error ?? "Request failed") as ApiError;
+    err.status = res.status;
+    throw err;
+  }
+  return data;
 }
 
 export default function BrandBillingPage() {
-  const [market, setMarket] = useState<Market>("US");
-  const [status, setStatus] = useState<"idle" | "loading" | "error">("loading");
-  const [checkoutStatus, setCheckoutStatus] = useState<"idle" | "loading" | "error">("idle");
-  const [checkoutProvider, setCheckoutProvider] = useState<BillingProvider | null>(null);
-  const [providerMode, setProviderMode] = useState<BillingProviderMode>("AUTO");
-  const [billingEnabled, setBillingEnabled] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  const [checkoutProvider, setCheckoutProvider] = useState<BillingProvider | null>(null);
+  const [billingStatus, setBillingStatus] = useState<BillingStatus | null>(null);
+  const [market, setMarket] = useState<BillingMarket>("US");
+  const [billingConfig, setBillingConfig] = useState<BillingConfig>({ enabled: true, mode: "AUTO" });
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
-      setStatus("loading");
       try {
-        const res = await fetch("/api/geo");
-        const data = (await res.json().catch(() => null)) as { market?: unknown } | null;
-        if (data?.market === "IN" || data?.market === "US") {
-          setMarket(data.market);
+        const [statusRes, geoRes, configRes] = await Promise.all([
+          fetchJson<BillingStatus>("/api/billing/status"),
+          fetch("/api/geo", { credentials: "include" }).catch(() => null),
+          fetchJson<{ ok?: boolean; enabled?: unknown; mode?: unknown }>("/api/billing/config").catch(
+            () => ({ enabled: true, mode: "AUTO" }),
+          ),
+        ]);
+
+        if (cancelled) return;
+
+        setBillingStatus(statusRes);
+
+        if (geoRes && geoRes.ok) {
+          const geoJson = (await geoRes.json().catch(() => null)) as GeoResponse;
+          setMarket(geoJson?.market === "IN" ? "IN" : "US");
+        } else {
+          setMarket("US");
         }
-        setStatus("idle");
-      } catch {
-        setStatus("error");
+
+        const enabled = Boolean(configRes.enabled ?? true);
+        const mode =
+          configRes.mode === "STRIPE" || configRes.mode === "RAZORPAY" ? configRes.mode : "AUTO";
+        setBillingConfig({ enabled, mode });
+      } catch (err) {
+        const status = err instanceof Error && "status" in err ? (err as ApiError).status : undefined;
+        if (status === 401) {
+          window.location.href = "/brand/auth";
+          return;
+        }
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  useEffect(() => {
-    (async () => {
-      const res = await fetch("/api/billing/config", { method: "GET" }).catch(() => null);
-      const json = (await res?.json().catch(() => null)) as { mode?: unknown; enabled?: unknown } | null;
-      setBillingEnabled(Boolean(json?.enabled));
-      if (json?.mode === "STRIPE" || json?.mode === "RAZORPAY") {
-        setProviderMode(json.mode);
-        return;
-      }
-      setProviderMode("AUTO");
-    })();
-  }, []);
+  const subscribed = billingStatus?.brand?.subscribed ?? false;
+  const billingEnabled = billingConfig.enabled ?? true;
+  const enabledProviders = useMemo(
+    () => enabledBillingProviders(market, billingConfig.mode),
+    [market, billingConfig.mode],
+  );
+  const priceLabel = market === "IN" ? "₹299/mo" : "$29/mo";
 
-  const priceLabel = useMemo(() => {
-    return market === "IN" ? "₹299/mo" : "$29/mo";
-  }, [market]);
-
-  async function subscribe(provider: BillingProvider) {
-    setCheckoutStatus("loading");
+  async function subscribeWith(provider: BillingProvider) {
+    if (checkoutProvider) return;
     setCheckoutProvider(provider);
     setMessage(null);
     try {
-      const res = await fetch("/api/billing/checkout", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ lane: "brand", provider }),
-      });
-      const data = (await res.json().catch(() => null)) as
-        | { ok: true; checkoutUrl: string }
-        | { ok: false; error?: string };
-      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
-        throw new Error(
-          data && "error" in data && typeof data.error === "string"
-            ? data.error
-            : "Failed to start checkout",
-        );
+      const res = await fetchJson<{ ok: boolean; checkoutUrl?: string }>(
+        "/api/billing/checkout",
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ lane: "brand", provider }),
+        },
+      );
+      if (!res.ok || !res.checkoutUrl) {
+        throw new Error("Failed to start checkout");
       }
-      window.location.href = data.checkoutUrl;
+      window.location.href = res.checkoutUrl;
     } catch (err) {
-      setCheckoutStatus("error");
-      setMessage(err instanceof Error ? err.message : "Failed to start checkout");
+      const message =
+        err instanceof Error ? err.message : "Checkout failed";
+      setMessage(message);
       setCheckoutProvider(null);
     }
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="container mx-auto max-w-2xl px-4 py-10 md:px-8">
-        <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">Brand</Badge>
-              <Badge variant="secondary">Billing</Badge>
-              <Badge variant="secondary">Global</Badge>
+    <div className="p-6 md:p-10 max-w-4xl">
+      <div className="mb-10 flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-2">
+            <CreditCard className="w-5 h-5 text-neon-yellow" />
+            <span className="text-xs font-pixel text-neon-yellow">[BILLING]</span>
+          </div>
+          <h1 className="text-xl md:text-2xl font-pixel text-foreground">SUBSCRIBE</h1>
+          <p className="font-mono text-sm text-muted-foreground mt-1">
+            &gt; Unlock publishing + creator details. Cancel anytime.
+          </p>
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-2 border-border font-mono text-xs"
+          onClick={() => {
+            window.location.href = "/brand/dashboard";
+          }}
+        >
+          BACK_TO_DASHBOARD
+        </Button>
+      </div>
+
+      {message ? (
+        <div className="mb-6 border-2 border-destructive bg-destructive/10 p-4 text-xs font-mono text-destructive">
+          {message}
+        </div>
+      ) : null}
+
+      <div className="border-4 border-border bg-card">
+        <div className="p-4 border-b-4 border-border flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 border-2 border-neon-green bg-neon-green/10 flex items-center justify-center">
+              <ShieldCheck className="w-5 h-5 text-neon-green" />
             </div>
-            <h1 className="mt-3 font-display text-3xl font-bold tracking-tight">Subscribe</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Publish offers and unlock full creator details. Cancel anytime.
-            </p>
+            <div>
+              <p className="font-pixel text-sm text-neon-green">GROWTH_PLAN</p>
+              <p className="text-xs font-mono text-muted-foreground">Monthly subscription · Global</p>
+            </div>
           </div>
-          <div className="flex gap-2">
-            <Link href="/brand/offers">
-              <Button variant="outline">Offers</Button>
-            </Link>
-            <Link href="/">
-              <Button variant="outline">Home</Button>
-            </Link>
-          </div>
+          <div className="font-mono text-sm text-neon-yellow">{priceLabel}</div>
         </div>
 
-        {message ? (
-          <div className="mt-6 rounded-lg border border-danger/30 bg-danger/10 p-4 text-sm text-danger">
-            {message}
-          </div>
-        ) : null}
+        <div className="p-6 space-y-4">
+          <ul className="list-disc pl-5 text-xs font-mono text-muted-foreground space-y-1">
+            <li>Publish campaigns</li>
+            <li>Unlock creator usernames</li>
+            <li>AI recommendations + nearby preview</li>
+            <li>Clicks + redemptions ROI</li>
+          </ul>
 
-        <Card className="mt-8">
-          <CardHeader>
-            <CardTitle>Brand plan</CardTitle>
-            <CardDescription>{status === "loading" ? "Checking billing details…" : "Monthly subscription"}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            <div className="flex items-baseline justify-between">
-              <div className="text-sm text-muted-foreground">Price</div>
-              <div className="font-mono text-lg">{priceLabel}</div>
+          {subscribed ? (
+            <div className="border-2 border-neon-green bg-neon-green/10 p-4 text-xs font-mono text-neon-green">
+              SUBSCRIPTION_ACTIVE
             </div>
-            <ul className="list-disc pl-5 text-sm text-muted-foreground">
-              <li>Publish offers</li>
-              <li>Unlock creator usernames</li>
-              <li>AI recommendations + nearby preview</li>
-              <li>Clicks + redemptions ROI</li>
-            </ul>
-            {billingEnabled ? (
-              <div className="grid gap-2 sm:grid-cols-2">
-                {enabledProviders(market, providerMode).map((provider) => (
-                  <Button
-                    key={provider}
-                    onClick={() => subscribe(provider)}
-                    disabled={checkoutStatus === "loading" || status === "loading"}
-                  >
-                    {checkoutStatus === "loading" && checkoutProvider === provider
-                      ? "Redirecting…"
-                      : provider === "STRIPE"
-                        ? "Subscribe with Stripe"
-                        : "Subscribe with Razorpay"}
-                  </Button>
-                ))}
-              </div>
-            ) : (
-              <div className="rounded-lg border bg-muted p-4 text-sm text-muted-foreground">
-                Billing is disabled (beta).
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          ) : !billingEnabled ? (
+            <div className="border-2 border-border bg-muted p-4 text-xs font-mono text-muted-foreground">
+              BILLING_DISABLED (beta)
+            </div>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2">
+              {enabledProviders.map((provider) => (
+                <Button
+                  key={provider}
+                  onClick={() => subscribeWith(provider)}
+                  disabled={checkoutProvider !== null}
+                  className={
+                    provider === "STRIPE"
+                      ? "bg-neon-purple text-background hover:bg-neon-purple/90 font-pixel text-xs pixel-btn"
+                      : "bg-neon-yellow text-background hover:bg-neon-yellow/90 font-pixel text-xs pixel-btn"
+                  }
+                >
+                  {checkoutProvider === provider
+                    ? "REDIRECTING..."
+                    : provider === "STRIPE"
+                      ? "SUBSCRIBE_WITH_STRIPE"
+                      : "SUBSCRIBE_WITH_RAZORPAY"}
+                </Button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
