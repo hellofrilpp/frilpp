@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowLeft, Copy, Pause, Play, Trash2 } from "lucide-react";
@@ -353,11 +352,13 @@ export default function BrandCampaignDetailsPage() {
   return (
     <div className="p-6 md:p-10 space-y-6">
       <div className="flex items-center justify-between gap-3">
-        <Button variant="outline" className="border-2 font-mono text-xs" asChild>
-          <Link href="/brand/campaigns">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            BACK
-          </Link>
+        <Button
+          variant="outline"
+          className="border-2 font-mono text-xs"
+          onClick={() => router.push("/brand/campaigns")}
+        >
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          BACK
         </Button>
         <div className="flex items-center gap-2">
           {offer?.status === "DRAFT" ? (
