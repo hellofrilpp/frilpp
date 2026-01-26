@@ -670,7 +670,7 @@ export default function BrandPipelinePage() {
                 }`}
                 onClick={() => setStageFilter((prev) => (prev === stage.key ? "all" : stage.key))}
               >
-                <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
                   <div className="flex items-center gap-2">
                     <stage.icon className="w-3.5 h-3.5" />
                     <span className="text-[10px] font-pixel">{stage.label}</span>
