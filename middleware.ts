@@ -37,6 +37,9 @@ export function middleware(request: NextRequest) {
 
   const legalCookie = request.cookies.get(LEGAL_COOKIE_NAME)?.value;
   if (!legalCookie) {
+    if (request.nextUrl.pathname.startsWith("/brand/setup")) {
+      return NextResponse.next();
+    }
     const url = request.nextUrl.clone();
     url.pathname = "/legal/accept";
     url.searchParams.set("next", request.nextUrl.pathname + request.nextUrl.search);
