@@ -27,11 +27,47 @@ const steps = [
   { id: 4, title: "LAUNCH", icon: Sparkles },
 ];
 
-const platformIcons: Record<string, string> = {
-  TIKTOK: "TT",
-  YOUTUBE: "YT",
-  INSTAGRAM: "IG",
-  OTHER: "*",
+const platformIconSize = "h-6 w-6";
+
+const PlatformIcon = ({ id, className }: { id: string; className?: string }) => {
+  const classes = className ? `${platformIconSize} ${className}` : platformIconSize;
+  switch (id) {
+    case "TIKTOK":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          className={classes}
+          fill="currentColor"
+        >
+          <path d="M16.5 3c.6 2.4 2.3 4.1 4.5 4.6v3.2c-1.6-.1-3.1-.6-4.5-1.5v6.3c0 3-2.4 5.4-5.4 5.4S5.7 18.6 5.7 15.6s2.4-5.4 5.4-5.4c.4 0 .8 0 1.2.1v3.2c-.4-.2-.8-.3-1.2-.3-1.2 0-2.1 1-2.1 2.2s1 2.1 2.2 2.1 2.1-1 2.1-2.2V3h3.2z" />
+        </svg>
+      );
+    case "YOUTUBE":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          className={classes}
+          fill="currentColor"
+        >
+          <path d="M22 8.3c0-1.6-1.1-3-2.6-3.3C17 4.5 7 4.5 4.6 5 3.1 5.3 2 6.7 2 8.3v7.4c0 1.6 1.1 3 2.6 3.3 2.4.5 12.4.5 14.8 0 1.5-.3 2.6-1.7 2.6-3.3V8.3zM10 15V9l5 3-5 3z" />
+        </svg>
+      );
+    case "INSTAGRAM":
+      return (
+        <svg
+          viewBox="0 0 24 24"
+          aria-hidden="true"
+          className={classes}
+          fill="currentColor"
+        >
+          <path d="M7 3h10a4 4 0 0 1 4 4v10a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V7a4 4 0 0 1 4-4zm5 5a4 4 0 1 0 0 8 4 4 0 0 0 0-8zm5-1.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z" />
+        </svg>
+      );
+    default:
+      return <span className={className ?? ""}>*</span>;
+  }
 };
 
 const allowedCreatorPlatformIds = new Set(["TIKTOK"]);
@@ -1098,7 +1134,7 @@ function BrandCampaignCreatorContent() {
                           key={preset.id}
                           type="button"
                           onClick={() => applyPreset(preset)}
-                          className={`p-4 border-2 text-left transition-all pixel-btn ${
+                          className={`p-4 border-2 text-left transition-all pixel-btn cursor-pointer ${
                             formData.presetId === preset.id
                               ? "border-neon-yellow bg-neon-yellow/20"
                               : "border-border hover:border-neon-yellow"
@@ -1116,7 +1152,7 @@ function BrandCampaignCreatorContent() {
                   <div className="grid grid-cols-2 gap-3">
                     {[...availablePlatforms, ...comingSoonPlatforms.filter((p) => !availablePlatforms.find((a) => a.id === p.id))].map(
                       (platform) => {
-                        const enabled = platform.id === "TIKTOK";
+                        const enabled = allowedCreatorPlatformIds.has(platform.id);
                         const isActive = formData.platforms.includes(platform.id);
                         return (
                           <button
@@ -1127,12 +1163,14 @@ function BrandCampaignCreatorContent() {
                             className={`p-4 border-2 text-center transition-all pixel-btn ${
                               enabled
                                 ? isActive
-                                  ? "border-neon-pink bg-neon-pink/20"
-                                  : "border-border hover:border-neon-pink"
+                                  ? "border-neon-pink bg-neon-pink/20 cursor-pointer"
+                                  : "border-border hover:border-neon-pink cursor-pointer"
                                 : "border-border bg-muted/40 text-muted-foreground opacity-60 cursor-not-allowed"
                             }`}
                           >
-                            <span className="text-2xl mb-2 block">{platformIcons[platform.id] ?? "*"}</span>
+                            <span className="mb-2 flex items-center justify-center">
+                              <PlatformIcon id={platform.id} />
+                            </span>
                             <span className="font-mono text-xs">{platform.label}</span>
                             {!enabled ? (
                               <span className="mt-1 block font-mono text-[10px] text-muted-foreground">COMING SOON</span>
@@ -1152,7 +1190,7 @@ function BrandCampaignCreatorContent() {
                         key={type.id}
                         type="button"
                         onClick={() => toggleArrayField("contentTypes", type.id)}
-                        className={`p-4 border-2 flex items-center justify-between transition-all pixel-btn ${
+                        className={`p-4 border-2 flex items-center justify-between transition-all pixel-btn cursor-pointer ${
                           formData.contentTypes.includes(type.id)
                             ? "border-neon-green bg-neon-green/20"
                             : "border-border hover:border-neon-green"
