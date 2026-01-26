@@ -8,7 +8,8 @@ export default function BrandRootLayout({ children }: { children: React.ReactNod
   if (
     pathname.startsWith("/brand/auth") ||
     pathname.startsWith("/brand/login") ||
-    pathname.startsWith("/brand/signup")
+    pathname.startsWith("/brand/signup") ||
+    pathname.startsWith("/brand/setup")
   ) {
     return children;
   }

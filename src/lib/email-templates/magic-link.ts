@@ -62,16 +62,14 @@ export function renderMagicLinkEmail(params: {
     `</a>`,
     `</div>`,
     `<div style="border-top:1px solid #222633; margin:18px 0; padding-top:14px; color:#b5bdcc; font-size:12px; line-height:1.6;">`,
-    `<div style="margin:0 0 8px 0;">If the button doesn’t work, copy and paste this link:</div>`,
+    `<div style="margin:0 0 8px 0;">If the button doesn’t work, open or copy this link:</div>`,
     `<div style="word-break:break-all; background:#0b0c10; border:1px solid #222633; padding:10px 12px;">`,
     `<table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"><tr>`,
     `<td style="padding:0; vertical-align:top;">`,
     `<a href="${callbackUrlEscaped}" style="color:#86fbd1; text-decoration:underline;">${callbackUrlEscaped}</a>`,
     `</td>`,
     `<td align="right" style="padding:0 0 0 10px; vertical-align:top; white-space:nowrap;">`,
-    copyIconUrl
-      ? `<span style="display:inline-block; border:1px solid #2b3244; color:#86fbd1; padding:4px 6px; font-size:11px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; letter-spacing:1px; text-transform:uppercase;">Copy</span>`
-      : `<span style="display:inline-block; border:1px solid #2b3244; color:#86fbd1; padding:4px 6px; font-size:11px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; letter-spacing:1px; text-transform:uppercase;">Copy</span>`,
+    `<a href="${callbackUrlEscaped}" style="display:inline-block; border:1px solid #2b3244; color:#86fbd1; padding:4px 8px; font-size:11px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; letter-spacing:1px; text-transform:uppercase; text-decoration:none;">Open link</a>`,
     `</td>`,
     `</tr></table>`,
     `</div>`,
