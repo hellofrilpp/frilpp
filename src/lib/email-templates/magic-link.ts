@@ -70,8 +70,8 @@ export function renderMagicLinkEmail(params: {
     `</td>`,
     `<td align="right" style="padding:0 0 0 10px; vertical-align:top; white-space:nowrap;">`,
     copyIconUrl
-      ? `<img src="${copyIconUrl}" width="16" height="16" alt="Copy" style="display:inline-block; vertical-align:middle;" />`
-      : ``,
+      ? `<span style="display:inline-block; border:1px solid #2b3244; color:#86fbd1; padding:4px 6px; font-size:11px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; letter-spacing:1px; text-transform:uppercase;">Copy</span>`
+      : `<span style="display:inline-block; border:1px solid #2b3244; color:#86fbd1; padding:4px 6px; font-size:11px; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; letter-spacing:1px; text-transform:uppercase;">Copy</span>`,
     `</td>`,
     `</tr></table>`,
     `</div>`,
