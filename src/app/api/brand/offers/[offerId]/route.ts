@@ -18,7 +18,6 @@ const patchSchema = z
     maxClaims: z.number().int().min(1).max(10000).optional(),
     deadlineDaysAfterDelivery: z.number().int().min(1).max(365).optional(),
     followersThreshold: z.number().int().min(0).max(100_000_000).optional(),
-    aboveThresholdAutoAccept: z.boolean().optional(),
     usageRightsRequired: z.boolean().optional(),
     usageRightsScope: z.enum(USAGE_RIGHTS_SCOPES).optional(),
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
@@ -80,7 +79,6 @@ export async function GET(request: Request, context: { params: Promise<{ offerId
       usageRightsRequired: offer.usageRightsRequired,
       usageRightsScope: offer.usageRightsScope ?? null,
       acceptanceFollowersThreshold: offer.acceptanceFollowersThreshold,
-      acceptanceAboveThresholdAutoAccept: offer.acceptanceAboveThresholdAutoAccept,
       metadata: offer.metadata ?? {},
       publishedAt: offer.publishedAt?.toISOString() ?? null,
       createdAt: offer.createdAt.toISOString(),
@@ -211,8 +209,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
     update.deadlineDaysAfterDelivery = patch.deadlineDaysAfterDelivery;
   if (patch.followersThreshold !== undefined)
     update.acceptanceFollowersThreshold = patch.followersThreshold;
-  if (patch.aboveThresholdAutoAccept !== undefined)
-    update.acceptanceAboveThresholdAutoAccept = patch.aboveThresholdAutoAccept;
   if (patch.usageRightsRequired !== undefined)
     update.usageRightsRequired = patch.usageRightsRequired;
   if (patch.usageRightsScope !== undefined) update.usageRightsScope = patch.usageRightsScope;

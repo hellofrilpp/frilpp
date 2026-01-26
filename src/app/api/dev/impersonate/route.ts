@@ -165,7 +165,7 @@ export async function GET(request: Request) {
                 ARRAY[]::text[],
                 ${"devbrand"},
                 ${5000},
-                ${true},
+                ${false},
                 ${now},
                 ${now}
               )

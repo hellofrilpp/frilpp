@@ -22,8 +22,7 @@ const createOfferSchema = z.object({
   countriesAllowed: z.array(z.enum(["US", "IN"])).default([]),
   maxClaims: z.number().int().min(1).max(10000),
   deadlineDaysAfterDelivery: z.number().int().min(1).max(365),
-  followersThreshold: z.number().int().min(0).max(100_000_000),
-  aboveThresholdAutoAccept: z.boolean(),
+  followersThreshold: z.number().int().min(0).max(100_000_000).default(0),
   usageRightsRequired: z.boolean().optional().default(false),
   usageRightsScope: z.enum(USAGE_RIGHTS_SCOPES).optional(),
   products: z
@@ -65,7 +64,6 @@ export async function GET(request: Request) {
           usageRightsRequired: offers.usageRightsRequired,
           usageRightsScope: offers.usageRightsScope,
           acceptanceFollowersThreshold: offers.acceptanceFollowersThreshold,
-          acceptanceAboveThresholdAutoAccept: offers.acceptanceAboveThresholdAutoAccept,
           metadata: offers.metadata,
           publishedAt: offers.publishedAt,
           createdAt: offers.createdAt,
@@ -230,7 +228,7 @@ export async function POST(request: Request) {
           usageRightsRequired: Boolean(input.usageRightsRequired),
           usageRightsScope: usageRightsScope ?? null,
           acceptanceFollowersThreshold: input.followersThreshold,
-          acceptanceAboveThresholdAutoAccept: input.aboveThresholdAutoAccept,
+          acceptanceAboveThresholdAutoAccept: false,
           metadata: storedMetadata,
           publishedAt: desiredStatus === "PUBLISHED" ? new Date() : null,
         });

@@ -31,16 +31,15 @@ Influencer agencies are too expensive for small brands. Product seeding today is
 
 ### Acceptance policy
 Brand-level rule:
-- If `followers_count >= X` → auto-accept
-- Else → brand approval
-Offer-level overrides allowed.
+- All claims require brand approval.
+- Brands can set a minimum follower threshold for eligibility.
 
 ## MVP scope
 ### Brand
 1) Connect Shopify store
 2) Create an offer (template-based wizard)
-3) Configure acceptance policy (followers threshold X)
-4) Review matches + approvals (when required)
+3) Set creator criteria (followers threshold X)
+4) Review matches + approvals
 5) Auto-create Shopify order on acceptance
 6) View pipeline: claimed → shipped → due → verified → strike/dispute
 
@@ -123,4 +122,3 @@ System:
 - Out-of-stock product after claim
 - Multi-warehouse shipping (US vs India)
 - Returns/refunds not applicable (barter orders)
-

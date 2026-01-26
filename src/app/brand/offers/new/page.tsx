@@ -21,8 +21,6 @@ type OfferDraft = {
   countriesAllowed: Array<"US" | "IN">;
   maxClaims: number;
   deadlineDaysAfterDelivery: number;
-  followersThreshold: number;
-  aboveThresholdAutoAccept: boolean;
   usageRightsRequired: boolean;
   usageRightsScope: "PAID_ADS_12MO" | "PAID_ADS_6MO" | "PAID_ADS_UNLIMITED" | "ORGANIC_ONLY";
   fulfillmentType: "SHOPIFY" | "MANUAL";
@@ -113,8 +111,6 @@ export default function NewOfferPage() {
   const [draft, setDraft] = useState<OfferDraft>(() => ({
     title: "Free $50 skincare set for 1 Reel",
     countriesAllowed: [],
-    followersThreshold: 5000,
-    aboveThresholdAutoAccept: true,
     usageRightsRequired: false,
     usageRightsScope: "PAID_ADS_12MO",
     fulfillmentType: "MANUAL",
@@ -229,12 +225,12 @@ export default function NewOfferPage() {
         ? [
             { title: "Products", description: "Pick products (optional)." },
             { title: "Template", description: "Pick the deliverable type." },
-            { title: "Details", description: "Local radius, tracking link, and acceptance rules." },
+            { title: "Details", description: "Local radius and tracking link." },
             { title: "Review + publish", description: "One-click publish and share." },
           ]
         : [
             { title: "Template", description: "Pick the deliverable type." },
-            { title: "Details", description: "Local radius, tracking link, and acceptance rules." },
+            { title: "Details", description: "Local radius and tracking link." },
             { title: "Review + publish", description: "One-click publish and share." },
           ],
     [],
@@ -343,8 +339,6 @@ export default function NewOfferPage() {
           countriesAllowed: draft.countriesAllowed,
           maxClaims: draft.maxClaims,
           deadlineDaysAfterDelivery: draft.deadlineDaysAfterDelivery,
-          followersThreshold: draft.followersThreshold,
-          aboveThresholdAutoAccept: draft.aboveThresholdAutoAccept,
           usageRightsRequired: draft.usageRightsRequired,
           usageRightsScope: draft.usageRightsScope,
           products: selectedProducts.map((p) => ({
@@ -855,51 +849,6 @@ export default function NewOfferPage() {
                   />
                 </div>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div className="grid gap-2">
-                    <Label htmlFor="followersThreshold">Auto-accept threshold (followers)</Label>
-                    <Input
-                      id="followersThreshold"
-                      type="number"
-                      min={0}
-                      value={draft.followersThreshold}
-                      onChange={(e) =>
-                        setDraft((d) => ({
-                          ...d,
-                          followersThreshold: Number(e.target.value),
-                        }))
-                      }
-                    />
-                    <div className="text-xs text-muted-foreground">
-                      If a creator has ≥ this many followers, they can be auto-accepted.
-                    </div>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Above threshold</Label>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        size="sm"
-                        variant={draft.aboveThresholdAutoAccept ? "default" : "outline"}
-                        type="button"
-                        onClick={() => setDraft((d) => ({ ...d, aboveThresholdAutoAccept: true }))}
-                      >
-                        Auto-accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={!draft.aboveThresholdAutoAccept ? "default" : "outline"}
-                        type="button"
-                        onClick={() => setDraft((d) => ({ ...d, aboveThresholdAutoAccept: false }))}
-                      >
-                        Manual review
-                      </Button>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      Below threshold always requires brand approval.
-                    </div>
-                  </div>
-                </div>
-
                 <div className="rounded-lg border bg-muted p-4">
                   <div className="text-sm font-semibold text-foreground">
                     Local targeting + tracking
@@ -1151,7 +1100,7 @@ export default function NewOfferPage() {
               <CardHeader>
                 <CardTitle>{displayStepNumber(3)}) Review + publish</CardTitle>
                 <CardDescription>
-                  Publish and share. Under-the-hood: auto-approve rules, auto-ship, and ROI tracking.
+                  Publish and share. Under-the-hood: manual approvals, shipping, and ROI tracking.
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-4">
@@ -1177,32 +1126,6 @@ export default function NewOfferPage() {
                       </Badge>
                     </div>
                   ) : null}
-                </div>
-
-                <div className="grid gap-3 rounded-lg border bg-card p-4 text-sm">
-                  <div className="font-semibold">Acceptance policy</div>
-                  <div className="text-muted-foreground">
-                    Auto-accept creators with followers ≥{" "}
-                    <span className="font-mono text-foreground">{draft.followersThreshold}</span>.
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <Button
-                      size="sm"
-                      variant={draft.aboveThresholdAutoAccept ? "default" : "outline"}
-                      type="button"
-                      onClick={() => setDraft((d) => ({ ...d, aboveThresholdAutoAccept: true }))}
-                    >
-                      Auto-accept
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={!draft.aboveThresholdAutoAccept ? "default" : "outline"}
-                      type="button"
-                      onClick={() => setDraft((d) => ({ ...d, aboveThresholdAutoAccept: false }))}
-                    >
-                      Manual review
-                    </Button>
-                  </div>
                 </div>
 
                 <div className="rounded-lg border bg-muted p-4 text-sm">

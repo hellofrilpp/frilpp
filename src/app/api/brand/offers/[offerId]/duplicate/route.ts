@@ -65,7 +65,7 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     usageRightsRequired: offer.usageRightsRequired,
     usageRightsScope: offer.usageRightsScope,
     acceptanceFollowersThreshold: offer.acceptanceFollowersThreshold,
-    acceptanceAboveThresholdAutoAccept: offer.acceptanceAboveThresholdAutoAccept,
+    acceptanceAboveThresholdAutoAccept: false,
     publishedAt: now,
     createdAt: now,
     updatedAt: now,

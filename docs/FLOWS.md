@@ -33,8 +33,8 @@
    - offer slots remaining + inventory rules
 3. System fetches cached `followers_count` (refresh if stale)
 4. Decision:
-   - if followers >= threshold and offer allows auto-accept → `ACCEPTED`
-   - else → `PENDING_APPROVAL` (brand sees request)
+   - set status → `PENDING_APPROVAL` (brand sees request)
+   - on brand approval → `ACCEPTED`
 
 ## 5) Fulfillment (Shopify)
 On `ACCEPTED`:
@@ -72,4 +72,3 @@ If offer requests a Story:
 - Creator can appeal a strike once per match
 - Brand can forgive strike with a reason (audited)
 - Admin can override any state transition
-

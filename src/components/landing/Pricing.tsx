@@ -30,7 +30,7 @@ export default function Pricing() {
       color: "neon-green",
       features: [
         "TikTok onboarding",
-        "Local radius + auto-accept threshold",
+        "Local radius + approvals",
         "Pickup / local delivery / shipping",
         "Clicks + redemptions ROI",
         "Verified posting + creator streaks",

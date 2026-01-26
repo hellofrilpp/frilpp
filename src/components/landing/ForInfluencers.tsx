@@ -19,7 +19,7 @@ const perks = [
   {
     icon: Gamepad2,
     title: "CLAIM FAST",
-    description: "Apply in one click. Get auto-accepted or approved by the brand.",
+    description: "Apply in one click. Brands review and approve requests.",
     color: "neon-pink",
   },
   {

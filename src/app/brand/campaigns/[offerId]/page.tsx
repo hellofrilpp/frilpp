@@ -23,7 +23,6 @@ type BrandOffer = {
   maxClaims: number | null;
   deadlineDaysAfterDelivery: number;
   acceptanceFollowersThreshold: number | null;
-  acceptanceAboveThresholdAutoAccept: boolean | null;
   usageRightsRequired: boolean | null;
   usageRightsScope: string | null;
   metadata: Record<string, unknown> | null;
@@ -450,12 +449,8 @@ export default function BrandCampaignDetailsPage() {
             </div>
             <div className="space-y-2">
               <div>
-                <span className="text-foreground">Followers threshold:</span>{" "}
+                <span className="text-foreground">Minimum followers:</span>{" "}
                 {offer?.acceptanceFollowersThreshold ?? "—"}
-              </div>
-              <div>
-                <span className="text-foreground">Auto-accept above threshold:</span>{" "}
-                {offer ? String(offer.acceptanceAboveThresholdAutoAccept) : "—"}
               </div>
               <div>
                 <span className="text-foreground">Usage rights required:</span>{" "}

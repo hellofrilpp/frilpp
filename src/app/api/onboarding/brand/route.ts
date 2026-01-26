@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     countriesDefault: parsed.data.countriesDefault,
     instagramHandle,
     acceptanceFollowersThreshold: 5000,
-    acceptanceAboveThresholdAutoAccept: true,
+    acceptanceAboveThresholdAutoAccept: false,
     createdAt: now,
     updatedAt: now,
   });

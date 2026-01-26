@@ -1,18 +1,12 @@
 import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { getShopifyStoreForBrand } from "@/db/shopify";
-import { brands, creatorMeta, creatorOfferRejections, deliverables, matches, offers, offerProducts, matchDiscounts, userSocialAccounts } from "@/db/schema";
+import { brands, creatorMeta, creatorOfferRejections, matches, offers, userSocialAccounts } from "@/db/schema";
 import { requireCreatorContext } from "@/lib/auth";
 import { generateCampaignCode } from "@/lib/campaign-code";
-import { decryptSecret } from "@/lib/crypto";
 import { getActiveStrikeCount, getCreatorFollowerRange, getStrikeLimit } from "@/lib/eligibility";
 import { log } from "@/lib/logger";
-import { enqueueNotification } from "@/lib/notifications";
 import { ipKey, rateLimit } from "@/lib/rate-limit";
-import { createDiscountForMatch } from "@/lib/shopify-discounts";
-import { ensureManualShipmentForMatch } from "@/lib/manual-shipments";
-import { ensureShopifyOrderForMatch } from "@/lib/shopify-orders";
 import { hasActiveSubscription } from "@/lib/billing";
 
 export const runtime = "nodejs";
@@ -268,10 +262,6 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
       );
     }
 
-    const threshold = offer.acceptanceFollowersThreshold;
-    const autoAccept = offer.acceptanceAboveThresholdAutoAccept;
-    const shouldAutoAccept = autoAccept && creatorFollowers >= threshold;
-
     if (offer.deliverableType !== "UGC_ONLY") {
       const metadata = offer.metadata as { platforms?: string[] } | null;
       const platforms = Array.isArray(metadata?.platforms)
@@ -380,10 +370,8 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
 
     let matchId = "";
     let campaignCode = "";
-    const status = shouldAutoAccept ? "ACCEPTED" : "PENDING_APPROVAL";
+    const status = "PENDING_APPROVAL";
     const now = new Date();
-
-    let dueAtIso: string | null = null;
     await db.transaction(async (tx) => {
       await tx.execute(sql`SELECT id FROM offers WHERE id = ${offer.id} FOR UPDATE`);
 
@@ -423,7 +411,7 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
             creatorId: creator.id,
             status,
             campaignCode,
-            acceptedAt: shouldAutoAccept ? now : null,
+            acceptedAt: null,
             createdAt: now,
           })
           .onConflictDoNothing()
@@ -438,124 +426,7 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
         claimError("CAMPAIGN_CODE_CONFLICT", "Failed to generate campaign code", 500);
       }
 
-      if (shouldAutoAccept) {
-        const dueAt = new Date(
-          now.getTime() + (offer.deadlineDaysAfterDelivery + 14) * 24 * 60 * 60 * 1000,
-        );
-        dueAtIso = dueAt.toISOString();
-        await tx.insert(deliverables).values({
-          id: crypto.randomUUID(),
-          matchId,
-          status: "DUE",
-          expectedType: offer.deliverableType,
-          dueAt,
-        });
-      }
     });
-
-    let discountCreated = false;
-    let orderCreated = false;
-    if (shouldAutoAccept) {
-      const store = await getShopifyStoreForBrand(offer.brandId);
-      const offerProductRows = store
-        ? await db
-            .select({ shopifyProductId: offerProducts.shopifyProductId })
-            .from(offerProducts)
-            .where(eq(offerProducts.offerId, offer.id))
-            .limit(20)
-        : [];
-      const fulfillmentType =
-        typeof offer.metadata === "object" && offer.metadata
-          ? String((offer.metadata as Record<string, unknown>).fulfillmentType ?? "")
-          : "";
-      const wantsManual = fulfillmentType === "MANUAL";
-      const needsManualShipment =
-        offer.deliverableType !== "UGC_ONLY" &&
-        (wantsManual || !store || offerProductRows.length === 0);
-
-      if (store && offer.deliverableType !== "UGC_ONLY") {
-        try {
-          const percent = Number(process.env.DEFAULT_CREATOR_DISCOUNT_PERCENT ?? "10");
-          const token = decryptSecret(store.accessTokenEncrypted);
-
-          const created = await createDiscountForMatch({
-            shopDomain: store.shopDomain,
-            accessToken: token,
-            code: campaignCode,
-            entitledProductIds: offerProductRows.map((p) => p.shopifyProductId),
-            percentOff: Number.isFinite(percent) ? percent : 10,
-            daysValid: 30,
-          });
-
-          await db
-            .insert(matchDiscounts)
-            .values({
-              id: crypto.randomUUID(),
-              matchId,
-              shopDomain: store.shopDomain,
-              shopifyPriceRuleId: created.shopifyPriceRuleId,
-              shopifyDiscountCodeId: created.shopifyDiscountCodeId,
-            })
-            .onConflictDoNothing();
-
-          discountCreated = true;
-        } catch {
-          discountCreated = false;
-        }
-      }
-
-      if (store && offerProductRows.length) {
-        try {
-          await ensureShopifyOrderForMatch(matchId);
-          orderCreated = true;
-        } catch {
-          orderCreated = false;
-        }
-      }
-
-      if (needsManualShipment) {
-        try {
-          await ensureManualShipmentForMatch(matchId);
-        } catch {
-          // ignore manual shipment failures
-        }
-      }
-
-      try {
-        if (creator.email || creator.phone) {
-          const brandRows = await db
-            .select({ name: brands.name })
-            .from(brands)
-            .where(eq(brands.id, offer.brandId))
-            .limit(1);
-          const brandName = brandRows[0]?.name ?? "Brand";
-
-          const payload = {
-            brandName,
-            offerTitle: offer.title,
-            campaignCode,
-            shareUrl: `${process.env.NEXT_PUBLIC_APP_URL ?? ""}/r/${encodeURIComponent(campaignCode)}`,
-          };
-
-          if (creator.email) {
-            await enqueueNotification({
-              channel: "EMAIL",
-              to: creator.email,
-              type: "creator_approved",
-              payload,
-            });
-          }
-          if (creator.phone && process.env.TWILIO_FROM_NUMBER) {
-            await enqueueNotification({ channel: "SMS", to: creator.phone, type: "creator_approved", payload });
-          }
-          if (creator.phone && process.env.TWILIO_WHATSAPP_FROM) {
-            await enqueueNotification({ channel: "WHATSAPP", to: creator.phone, type: "creator_approved", payload });
-          }
-        }
-      } catch {
-        // ignore
-      }
-    }
 
     return Response.json({
       ok: true,
@@ -564,9 +435,6 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
         status,
         campaignCode,
         shareUrlPath: `/r/${encodeURIComponent(campaignCode)}`,
-        discountCreated,
-        orderCreated,
-        dueAt: dueAtIso,
       },
     });
   } catch (err) {

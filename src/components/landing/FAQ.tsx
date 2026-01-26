@@ -4,7 +4,7 @@ const faqs = [
   {
     question: "How does the barter system work?",
     answer:
-      "Businesses post an offer (usually product-for-content). Creators apply, then get accepted automatically by rules or manually by the business. After fulfillment, creators share to TikTok from Frilpp so the post can be verified and tracked.",
+      "Businesses post an offer (usually product-for-content). Creators apply, then the business approves requests. After fulfillment, creators share to TikTok from Frilpp so the post can be verified and tracked.",
   },
   {
     question: "What happens if an influencer doesn't post?",

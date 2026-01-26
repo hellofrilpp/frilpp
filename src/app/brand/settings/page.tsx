@@ -52,11 +52,6 @@ type Notifications = {
   marketing: boolean;
 };
 
-type AcceptanceSettings = {
-  threshold: number;
-  aboveThresholdAutoAccept: boolean;
-};
-
 type SocialAccount = {
   provider: "TIKTOK" | "YOUTUBE";
   username: string | null;
@@ -103,8 +98,6 @@ export default function BrandSettingsPage() {
     lng: null as number | null,
     logoUrl: "",
   });
-  const [acceptanceThreshold, setAcceptanceThreshold] = useState(2000);
-  const [autoAccept, setAutoAccept] = useState(true);
   const [notifications, setNotifications] = useState<Notifications>({
     newMatch: true,
     contentReceived: true,
@@ -123,13 +116,10 @@ export default function BrandSettingsPage() {
     let cancelled = false;
     (async () => {
       try {
-        const [profileRes, notificationsRes, acceptanceRes, socialRes, billingRes] =
+        const [profileRes, notificationsRes, socialRes, billingRes] =
           await Promise.all([
             fetchJson<{ ok: boolean; profile: BrandProfile }>("/api/brand/profile"),
             fetchJson<{ ok: boolean; notifications: Notifications }>("/api/brand/notifications"),
-            fetchJson<{ ok: boolean; acceptance: AcceptanceSettings }>(
-              "/api/brand/settings/acceptance",
-            ),
             fetchJson<{ ok: boolean; accounts: SocialAccount[] }>("/api/auth/social/accounts"),
             fetchJson<BillingStatus>("/api/billing/status").catch(() => ({
               ok: true,
@@ -155,8 +145,6 @@ export default function BrandSettingsPage() {
           logoUrl: profileData.logoUrl ?? "",
         });
         setNotifications(notificationsRes.notifications);
-        setAcceptanceThreshold(acceptanceRes.acceptance.threshold);
-        setAutoAccept(acceptanceRes.acceptance.aboveThresholdAutoAccept);
         setSocialAccounts(socialRes.accounts ?? []);
         setBilling(billingRes);
       } catch (err) {
@@ -428,34 +416,6 @@ export default function BrandSettingsPage() {
         </div>
       </section>
 
-      <section className="mb-8 border-4 border-border bg-card">
-        <div className="p-4 border-b-4 border-border flex items-center gap-3">
-          <Settings className="w-5 h-5 text-neon-blue" />
-          <h2 className="font-pixel text-sm text-neon-blue">[AUTO_ACCEPT]</h2>
-        </div>
-        <div className="p-6 space-y-4">
-          <div>
-            <Label className="font-mono text-xs">FOLLOWER_THRESHOLD</Label>
-            <Input
-              type="number"
-              min={0}
-              value={acceptanceThreshold}
-              onChange={(event) => setAcceptanceThreshold(Number(event.target.value))}
-              className="mt-2 border-2 border-border font-mono"
-            />
-          </div>
-          <div className="flex items-center justify-between p-4 border-2 border-border">
-            <div>
-              <p className="font-mono text-sm">AUTO_ACCEPT_ABOVE_THRESHOLD</p>
-              <p className="text-xs font-mono text-muted-foreground">
-                If enabled, creators above the threshold auto-approve.
-              </p>
-            </div>
-            <Switch checked={autoAccept} onCheckedChange={setAutoAccept} />
-          </div>
-        </div>
-      </section>
-
       {billingEnabled ? (
         <section className="mb-8 border-4 border-border bg-card">
           <div className="p-4 border-b-4 border-border flex items-center gap-3">
@@ -525,14 +485,6 @@ export default function BrandSettingsPage() {
                 method: "PATCH",
                 headers: { "content-type": "application/json" },
                 body: JSON.stringify(notifications),
-              });
-              await fetchJson("/api/brand/settings/acceptance", {
-                method: "PATCH",
-                headers: { "content-type": "application/json" },
-                body: JSON.stringify({
-                  threshold: acceptanceThreshold,
-                  aboveThresholdAutoAccept: autoAccept,
-                }),
               });
               showNotice("success", "Settings updated.");
             } catch (err) {

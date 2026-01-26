@@ -19,7 +19,7 @@ const benefits = [
   {
     icon: Users,
     title: "CREATOR FIT",
-    description: "Filter by niche and followers — then auto-accept or approve.",
+    description: "Filter by niche and followers — then review applicants.",
     color: "neon-pink",
   },
   {
@@ -38,7 +38,7 @@ const benefits = [
 
 const features = [
   "IG/TikTok-only signup (email optional)",
-  "Local radius + auto-accept threshold",
+  "Local radius + approvals",
   "Pickup / local delivery / shipping",
   "Clicks + redemptions ROI",
   "Verified posting + strike rules",

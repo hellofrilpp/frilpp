@@ -164,9 +164,6 @@ export default function BrandProfileSettingsPage() {
             </p>
           </div>
           <div className="flex gap-2">
-            <Link href="/brand/settings/acceptance">
-              <Button variant="outline">Acceptance</Button>
-            </Link>
             <Link href="/brand/offers">
               <Button variant="outline">Offers</Button>
             </Link>

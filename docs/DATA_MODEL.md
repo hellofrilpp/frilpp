@@ -6,8 +6,7 @@
 - `name`
 - `country_default` (US/IN)
 - `acceptance_followers_threshold`
-- `acceptance_above_threshold = AUTO_ACCEPT`
-- `acceptance_below_threshold = REQUIRE_APPROVAL`
+- `acceptance_above_threshold = REQUIRE_APPROVAL`
 
 ### ShopifyStore
 - `id`, `brand_id`
@@ -35,7 +34,7 @@
 - `countries_allowed` (US/IN)
 - `max_claims`
 - `acceptance_override_followers_threshold?`
-- `acceptance_mode` (INHERIT/AUTO_ACCEPT/REQUIRE_APPROVAL)
+- `acceptance_mode` (REQUIRE_APPROVAL)
 - `deliverable_type` (REELS/FEED/UGC_ONLY)
 - `deliverable_deadline_rule` (days_after_delivery | fixed_date)
 - `requires_caption_code = true`
@@ -77,4 +76,3 @@
 ## Notes
 - Keep `followers_count` cached but refresh periodically.
 - Store raw verification snapshots (media id, caption hash, timestamp) for audit.
-
