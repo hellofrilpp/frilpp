@@ -224,6 +224,18 @@ async function redeemToken(token: string): Promise<RedeemResult> {
     }
   }
 
+  if (nextPath.startsWith("/legal/accept")) {
+    try {
+      const acceptUrl = new URL(nextPath, "http://local");
+      const intended = sanitizeNextPath(acceptUrl.searchParams.get("next"), "/");
+      if (intended.startsWith("/brand/setup")) {
+        nextPath = intended;
+      }
+    } catch {
+      // ignore malformed next path
+    }
+  }
+
   return { ok: true, nextPath };
 }
 

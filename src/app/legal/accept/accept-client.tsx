@@ -70,6 +70,12 @@ export default function AcceptClient() {
   const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
   useEffect(() => {
+    if (nextPath.startsWith("/brand/setup")) {
+      router.replace(nextPath);
+    }
+  }, [nextPath, router]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       setStatus("loading");
