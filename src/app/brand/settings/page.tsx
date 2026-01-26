@@ -8,6 +8,7 @@ import {
   Bell,
   Link as LinkIcon,
   CreditCard,
+  Lock,
   Save,
   Settings,
   Trash2,
@@ -106,6 +107,9 @@ export default function BrandSettingsPage() {
   });
   const [socialAccounts, setSocialAccounts] = useState<SocialAccount[]>([]);
   const [billing, setBilling] = useState<BillingStatus | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   const showNotice = (kind: "success" | "error", text: string) => {
     setNotice({ kind, text });
@@ -178,6 +182,37 @@ export default function BrandSettingsPage() {
       setDeleting(false);
       setDeleteConfirm("");
       setDeleteOpen(false);
+    }
+  };
+
+  const handlePasswordUpdate = async () => {
+    if (!newPassword.trim()) {
+      showNotice("error", "Enter a new password.");
+      return;
+    }
+    if (newPassword.trim().length < 8) {
+      showNotice("error", "Use at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmNewPassword) {
+      showNotice("error", "Passwords do not match.");
+      return;
+    }
+    setUpdatingPassword(true);
+    try {
+      await fetchJson("/api/auth/password/set", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ password: newPassword }),
+      });
+      setNewPassword("");
+      setConfirmNewPassword("");
+      showNotice("success", "Password updated.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Password update failed";
+      showNotice("error", message);
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -449,6 +484,45 @@ export default function BrandSettingsPage() {
           </div>
         </section>
       ) : null}
+
+      <section className="mb-8 border-4 border-border bg-card">
+        <div className="p-4 border-b-4 border-border flex items-center gap-3">
+          <Lock className="w-5 h-5 text-neon-yellow" />
+          <h2 className="font-pixel text-sm text-neon-yellow">[PASSWORD]</h2>
+        </div>
+        <div className="p-6 space-y-4">
+          <div>
+            <Label className="font-mono text-xs">NEW_PASSWORD</Label>
+            <Input
+              type="password"
+              value={newPassword}
+              onChange={(event) => setNewPassword(event.target.value)}
+              className="mt-2 border-2 border-border font-mono"
+              placeholder="••••••••"
+            />
+          </div>
+          <div>
+            <Label className="font-mono text-xs">CONFIRM_PASSWORD</Label>
+            <Input
+              type="password"
+              value={confirmNewPassword}
+              onChange={(event) => setConfirmNewPassword(event.target.value)}
+              className="mt-2 border-2 border-border font-mono"
+              placeholder="••••••••"
+            />
+          </div>
+          <div className="flex justify-end">
+            <Button
+              variant="outline"
+              className="border-2 font-mono text-xs"
+              onClick={handlePasswordUpdate}
+              disabled={updatingPassword}
+            >
+              {updatingPassword ? "UPDATING..." : "UPDATE_PASSWORD"}
+            </Button>
+          </div>
+        </div>
+      </section>
 
       <section className="mb-8 border-4 border-border bg-card">
         <div className="p-4 border-b-4 border-border flex items-center gap-3">

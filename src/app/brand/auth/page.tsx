@@ -66,8 +66,6 @@ export default function BrandAuthPage() {
         body: JSON.stringify({
           email: email.trim(),
           next: "/brand/setup?mode=signup",
-          acceptTerms: true,
-          acceptPrivacy: true,
         }),
       });
       setStep("sent");
@@ -128,8 +126,6 @@ export default function BrandAuthPage() {
         body: JSON.stringify({
           email: email.trim(),
           next: "/brand/setup?mode=reset",
-          acceptTerms: true,
-          acceptPrivacy: true,
         }),
       });
       setStep("sent");
@@ -263,7 +259,7 @@ export default function BrandAuthPage() {
               {step === "sent" ? (
                 <div className="border-2 border-border bg-muted/40 p-4 text-center">
                   <p className="text-xs font-mono text-muted-foreground">
-                    Check your email for a secure link. We’ll take you to set your password and location.
+                    Check your email for a secure link. We’ll take you to set your password.
                   </p>
                 </div>
               ) : null}

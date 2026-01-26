@@ -20,6 +20,11 @@ async function redeemToken(token: string): Promise<RedeemResult> {
   const tokenHash = hashLoginToken(token);
   const now = new Date();
 
+  const jar = await cookies();
+  const storedNextPath = sanitizeNextPath(jar.get("auth_next")?.value ?? null, "/");
+  const isBrandSetupFlow = storedNextPath.startsWith("/brand/setup");
+  const allowAutoLegal = !isBrandSetupFlow;
+
   const tokenRows = await db
     .select()
     .from(loginTokens)
@@ -57,9 +62,8 @@ async function redeemToken(token: string): Promise<RedeemResult> {
     tosAcceptedAt = userRows[0].tosAcceptedAt ?? null;
     privacyAcceptedAt = userRows[0].privacyAcceptedAt ?? null;
 
-    const jar = await cookies();
-    const pendingTos = jar.get("pending_tos")?.value === "1";
-    const pendingPrivacy = jar.get("pending_privacy")?.value === "1";
+    const pendingTos = allowAutoLegal && jar.get("pending_tos")?.value === "1";
+    const pendingPrivacy = allowAutoLegal && jar.get("pending_privacy")?.value === "1";
     const set: Record<string, unknown> = { updatedAt: now };
     if (pendingTos && !tosAcceptedAt) {
       tosAcceptedAt = now;
@@ -71,19 +75,20 @@ async function redeemToken(token: string): Promise<RedeemResult> {
     }
     await db.update(users).set(set).where(eq(users.id, userId));
   } else {
+    const legalAcceptedAt = allowAutoLegal ? now : null;
     userId = crypto.randomUUID();
     await db.insert(users).values({
       id: userId,
       email,
       name: null,
       activeBrandId: null,
-      tosAcceptedAt: now,
-      privacyAcceptedAt: now,
+      tosAcceptedAt: legalAcceptedAt,
+      privacyAcceptedAt: legalAcceptedAt,
       createdAt: now,
       updatedAt: now,
     });
-    tosAcceptedAt = now;
-    privacyAcceptedAt = now;
+    tosAcceptedAt = legalAcceptedAt;
+    privacyAcceptedAt = legalAcceptedAt;
   }
 
   const sessionId = crypto.randomUUID();
@@ -95,7 +100,6 @@ async function redeemToken(token: string): Promise<RedeemResult> {
     createdAt: now,
   });
 
-  const jar = await cookies();
   jar.set(SESSION_COOKIE_NAME, sessionId, {
     httpOnly: true,
     sameSite: "lax",
@@ -183,7 +187,7 @@ async function redeemToken(token: string): Promise<RedeemResult> {
     jar.delete("pending_social_id");
   }
 
-  let nextPath = sanitizeNextPath(jar.get("auth_next")?.value ?? null, "/");
+  let nextPath = storedNextPath;
   jar.delete("auth_next");
   jar.delete("pending_tos");
   jar.delete("pending_privacy");
@@ -215,7 +219,9 @@ async function redeemToken(token: string): Promise<RedeemResult> {
   }
 
   if (!tosAcceptedAt || !privacyAcceptedAt) {
-    nextPath = `/legal/accept?next=${encodeURIComponent(nextPath)}`;
+    if (!nextPath.startsWith("/brand/setup")) {
+      nextPath = `/legal/accept?next=${encodeURIComponent(nextPath)}`;
+    }
   }
 
   return { ok: true, nextPath };

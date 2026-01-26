@@ -16,8 +16,8 @@ export const runtime = "nodejs";
 const bodySchema = z.object({
   email: z.string().email(),
   next: z.string().optional(),
-  acceptTerms: z.boolean(),
-  acceptPrivacy: z.boolean(),
+  acceptTerms: z.boolean().optional().default(false),
+  acceptPrivacy: z.boolean().optional().default(false),
 });
 
 function magicLinkEnabled() {
@@ -42,16 +42,18 @@ export async function POST(request: Request) {
     return Response.json({ ok: false, error: "Invalid request" }, { status: 400 });
   }
 
-  if (!parsed.data.acceptTerms || !parsed.data.acceptPrivacy) {
-    return Response.json({ ok: false, error: "Terms and Privacy must be accepted" }, { status: 400 });
-  }
-
   const email = parsed.data.email.trim().toLowerCase();
   const nextPath = sanitizeNextPath(parsed.data.next, "/");
   const jar = await cookies();
 
   const isBrandFlow = nextPath.startsWith("/brand/");
   const isCreatorFlow = nextPath.startsWith("/influencer/");
+  if (!isBrandFlow && (!parsed.data.acceptTerms || !parsed.data.acceptPrivacy)) {
+    return Response.json(
+      { ok: false, error: "Terms and Privacy must be accepted" },
+      { status: 400 },
+    );
+  }
   if (!magicLinkEnabled() && !isBrandFlow) {
     return Response.json(
       { ok: false, error: "Magic link login is disabled. Continue with TikTok." },
@@ -182,20 +184,22 @@ export async function POST(request: Request) {
     path: "/",
     maxAge: 60 * 10,
   });
-  jar.set("pending_tos", "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 10,
-  });
-  jar.set("pending_privacy", "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 10,
-  });
+  if (parsed.data.acceptTerms && parsed.data.acceptPrivacy) {
+    jar.set("pending_tos", "1", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 10,
+    });
+    jar.set("pending_privacy", "1", {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 10,
+    });
+  }
 
   const html = renderMagicLinkEmail({
     callbackUrl,

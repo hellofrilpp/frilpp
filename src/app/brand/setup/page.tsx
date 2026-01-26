@@ -35,6 +35,8 @@ type AuthMe = {
   user: {
     id: string;
     memberships?: Array<{ brandId: string; role: string; brandName: string | null }>;
+    tosAcceptedAt?: string | null;
+    privacyAcceptedAt?: string | null;
   } | null;
 };
 
@@ -96,6 +98,7 @@ function BrandSetupClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const mode = searchParams.get("mode") || "signup";
+  const isResetMode = mode === "reset";
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -115,6 +118,9 @@ function BrandSetupClient() {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [hasBrand, setHasBrand] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
+  const [acceptTerms, setAcceptTerms] = useState(false);
+  const [acceptPrivacy, setAcceptPrivacy] = useState(false);
 
   const showNotice = (kind: Notice["kind"], text: string) => {
     setNotice({ kind, text });
@@ -132,9 +138,13 @@ function BrandSetupClient() {
           return;
         }
         const membership = Boolean(me.user.memberships?.length);
+        const acceptedLegal = Boolean(me.user.tosAcceptedAt && me.user.privacyAcceptedAt);
         if (cancelled) return;
         setHasBrand(membership);
-        if (membership) {
+        setLegalAccepted(acceptedLegal);
+        setAcceptTerms(acceptedLegal);
+        setAcceptPrivacy(acceptedLegal);
+        if (membership && !isResetMode) {
           const profileRes = await fetchJson<BrandProfileResponse>("/api/brand/profile");
           if (cancelled) return;
           setProfile({
@@ -163,13 +173,14 @@ function BrandSetupClient() {
     return () => {
       cancelled = true;
     };
-  }, [router]);
+  }, [router, isResetMode]);
 
   const locationReady = useMemo(() => profile.lat !== null && profile.lng !== null, [
     profile.lat,
     profile.lng,
   ]);
-  const needsLocation = !locationReady;
+  const needsLocation = !isResetMode && !locationReady;
+  const needsLegal = !legalAccepted;
 
   const handleSave = async () => {
     if (saving) return;
@@ -181,7 +192,11 @@ function BrandSetupClient() {
       showNotice("error", "Passwords do not match.");
       return;
     }
-    if (!hasBrand && !brandName.trim()) {
+    if (needsLegal && (!acceptTerms || !acceptPrivacy)) {
+      showNotice("error", "Accept Terms and Privacy to continue.");
+      return;
+    }
+    if (!isResetMode && !hasBrand && !brandName.trim()) {
       showNotice("error", "Enter your brand name.");
       return;
     }
@@ -192,29 +207,40 @@ function BrandSetupClient() {
 
     setSaving(true);
     try {
-      if (!hasBrand) {
-        await fetchJson("/api/onboarding/brand", {
+      if (needsLegal && acceptTerms && acceptPrivacy) {
+        await fetchJson("/api/legal/accept", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: brandName.trim() }),
+          body: JSON.stringify({ acceptTerms: true, acceptPrivacy: true }),
         });
+        setLegalAccepted(true);
       }
 
-      await fetchJson("/api/brand/profile", {
-        method: "PATCH",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          name: hasBrand ? profile.name || undefined : brandName.trim(),
-          location: profile.location || undefined,
-          address1: profile.address1 || undefined,
-          address2: profile.address2 || undefined,
-          city: profile.city || undefined,
-          province: profile.province || undefined,
-          zip: profile.zip || undefined,
-          lat: profile.lat ?? null,
-          lng: profile.lng ?? null,
-        }),
-      });
+      if (!isResetMode) {
+        if (!hasBrand) {
+          await fetchJson("/api/onboarding/brand", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ name: brandName.trim() }),
+          });
+        }
+
+        await fetchJson("/api/brand/profile", {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            name: hasBrand ? profile.name || undefined : brandName.trim(),
+            location: profile.location || undefined,
+            address1: profile.address1 || undefined,
+            address2: profile.address2 || undefined,
+            city: profile.city || undefined,
+            province: profile.province || undefined,
+            zip: profile.zip || undefined,
+            lat: profile.lat ?? null,
+            lng: profile.lng ?? null,
+          }),
+        });
+      }
 
       await fetchJson("/api/auth/password/set", {
         method: "POST",
@@ -222,7 +248,7 @@ function BrandSetupClient() {
         body: JSON.stringify({ password }),
       });
 
-      showNotice("success", "Welcome to Frilpp.");
+      showNotice("success", isResetMode ? "Password updated." : "Welcome to Frilpp.");
       router.push("/brand/dashboard");
     } catch (err) {
       const apiErr = err as ApiError;
@@ -257,8 +283,8 @@ function BrandSetupClient() {
           </h1>
           <p className="font-mono text-sm text-muted-foreground mt-1">
             {mode === "reset"
-              ? "Set a new password and confirm your location."
-              : "Create a password and confirm your location to launch campaigns."}
+              ? "Set a new password to continue."
+              : "Create a password, accept terms, and confirm your location to launch campaigns."}
           </p>
         </div>
 
@@ -274,107 +300,113 @@ function BrandSetupClient() {
           </div>
         ) : null}
 
-        <Card className="mb-6 border-4 border-neon-green">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Building2 className="w-4 h-4 text-neon-green" /> Brand details
-            </CardTitle>
-            <CardDescription>We use this for local matching and delivery routing.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {!hasBrand ? (
-              <div className="space-y-4">
+        {!isResetMode ? (
+          <Card className="mb-6 border-4 border-neon-green">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Building2 className="w-4 h-4 text-neon-green" /> Brand details
+              </CardTitle>
+              <CardDescription>We use this for local matching and delivery routing.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {!hasBrand ? (
+                <div className="space-y-4">
+                  <div>
+                    <Label className="font-mono text-xs">BRAND NAME</Label>
+                    <Input
+                      value={brandName}
+                      onChange={(event) => setBrandName(event.target.value)}
+                      className="mt-2 border-2 border-border font-mono"
+                      placeholder="Awesome Brand Inc."
+                    />
+                  </div>
+                </div>
+              ) : null}
+
+              <LocationPicker
+                label="Address"
+                showUseMyLocation={false}
+                onSelect={(location) =>
+                  setProfile((prev) => ({
+                    ...prev,
+                    location: location.label,
+                    address1: location.address1,
+                    city: location.city,
+                    province: location.province,
+                    zip: location.zip,
+                    lat: location.lat,
+                    lng: location.lng,
+                  }))
+                }
+              />
+
+              <div className="grid md:grid-cols-2 gap-4">
                 <div>
-                  <Label className="font-mono text-xs">BRAND NAME</Label>
+                  <Label className="font-mono text-xs">ADDRESS LINE 1</Label>
                   <Input
-                    value={brandName}
-                    onChange={(event) => setBrandName(event.target.value)}
+                    value={profile.address1}
+                    onChange={(event) =>
+                      setProfile((prev) => ({ ...prev, address1: event.target.value }))
+                    }
                     className="mt-2 border-2 border-border font-mono"
-                    placeholder="Awesome Brand Inc."
+                  />
+                </div>
+                <div>
+                  <Label className="font-mono text-xs">ADDRESS LINE 2</Label>
+                  <Input
+                    value={profile.address2}
+                    onChange={(event) =>
+                      setProfile((prev) => ({ ...prev, address2: event.target.value }))
+                    }
+                    className="mt-2 border-2 border-border font-mono"
                   />
                 </div>
               </div>
-            ) : null}
 
-            <LocationPicker
-              label="Address"
-              showUseMyLocation={false}
-              onSelect={(location) =>
-                setProfile((prev) => ({
-                  ...prev,
-                  location: location.label,
-                  address1: location.address1,
-                  city: location.city,
-                  province: location.province,
-                  zip: location.zip,
-                  lat: location.lat,
-                  lng: location.lng,
-                }))
-              }
-            />
+              <div className="grid md:grid-cols-3 gap-4">
+                <div>
+                  <Label className="font-mono text-xs">CITY</Label>
+                  <Input
+                    value={profile.city}
+                    onChange={(event) =>
+                      setProfile((prev) => ({ ...prev, city: event.target.value }))
+                    }
+                    className="mt-2 border-2 border-border font-mono"
+                  />
+                </div>
+                <div>
+                  <Label className="font-mono text-xs">STATE</Label>
+                  <Input
+                    value={profile.province}
+                    onChange={(event) =>
+                      setProfile((prev) => ({ ...prev, province: event.target.value }))
+                    }
+                    className="mt-2 border-2 border-border font-mono"
+                  />
+                </div>
+                <div>
+                  <Label className="font-mono text-xs">ZIP</Label>
+                  <Input
+                    value={profile.zip}
+                    onChange={(event) =>
+                      setProfile((prev) => ({ ...prev, zip: event.target.value }))
+                    }
+                    className="mt-2 border-2 border-border font-mono"
+                  />
+                </div>
+              </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
-              <div>
-                <Label className="font-mono text-xs">ADDRESS LINE 1</Label>
-                <Input
-                  value={profile.address1}
-                  onChange={(event) =>
-                    setProfile((prev) => ({ ...prev, address1: event.target.value }))
-                  }
-                  className="mt-2 border-2 border-border font-mono"
-                />
+              <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                {locationReady ? "Location locked." : "Pick a location to enable radius matching."}
               </div>
-              <div>
-                <Label className="font-mono text-xs">ADDRESS LINE 2</Label>
-                <Input
-                  value={profile.address2}
-                  onChange={(event) =>
-                    setProfile((prev) => ({ ...prev, address2: event.target.value }))
-                  }
-                  className="mt-2 border-2 border-border font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-4">
-              <div>
-                <Label className="font-mono text-xs">CITY</Label>
-                <Input
-                  value={profile.city}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, city: event.target.value }))}
-                  className="mt-2 border-2 border-border font-mono"
-                />
-              </div>
-              <div>
-                <Label className="font-mono text-xs">STATE</Label>
-                <Input
-                  value={profile.province}
-                  onChange={(event) =>
-                    setProfile((prev) => ({ ...prev, province: event.target.value }))
-                  }
-                  className="mt-2 border-2 border-border font-mono"
-                />
-              </div>
-              <div>
-                <Label className="font-mono text-xs">ZIP</Label>
-                <Input
-                  value={profile.zip}
-                  onChange={(event) => setProfile((prev) => ({ ...prev, zip: event.target.value }))}
-                  className="mt-2 border-2 border-border font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-xs font-mono text-muted-foreground">
-              <MapPin className="w-4 h-4" />
-              {locationReady ? "Location locked." : "Pick a location to enable radius matching."}
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        ) : null}
 
         <Card className="border-4 border-neon-yellow">
           <CardHeader>
-            <CardTitle>Password</CardTitle>
+            <CardTitle>{isResetMode ? "Set password" : "Password"}</CardTitle>
             <CardDescription>Use at least 8 characters.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -401,13 +433,54 @@ function BrandSetupClient() {
           </CardContent>
         </Card>
 
+        {needsLegal ? (
+          <Card className="mt-6 border-4 border-neon-pink">
+            <CardHeader>
+              <CardTitle>Agreements</CardTitle>
+              <CardDescription>Accept Terms and Privacy to continue.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <label className="flex items-start gap-3 border-2 border-border bg-card/60 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={acceptTerms}
+                  onChange={(event) => setAcceptTerms(event.target.checked)}
+                  className="mt-1 h-4 w-4 accent-neon-pink"
+                />
+                <span className="text-xs font-mono text-muted-foreground">
+                  I agree to the{" "}
+                  <a href="/legal/terms" className="text-neon-pink hover:underline">
+                    Terms of Service
+                  </a>
+                  .
+                </span>
+              </label>
+              <label className="flex items-start gap-3 border-2 border-border bg-card/60 px-4 py-3">
+                <input
+                  type="checkbox"
+                  checked={acceptPrivacy}
+                  onChange={(event) => setAcceptPrivacy(event.target.checked)}
+                  className="mt-1 h-4 w-4 accent-neon-pink"
+                />
+                <span className="text-xs font-mono text-muted-foreground">
+                  I agree to the{" "}
+                  <a href="/legal/privacy" className="text-neon-pink hover:underline">
+                    Privacy Policy
+                  </a>
+                  .
+                </span>
+              </label>
+            </CardContent>
+          </Card>
+        ) : null}
+
         <div className="mt-6 flex justify-end">
           <Button
             onClick={handleSave}
             disabled={saving}
             className="bg-neon-green text-background font-pixel pixel-btn"
           >
-            {saving ? "SAVING..." : "FINISH SETUP"}
+            {saving ? "SAVING..." : isResetMode ? "CONTINUE" : "FINISH SETUP"}
           </Button>
         </div>
       </main>
