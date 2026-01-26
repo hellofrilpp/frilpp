@@ -97,7 +97,10 @@ export default function CreatorDeliverablesPage() {
     setOrigin(window.location.origin);
   }, []);
 
-  const dueCount = useMemo(() => rows.filter((r) => r.status === "DUE").length, [rows]);
+  const dueCount = useMemo(
+    () => rows.filter((r) => r.status === "DUE" || r.status === "REPOST_REQUIRED").length,
+    [rows],
+  );
 
   async function submit(matchId: string) {
     setMessage(null);
@@ -187,8 +190,18 @@ export default function CreatorDeliverablesPage() {
                         <div className="text-sm font-semibold text-balance">{r.offer.title}</div>
                         <div className="mt-1 text-xs text-muted-foreground">{r.brand.name}</div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge variant={r.status === "VERIFIED" ? "success" : r.status === "FAILED" ? "danger" : "outline"}>
-                            {r.status}
+                          <Badge
+                            variant={
+                              r.status === "VERIFIED"
+                                ? "success"
+                                : r.status === "FAILED"
+                                  ? "danger"
+                                  : r.status === "REPOST_REQUIRED"
+                                    ? "warning"
+                                    : "outline"
+                            }
+                          >
+                            {r.status === "REPOST_REQUIRED" ? "RE-POST REQUIRED" : r.status}
                           </Badge>
                           <Badge variant="secondary">Type: {r.expectedType}</Badge>
                           <Badge variant="secondary">Code: {r.match.campaignCode}</Badge>
@@ -246,6 +259,11 @@ export default function CreatorDeliverablesPage() {
                         {r.failureReason ? (
                           <div className="mt-3 text-sm text-danger">{r.failureReason}</div>
                         ) : null}
+                        {r.status === "REPOST_REQUIRED" && r.reviews?.length ? (
+                          <div className="mt-3 rounded-lg border border-warning/30 bg-warning/10 p-3 text-xs text-warning">
+                            {r.reviews[0]?.reason ?? "Changes requested by brand."}
+                          </div>
+                        ) : null}
                         {r.reviews?.length ? (
                           <div className="mt-3 text-xs text-muted-foreground">
                             <div className="font-semibold text-foreground">History</div>
@@ -267,7 +285,7 @@ export default function CreatorDeliverablesPage() {
                         ) : null}
                       </div>
 
-                        {r.status === "DUE" ? (
+                        {r.status === "DUE" || r.status === "REPOST_REQUIRED" ? (
                           <div className="w-full max-w-md rounded-lg border bg-muted p-3">
                             <Label htmlFor={`permalink-${r.match.id}`} className="text-xs">
                               {r.expectedType === "UGC_ONLY"
@@ -343,7 +361,7 @@ export default function CreatorDeliverablesPage() {
                                   (r.offer.usageRightsRequired && !rightsByMatchId[r.match.id])
                                 }
                               >
-                                Submit
+                                {r.status === "REPOST_REQUIRED" ? "Re-submit" : "Submit"}
                               </Button>
                             </div>
                           </div>

@@ -7,7 +7,7 @@ import { requireBrandContext } from "@/lib/auth";
 export const runtime = "nodejs";
 
 const querySchema = z.object({
-  status: z.enum(["DUE", "VERIFIED", "FAILED"]).optional(),
+  status: z.enum(["DUE", "VERIFIED", "FAILED", "REPOST_REQUIRED"]).optional(),
 });
 
 export async function GET(request: Request) {
@@ -28,6 +28,10 @@ export async function GET(request: Request) {
   }
 
   const status = parsed.data.status ?? "DUE";
+  const statusFilter =
+    status === "DUE"
+      ? inArray(deliverables.status, ["DUE", "REPOST_REQUIRED"])
+      : eq(deliverables.status, status);
 
   const rows = await db
     .select({
@@ -58,7 +62,7 @@ export async function GET(request: Request) {
     .innerJoin(matches, eq(matches.id, deliverables.matchId))
     .innerJoin(offers, eq(offers.id, matches.offerId))
     .innerJoin(creators, eq(creators.id, matches.creatorId))
-    .where(and(eq(offers.brandId, ctx.brandId), eq(deliverables.status, status)))
+    .where(and(eq(offers.brandId, ctx.brandId), statusFilter))
     .orderBy(desc(deliverables.dueAt))
     .limit(100);
 

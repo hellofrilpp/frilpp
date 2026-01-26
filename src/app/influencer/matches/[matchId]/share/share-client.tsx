@@ -155,8 +155,20 @@ export default function ShareKitClient(props: { matchId: string }) {
                   <Badge variant="secondary">Link: /r/{kit.match.campaignCode}</Badge>
                   {dueLabel ? <Badge>Due: {dueLabel}</Badge> : null}
                   {kit.deliverable?.status ? (
-                    <Badge variant={kit.deliverable.status === "VERIFIED" ? "success" : "outline"}>
-                      {kit.deliverable.status}
+                    <Badge
+                      variant={
+                        kit.deliverable.status === "VERIFIED"
+                          ? "success"
+                          : kit.deliverable.status === "REPOST_REQUIRED"
+                            ? "warning"
+                            : kit.deliverable.status === "FAILED"
+                              ? "danger"
+                              : "outline"
+                      }
+                    >
+                      {kit.deliverable.status === "REPOST_REQUIRED"
+                        ? "RE-POST REQUIRED"
+                        : kit.deliverable.status}
                     </Badge>
                   ) : null}
                   <Badge variant="secondary">Fulfillment: {fulfillmentLabel(kit)}</Badge>

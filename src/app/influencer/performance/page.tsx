@@ -189,10 +189,14 @@ export default function CreatorPerformancePage() {
                                   ? "success"
                                   : match.deliverable.status === "FAILED"
                                     ? "danger"
-                                    : "outline"
+                                    : match.deliverable.status === "REPOST_REQUIRED"
+                                      ? "warning"
+                                      : "outline"
                               }
                             >
-                              {match.deliverable.status}
+                              {match.deliverable.status === "REPOST_REQUIRED"
+                                ? "RE-POST REQUIRED"
+                                : match.deliverable.status}
                             </Badge>
                           ) : null}
                         </div>

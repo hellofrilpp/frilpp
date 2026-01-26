@@ -44,6 +44,7 @@ export const deliverableStatusEnum = pgEnum("deliverable_status", [
   "DUE",
   "VERIFIED",
   "FAILED",
+  "REPOST_REQUIRED",
 ]);
 
 export const deliverableReviewActionEnum = pgEnum("deliverable_review_action", [

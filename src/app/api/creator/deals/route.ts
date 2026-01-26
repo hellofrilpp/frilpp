@@ -9,13 +9,14 @@ function mapDealStatus(params: {
   matchStatus: "PENDING_APPROVAL" | "ACCEPTED" | "REVOKED" | "CANCELED" | "CLAIMED";
   orderStatus: string | null;
   manualStatus: string | null;
-  deliverableStatus: "DUE" | "VERIFIED" | "FAILED" | null;
+  deliverableStatus: "DUE" | "VERIFIED" | "FAILED" | "REPOST_REQUIRED" | null;
   submittedAt: Date | null;
 }) {
   if (params.matchStatus === "PENDING_APPROVAL") return "pending";
   if (params.matchStatus !== "ACCEPTED") return "pending";
 
   if (params.deliverableStatus === "VERIFIED") return "complete";
+  if (params.deliverableStatus === "REPOST_REQUIRED") return "repost_required";
   if (params.submittedAt) return "posted";
 
   const shippedStatuses = new Set(["DRAFT_CREATED", "COMPLETED", "FULFILLED"]);

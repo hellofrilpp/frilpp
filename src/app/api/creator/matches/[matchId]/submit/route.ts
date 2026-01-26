@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
 import { deliverables, matches, offers } from "@/db/schema";
@@ -50,7 +50,7 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
   if (row.matchStatus !== "ACCEPTED") {
     return Response.json({ ok: false, error: "Match is not active" }, { status: 409 });
   }
-  if (row.deliverableStatus !== "DUE") {
+  if (row.deliverableStatus !== "DUE" && row.deliverableStatus !== "REPOST_REQUIRED") {
     return Response.json({ ok: false, error: "Deliverable already processed" }, { status: 409 });
   }
 
@@ -60,6 +60,7 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
   }
 
   const update: Record<string, unknown> = {
+    status: "DUE",
     submittedPermalink: parsed.data.url,
     submittedNotes: parsed.data.notes ?? null,
     submittedAt: now,
@@ -74,7 +75,9 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
   const updated = await db
     .update(deliverables)
     .set(update)
-    .where(and(eq(deliverables.matchId, matchId), eq(deliverables.status, "DUE")))
+    .where(
+      and(eq(deliverables.matchId, matchId), inArray(deliverables.status, ["DUE", "REPOST_REQUIRED"])),
+    )
     .returning({ id: deliverables.id });
 
   if (!updated[0]) {

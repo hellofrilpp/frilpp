@@ -55,7 +55,7 @@ export async function POST(request: Request, context: { params: Promise<{ delive
     await tx
       .update(deliverables)
       .set({
-        status: "DUE",
+        status: "REPOST_REQUIRED",
         submittedPermalink: null,
         submittedNotes: null,
         submittedAt: null,

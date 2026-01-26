@@ -200,8 +200,18 @@ export default function BrandDeliverablesPage() {
                           · Code: <span className="font-mono text-foreground">{r.match.campaignCode}</span>
                         </div>
                         <div className="mt-3 flex flex-wrap gap-2">
-                          <Badge variant={r.status === "VERIFIED" ? "success" : r.status === "FAILED" ? "danger" : "outline"}>
-                            {r.status}
+                          <Badge
+                            variant={
+                              r.status === "VERIFIED"
+                                ? "success"
+                                : r.status === "FAILED"
+                                  ? "danger"
+                                  : r.status === "REPOST_REQUIRED"
+                                    ? "warning"
+                                    : "outline"
+                            }
+                          >
+                            {r.status === "REPOST_REQUIRED" ? "RE-POST REQUIRED" : r.status}
                           </Badge>
                           <Badge variant="secondary">Type: {r.expectedType}</Badge>
                           <Badge variant="secondary">

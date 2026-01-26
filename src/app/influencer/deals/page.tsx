@@ -18,7 +18,14 @@ import InfluencerLayout from "@/components/influencer/InfluencerLayout";
 
 type ApiError = Error & { status?: number; code?: string };
 
-type DealStatus = "pending" | "approved" | "shipped" | "post_required" | "posted" | "complete";
+type DealStatus =
+  | "pending"
+  | "approved"
+  | "shipped"
+  | "post_required"
+  | "repost_required"
+  | "posted"
+  | "complete";
 
 type Deal = {
   id: string;
@@ -87,6 +94,7 @@ const statusConfig: Record<DealStatus, { label: string; icon: React.ElementType;
   approved: { label: "APPROVED", icon: CheckCircle, color: "border-neon-blue text-neon-blue" },
   shipped: { label: "SHIPPED", icon: Truck, color: "border-neon-yellow text-neon-yellow bg-neon-yellow/10" },
   post_required: { label: "POST NOW", icon: Camera, color: "bg-neon-pink text-background" },
+  repost_required: { label: "RE-POST REQUIRED", icon: Camera, color: "bg-neon-yellow text-background" },
   posted: { label: "POSTED", icon: Camera, color: "border-neon-pink text-neon-pink" },
   complete: { label: "COMPLETE", icon: Star, color: "bg-neon-green text-background" },
 };
@@ -175,7 +183,12 @@ export default function InfluencerDealsPage() {
       : filter === "approved"
         ? deals.filter((deal) => deal.status === "approved")
         : filter === "shipped"
-          ? deals.filter((deal) => deal.status === "shipped" || deal.status === "post_required")
+          ? deals.filter(
+              (deal) =>
+                deal.status === "shipped" ||
+                deal.status === "post_required" ||
+                deal.status === "repost_required",
+            )
           : deals.filter((deal) => deal.status === filter);
 
   const activeDeals = deals.filter((deal) => deal.status !== "complete").length;
@@ -218,7 +231,7 @@ export default function InfluencerDealsPage() {
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
-          {(["all", "pending", "approved", "shipped", "posted", "complete"] as const).map(
+          {(["all", "pending", "approved", "shipped", "repost_required", "posted", "complete"] as const).map(
             (status) => (
               <Button
                 key={status}
@@ -316,13 +329,18 @@ export default function InfluencerDealsPage() {
                         </div>
                       ) : null}
 
-                      {(deal.status === "shipped" || deal.status === "post_required") && deal.deadline ? (
+                      {(deal.status === "shipped" ||
+                        deal.status === "post_required" ||
+                        deal.status === "repost_required") &&
+                      deal.deadline ? (
                         <div className="mt-3 flex items-center gap-2 text-neon-pink">
                           <Camera className="w-4 h-4" />
                           <span className="text-xs font-mono">DUE: {deal.deadline}</span>
                         </div>
                       ) : null}
-                      {(deal.status === "post_required" || deal.status === "posted") &&
+                      {(deal.status === "post_required" ||
+                        deal.status === "repost_required" ||
+                        deal.status === "posted") &&
                       deliverableByMatch.get(deal.id)?.submittedAt ? (
                         <div className="mt-3 text-xs font-mono text-neon-green">
                           SUBMITTED · Awaiting review
@@ -333,7 +351,9 @@ export default function InfluencerDealsPage() {
                     <ChevronRight className="w-5 h-5 text-muted-foreground flex-shrink-0" />
                   </div>
 
-                  {(deal.status === "shipped" || deal.status === "post_required") && (
+                  {(deal.status === "shipped" ||
+                    deal.status === "post_required" ||
+                    deal.status === "repost_required") && (
                     <div className="px-4 pb-4">
                       <Button
                         className="w-full bg-neon-pink text-background font-pixel text-xs pixel-btn glow-pink"
@@ -349,7 +369,11 @@ export default function InfluencerDealsPage() {
                         }}
                       >
                         <Camera className="w-4 h-4 mr-2" />
-                        {deliverableByMatch.get(deal.id)?.submittedAt ? "SUBMITTED" : "SUBMIT CONTENT"}
+                        {deliverableByMatch.get(deal.id)?.submittedAt
+                          ? "SUBMITTED"
+                          : deal.status === "repost_required"
+                            ? "RE-SUBMIT CONTENT"
+                            : "SUBMIT CONTENT"}
                       </Button>
                     </div>
                   )}
