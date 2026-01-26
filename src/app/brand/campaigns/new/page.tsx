@@ -1136,20 +1136,26 @@ function BrandCampaignCreatorContent() {
                           aria-pressed={formData.presetId === preset.id}
                           data-selected={formData.presetId === preset.id ? "true" : "false"}
                           onClick={() => applyPreset(preset)}
-                          className={`relative p-4 border-2 text-left transition-all pixel-btn cursor-pointer ${
+                          className={`p-4 border-2 text-left transition-all pixel-btn cursor-pointer ${
                             formData.presetId === preset.id
-                              ? "border-neon-yellow bg-neon-yellow/25 ring-2 ring-neon-yellow/40"
+                              ? "border-neon-yellow bg-neon-yellow text-background"
                               : "border-border hover:border-neon-yellow"
                           }`}
                         >
-                          {formData.presetId === preset.id ? (
-                            <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-neon-yellow/50 bg-neon-yellow/15 px-2 py-1 text-[10px] font-mono text-neon-yellow">
-                              <Check className="h-3 w-3" />
-                              SELECTED
-                            </span>
-                          ) : null}
-                          <p className="font-pixel text-xs text-neon-yellow">{preset.label}</p>
-                          <p className="font-mono text-xs text-muted-foreground mt-1">{preset.description}</p>
+                          <p
+                            className={`font-pixel text-xs ${
+                              formData.presetId === preset.id ? "text-background" : "text-neon-yellow"
+                            }`}
+                          >
+                            {preset.label}
+                          </p>
+                          <p
+                            className={`font-mono text-xs mt-1 ${
+                              formData.presetId === preset.id ? "text-background/80" : "text-muted-foreground"
+                            }`}
+                          >
+                            {preset.description}
+                          </p>
                         </button>
                       ))}
                     </div>
@@ -1170,27 +1176,33 @@ function BrandCampaignCreatorContent() {
                             aria-pressed={isActive}
                             data-active={isActive ? "true" : "false"}
                             onClick={enabled ? () => toggleArrayField("platforms", platform.id) : undefined}
-                            className={`relative p-4 border-2 text-center transition-all pixel-btn ${
+                            className={`p-4 border-2 text-center transition-all pixel-btn ${
                               enabled
                                 ? isActive
-                                  ? "border-neon-pink bg-neon-pink/25 ring-2 ring-neon-pink/40 cursor-pointer"
+                                  ? "border-neon-pink bg-neon-pink text-background cursor-pointer"
                                   : "border-border hover:border-neon-pink cursor-pointer"
                                 : "border-border bg-muted/40 text-muted-foreground opacity-60 cursor-not-allowed"
                             }`}
                           >
-                            {isActive ? (
-                              <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-neon-pink/50 bg-neon-pink/15 px-2 py-1 text-[10px] font-mono text-neon-pink">
-                                <Check className="h-3 w-3" />
-                                SELECTED
-                              </span>
-                            ) : null}
                             <span className="mb-2 flex items-center justify-center">
                               <PlatformIcon
                                 id={platform.id}
-                                className={enabled ? "text-foreground" : "text-muted-foreground"}
+                                className={
+                                  enabled
+                                    ? isActive
+                                      ? "text-background"
+                                      : "text-foreground"
+                                    : "text-muted-foreground"
+                                }
                               />
                             </span>
-                            <span className="font-mono text-xs">{platform.label}</span>
+                            <span
+                              className={`font-mono text-xs ${
+                                enabled && isActive ? "text-background" : ""
+                              }`}
+                            >
+                              {platform.label}
+                            </span>
                             {!enabled ? (
                               <span className="mt-1 block font-mono text-[10px] text-muted-foreground">COMING SOON</span>
                             ) : null}
@@ -1209,20 +1221,26 @@ function BrandCampaignCreatorContent() {
                         key={type.id}
                         type="button"
                         onClick={() => toggleArrayField("contentTypes", type.id)}
-                        className={`relative p-4 border-2 flex items-center justify-between transition-all pixel-btn cursor-pointer ${
+                        className={`p-4 border-2 flex items-center justify-between transition-all pixel-btn cursor-pointer ${
                           formData.contentTypes.includes(type.id)
-                            ? "border-neon-green bg-neon-green/20 ring-2 ring-neon-green/40"
+                            ? "border-neon-green bg-neon-green text-background"
                             : "border-border hover:border-neon-green"
                         }`}
                       >
-                        {formData.contentTypes.includes(type.id) ? (
-                          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-neon-green/50 bg-neon-green/15 px-2 py-1 text-[10px] font-mono text-neon-green">
-                            <Check className="h-3 w-3" />
-                            SELECTED
-                          </span>
-                        ) : null}
-                        <span className="font-mono text-sm">{type.label}</span>
-                        <span className="font-pixel text-xs text-neon-yellow">+{contentTypeXp[type.id] ?? 0}XP</span>
+                        <span
+                          className={`font-mono text-sm ${
+                            formData.contentTypes.includes(type.id) ? "text-background" : ""
+                          }`}
+                        >
+                          {type.label}
+                        </span>
+                        <span
+                          className={`font-pixel text-xs ${
+                            formData.contentTypes.includes(type.id) ? "text-background/90" : "text-neon-yellow"
+                          }`}
+                        >
+                          +{contentTypeXp[type.id] ?? 0}XP
+                        </span>
                       </button>
                     ))}
                   </div>
