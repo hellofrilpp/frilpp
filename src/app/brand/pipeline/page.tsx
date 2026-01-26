@@ -13,6 +13,7 @@ import {
   Camera,
   Star,
   Users,
+  AlertTriangle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,7 +27,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-type Stage = "applied" | "approved" | "shipped" | "posted" | "complete";
+type Stage = "applied" | "approved" | "shipped" | "posted" | "repost_required" | "complete";
 
 type BrandMatch = {
   matchId: string;
@@ -114,6 +115,12 @@ const stages: { key: Stage; label: string; icon: React.ElementType; color: strin
   { key: "approved", label: "APPROVED", icon: CheckCircle, color: "border-neon-blue" },
   { key: "shipped", label: "SHIPPED", icon: Truck, color: "border-neon-yellow" },
   { key: "posted", label: "POSTED", icon: Camera, color: "border-neon-pink" },
+  {
+    key: "repost_required",
+    label: "RE-POST REQUIRED",
+    icon: AlertTriangle,
+    color: "border-neon-yellow bg-neon-yellow/10",
+  },
   { key: "complete", label: "COMPLETE", icon: Star, color: "border-neon-green bg-neon-green/10" },
 ];
 
@@ -364,7 +371,7 @@ export default function BrandPipelinePage() {
           offerIdByMatch.get(deliverable.match.id) ??
             offerIdByTitle.get(deliverable.offer.title) ??
             null,
-          "posted",
+          deliverable.status === "REPOST_REQUIRED" ? "repost_required" : "posted",
           null,
           null,
         ),
@@ -463,6 +470,11 @@ export default function BrandPipelinePage() {
 
   const handleDrop = (stage: Stage) => {
     if (!draggedInfluencer) return;
+    if (stage === "repost_required") {
+      showNotice("info", "Re-post required is set when you request changes.");
+      setDraggedInfluencer(null);
+      return;
+    }
     if (stage === "approved") {
       setInfluencersList((prev) =>
         prev.map((inf) => (inf.id === draggedInfluencer.id ? { ...inf, stage } : inf)),
@@ -708,7 +720,8 @@ export default function BrandPipelinePage() {
                       {influencer.campaign}
                     </div>
 
-                    {influencer.stage === "posted" && deliverableByMatch.has(influencer.id) ? (
+                    {(influencer.stage === "posted" || influencer.stage === "repost_required") &&
+                    deliverableByMatch.has(influencer.id) ? (
                       <div className="mt-3 space-y-2 text-xs font-mono">
                         {(() => {
                           const deliverable = deliverableByMatch.get(influencer.id);
