@@ -126,7 +126,7 @@ const initialFormData: CampaignFormData = {
   fulfillmentType: "MANUAL",
   manualFulfillmentMethod: "PICKUP",
   manualFulfillmentNotes: "",
-  platforms: [],
+  platforms: ["TIKTOK"],
   platformOther: "",
   contentTypes: [],
   contentTypeOther: "",
@@ -1159,17 +1159,22 @@ function BrandCampaignCreatorContent() {
                             key={platform.id}
                             type="button"
                             disabled={!enabled}
+                            aria-pressed={isActive}
+                            data-active={isActive ? "true" : "false"}
                             onClick={enabled ? () => toggleArrayField("platforms", platform.id) : undefined}
                             className={`p-4 border-2 text-center transition-all pixel-btn ${
                               enabled
                                 ? isActive
-                                  ? "border-neon-pink bg-neon-pink/20 cursor-pointer"
+                                  ? "border-neon-pink bg-neon-pink/25 ring-2 ring-neon-pink/40 cursor-pointer"
                                   : "border-border hover:border-neon-pink cursor-pointer"
                                 : "border-border bg-muted/40 text-muted-foreground opacity-60 cursor-not-allowed"
                             }`}
                           >
                             <span className="mb-2 flex items-center justify-center">
-                              <PlatformIcon id={platform.id} />
+                              <PlatformIcon
+                                id={platform.id}
+                                className={enabled ? "text-foreground" : "text-muted-foreground"}
+                              />
                             </span>
                             <span className="font-mono text-xs">{platform.label}</span>
                             {!enabled ? (
