@@ -655,7 +655,7 @@ export default function BrandPipelinePage() {
       </div>
 
       <div className="pb-6">
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
           {stages.map((stage) => (
             <div
               key={stage.key}
@@ -665,17 +665,17 @@ export default function BrandPipelinePage() {
             >
               <button
                 type="button"
-                className={`w-full text-left p-4 border-4 ${stage.color} mb-4 bg-card ${
+                className={`w-full text-left p-3 border-4 ${stage.color} mb-3 bg-card ${
                   stageFilter === stage.key ? "ring-2 ring-primary/60" : ""
                 }`}
                 onClick={() => setStageFilter((prev) => (prev === stage.key ? "all" : stage.key))}
               >
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <stage.icon className="w-4 h-4" />
-                    <span className="text-xs font-pixel">{stage.label}</span>
+                    <stage.icon className="w-3.5 h-3.5" />
+                    <span className="text-[10px] font-pixel">{stage.label}</span>
                   </div>
-                  <span className="text-xs font-mono text-muted-foreground px-2 py-1 bg-muted">
+                  <span className="text-[10px] font-mono text-muted-foreground px-2 py-0.5 bg-muted">
                     {filteredInfluencers.filter((inf) => inf.stage === stage.key).length}
                   </span>
                 </div>
