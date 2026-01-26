@@ -388,7 +388,7 @@ export default function BrandLayout({ children }: BrandLayoutProps) {
           })}
         </nav>
 
-        <div className="mt-auto p-3 border-t-4 border-border">
+        <div className="p-3 border-t-4 border-border">
           <div className={cn("flex items-center gap-3 p-2", !sidebarOpen && "justify-center")}>
             <div className="w-10 h-10 bg-neon-green text-background flex items-center justify-center text-xs font-pixel">
               {brandInitials || "BR"}
