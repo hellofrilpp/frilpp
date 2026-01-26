@@ -1381,7 +1381,7 @@ function BrandCampaignCreatorContent() {
                         onClick={() => toggleArrayField("niches", cat.id)}
                         className={`px-3 py-2 border-2 text-xs font-mono transition-all pixel-btn ${
                           formData.niches.includes(cat.id)
-                            ? "border-neon-purple bg-neon-purple/20 text-neon-purple"
+                            ? "border-neon-purple bg-neon-purple text-background"
                             : "border-border hover:border-neon-purple"
                         }`}
                       >
