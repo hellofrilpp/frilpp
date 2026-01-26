@@ -3,32 +3,12 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   async headers() {
     return [
-      // Ensure the marketing SPA shell is always revalidated so mobile clients don't get stuck
-      // on a stale `public/site/index.html` that points to old hashed assets.
-      {
-        source: "/site/index.html",
-        headers: [{ key: "Cache-Control", value: "no-store" }],
-      },
       {
         source:
           "/:path((?!api|_next|site|legal(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$).*)",
         headers: [{ key: "Cache-Control", value: "no-store" }],
       },
     ];
-  },
-  async rewrites() {
-    return {
-      beforeFiles: [
-        { source: "/favicon.ico", destination: "/site/favicon.ico" },
-        { source: "/robots.txt", destination: "/site/robots.txt" },
-        { source: "/placeholder.svg", destination: "/site/placeholder.svg" },
-          {
-            source:
-              "/:path((?!api|_next|site|email(?:/|$)|landing(?:/|$)|legal(?:/|$)|auth/callback(?:/|$)|verify-email(?:/|$)|r(?:/|$)|o(?:/|$)|sitemap\\.xml$|brand/auth(?:/|$)|brand/login(?:/|$)|brand/signup(?:/|$)|brand/setup(?:/|$)|brand/dashboard(?:/|$)|brand/campaigns(?:/|$)|brand/pipeline(?:/|$)|brand/analytics(?:/|$)|brand/settings(?:/|$)|brand/billing(?:/|$)|influencer/auth(?:/|$)|influencer/login(?:/|$)|influencer/signup(?:/|$)|influencer/onboarding(?:/|$)|influencer/discover(?:/|$)|influencer/deals(?:/|$)|influencer/profile(?:/|$)|influencer/settings(?:/|$)|influencer/feed(?:/|$)|influencer/achievements(?:/|$)|achievements(?:/|$)|leaderboard(?:/|$)|onboarding(?:/|$)|.*\\.(?:png|jpg|jpeg|svg|gif|webp|ico|woff|woff2|ttf|eot)$|.*\\.txt$).+)",
-            destination: "/site/index.html",
-          },
-      ],
-    };
   },
 };
 
