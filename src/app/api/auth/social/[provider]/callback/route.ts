@@ -8,6 +8,7 @@ import { sanitizeNextPath } from "@/lib/redirects";
 import { discoverInstagramAccount, exchangeMetaCode, fetchInstagramProfile } from "@/lib/meta";
 import { exchangeTikTokCode, fetchTikTokProfile } from "@/lib/tiktok";
 import { exchangeYouTubeCode, fetchYouTubeChannel } from "@/lib/youtube";
+import { getCreatorProfileMissingFields } from "@/lib/creator-profile";
 
 export const runtime = "nodejs";
 
@@ -18,6 +19,7 @@ const callbackSchema = z.object({
 });
 
 const creatorDashboardPath = "/influencer/discover";
+const creatorProfilePath = "/influencer/profile";
 
 async function createSession(userId: string) {
   const sessionId = crypto.randomUUID();
@@ -51,6 +53,28 @@ async function createSession(userId: string) {
       maxAge: 60 * 60 * 24 * 365,
     });
   }
+}
+
+async function resolveCreatorNextPath(userId: string, fallback: string) {
+  const rows = await db
+    .select({
+      fullName: creators.fullName,
+      email: creators.email,
+      phone: creators.phone,
+      address1: creators.address1,
+      city: creators.city,
+      province: creators.province,
+      zip: creators.zip,
+      lat: creators.lat,
+      lng: creators.lng,
+    })
+    .from(creators)
+    .where(eq(creators.id, userId))
+    .limit(1);
+  const creator = rows[0];
+  if (!creator) return fallback;
+  const missing = getCreatorProfileMissingFields(creator);
+  return missing.length ? `${creatorProfilePath}?onboarding=1` : fallback;
 }
 
 function redirectWithError(origin: string, message: string) {
@@ -110,6 +134,8 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   } else if (nextPath === "/" && roleCookie === "creator") {
     nextPath = "/influencer/discover";
   }
+
+  const isCreatorFlow = roleCookie === "creator" || nextPath.startsWith("/influencer");
 
   if (!stateCookie || stateCookie !== parsed.data.state || providerCookie !== provider) {
     return redirectWithError(url.origin, "Invalid state");
@@ -201,7 +227,10 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     jar.delete("social_oauth_role");
     jar.delete("pending_social_id");
 
-    return Response.redirect(new URL(creatorDashboardPath, origin), 302);
+    const target = isCreatorFlow
+      ? await resolveCreatorNextPath(existing.userId, nextPath || creatorDashboardPath)
+      : nextPath || creatorDashboardPath;
+    return Response.redirect(new URL(target, origin), 302);
   }
 
   if (session) {
@@ -268,7 +297,10 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     jar.delete("social_oauth_next");
     jar.delete("social_oauth_role");
 
-    return Response.redirect(new URL(creatorDashboardPath, origin), 302);
+    const target = isCreatorFlow
+      ? await resolveCreatorNextPath(existing.userId, nextPath || creatorDashboardPath)
+      : nextPath || creatorDashboardPath;
+    return Response.redirect(new URL(target, origin), 302);
   }
 
   if (roleCookie === "creator") {
@@ -320,7 +352,10 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     jar.delete("social_oauth_role");
     jar.delete("pending_social_id");
 
-    return Response.redirect(new URL(nextPath, origin), 302);
+    const target = isCreatorFlow
+      ? await resolveCreatorNextPath(userId, nextPath || creatorDashboardPath)
+      : nextPath || creatorDashboardPath;
+    return Response.redirect(new URL(target, origin), 302);
   }
 
   const pendingId = crypto.randomUUID();

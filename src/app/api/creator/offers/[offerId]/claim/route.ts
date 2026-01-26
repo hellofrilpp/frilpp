@@ -8,6 +8,7 @@ import { getActiveStrikeCount, getCreatorFollowerRange, getStrikeLimit } from "@
 import { log } from "@/lib/logger";
 import { ipKey, rateLimit } from "@/lib/rate-limit";
 import { hasActiveSubscription } from "@/lib/billing";
+import { getCreatorProfileMissingFields } from "@/lib/creator-profile";
 
 export const runtime = "nodejs";
 
@@ -106,6 +107,18 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     }
 
     const creator = creatorCtx.creator;
+    const missingProfileFields = getCreatorProfileMissingFields(creator);
+    if (missingProfileFields.length) {
+      return Response.json(
+        {
+          ok: false,
+          error: "Complete your profile before claiming offers.",
+          code: "NEEDS_PROFILE",
+          missingFields: missingProfileFields,
+        },
+        { status: 409 },
+      );
+    }
 
     const rejectedRows = await db
       .select({ id: creatorOfferRejections.id })

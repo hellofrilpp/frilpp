@@ -3,6 +3,7 @@ import { db } from "@/db";
 import { brands, creatorOfferRejections, matches, offers } from "@/db/schema";
 import { requireCreatorContext } from "@/lib/auth";
 import { getActiveStrikeCount, getCreatorFollowerRange, getStrikeLimit } from "@/lib/eligibility";
+import { getCreatorProfileMissingFields } from "@/lib/creator-profile";
 
 export const runtime = "nodejs";
 
@@ -52,6 +53,8 @@ export async function GET(request: Request) {
 
     const creator = ctx.creator;
     const unit = "MI" as const;
+    const missingProfileFields = getCreatorProfileMissingFields(creator);
+    const profileComplete = missingProfileFields.length === 0;
 
     const strikeLimit = getStrikeLimit();
     const strikes = await getActiveStrikeCount(creator.id);
@@ -60,6 +63,8 @@ export async function GET(request: Request) {
         ok: true,
         blocked: true,
         reason: "Too many strikes",
+        profileComplete,
+        missingProfileFields,
         offers: [],
         unit,
       });
@@ -73,6 +78,8 @@ export async function GET(request: Request) {
           ok: true,
           blocked: true,
           reason: "Follower count outside nano range",
+          profileComplete,
+          missingProfileFields,
           offers: [],
           unit,
         });
@@ -140,6 +147,8 @@ export async function GET(request: Request) {
     return Response.json({
       ok: true,
       blocked: false,
+      profileComplete,
+      missingProfileFields,
       unit,
       offers: filtered.map((r) => {
         const metadata = (r.metadata ?? {}) as Record<string, unknown>;

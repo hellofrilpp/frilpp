@@ -31,6 +31,8 @@ type FeedResponse = {
   ok: boolean;
   blocked?: boolean;
   reason?: string;
+  profileComplete?: boolean;
+  missingProfileFields?: string[];
   offers?: FeedOffer[];
 };
 
@@ -150,6 +152,11 @@ export default function InfluencerDiscoverPage() {
 
   const handleSwipe = async (direction: "left" | "right") => {
     if (!currentOffer) return;
+    if (direction === "right" && profileBlocked) {
+      showNotice("Complete your profile before claiming offers.");
+      window.location.href = "/influencer/profile";
+      return;
+    }
     let shouldRemove = false;
     let shouldAdvance = true;
 
@@ -179,6 +186,9 @@ export default function InfluencerDiscoverPage() {
           return;
         } else if (apiErr?.code === "NEEDS_ADDRESS") {
           showNotice("Add your delivery address in Profile before claiming.");
+          window.location.href = "/influencer/profile";
+        } else if (apiErr?.code === "NEEDS_PROFILE") {
+          showNotice("Complete your profile before claiming.");
           window.location.href = "/influencer/profile";
         } else if (apiErr?.code === "NEEDS_SOCIAL_CONNECT") {
           showNotice("Connect a social account to claim this offer.");
@@ -228,6 +238,9 @@ export default function InfluencerDiscoverPage() {
 
   const blocked = data?.blocked;
   const blockedReason = data?.reason;
+  const profileMissing =
+    data?.profileComplete === false ? data?.missingProfileFields ?? [] : [];
+  const profileBlocked = profileMissing.length > 0;
 
   return (
     <>
@@ -254,6 +267,23 @@ export default function InfluencerDiscoverPage() {
           {notice ? (
             <div className="mb-4 border-2 border-neon-pink text-neon-pink p-3 text-xs font-mono">
               {notice}
+            </div>
+          ) : null}
+
+          {profileBlocked ? (
+            <div className="mb-4 w-full max-w-2xl border-2 border-neon-yellow bg-neon-yellow/10 p-4 text-xs font-mono text-neon-yellow">
+              Complete your profile before claiming offers. Missing: {profileMissing.join(", ")}.
+              <div className="mt-3">
+                <Button
+                  size="sm"
+                  className="bg-neon-yellow text-background font-pixel pixel-btn"
+                  onClick={() => {
+                    window.location.href = "/influencer/profile";
+                  }}
+                >
+                  GO TO PROFILE
+                </Button>
+              </div>
             </div>
           ) : null}
 

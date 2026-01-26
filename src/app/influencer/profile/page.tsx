@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import InfluencerLayout from "@/components/influencer/InfluencerLayout";
 import LocationPicker from "@/components/LocationPicker";
+import { getCreatorProfileMissingFields } from "@/lib/creator-profile";
 import {
   AlertDialog,
   AlertDialogContent,
@@ -193,6 +194,11 @@ export default function InfluencerProfilePage() {
     .join("")
     .toUpperCase();
   const featuredAchievements = achievements.slice(0, 6);
+  const missingFields = useMemo(
+    () => (profileData ? getCreatorProfileMissingFields(profileData) : []),
+    [profileData],
+  );
+  const profileComplete = missingFields.length === 0;
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm.trim() !== "DELETE") return;
@@ -223,6 +229,12 @@ export default function InfluencerProfilePage() {
             {handle} {"//"} {followers}
           </p>
         </div>
+
+        {!profileComplete ? (
+          <div className="mb-6 border-2 border-neon-yellow bg-neon-yellow/10 p-4 text-xs font-mono text-neon-yellow">
+            Complete your profile before accepting deals. Missing: {missingFields.join(", ")}.
+          </div>
+        ) : null}
 
         {notice ? (
           <div className="border-2 border-neon-pink text-neon-pink p-3 mb-6 text-xs font-mono">

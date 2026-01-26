@@ -145,6 +145,11 @@ export default function OfferShareClient(props: { offerId: string }) {
           setNeedsSubscription(true);
           throw new Error("Subscription required to claim offers.");
         }
+        if (code === "NEEDS_PROFILE") {
+          setClaimMessage("Complete your profile before claiming offers.");
+          window.location.href = "/influencer/profile";
+          return;
+        }
         throw new Error(msg);
       }
 

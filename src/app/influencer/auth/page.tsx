@@ -12,7 +12,7 @@ export default function InfluencerAuthPage() {
   const handleSocialLogin = () => {
     const params = new URLSearchParams();
     params.set("role", "creator");
-    params.set("next", "/influencer/discover");
+    params.set("next", "/influencer/profile");
     window.location.href = `/api/auth/social/tiktok/connect?${params.toString()}`;
   };
 
