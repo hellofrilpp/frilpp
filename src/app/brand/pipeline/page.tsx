@@ -665,7 +665,7 @@ export default function BrandPipelinePage() {
             >
               <button
                 type="button"
-                className={`w-full text-left p-3 border-4 ${stage.color} mb-3 bg-card ${
+                className={`w-full text-left px-3 py-2 border-4 ${stage.color} mb-3 bg-card ${
                   stageFilter === stage.key ? "ring-2 ring-primary/60" : ""
                 }`}
                 onClick={() => setStageFilter((prev) => (prev === stage.key ? "all" : stage.key))}
