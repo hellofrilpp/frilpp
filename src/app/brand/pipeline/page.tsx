@@ -58,7 +58,7 @@ type BrandShipment = {
 
 type BrandDeliverable = {
   deliverableId: string;
-  status: "DUE" | "VERIFIED" | "FAILED";
+  status: "DUE" | "VERIFIED" | "FAILED" | "REPOST_REQUIRED";
   submittedPermalink: string | null;
   submittedNotes: string | null;
   submittedAt: string | null;
@@ -352,7 +352,7 @@ export default function BrandPipelinePage() {
     });
 
     dueDeliverables.forEach((deliverable) => {
-      if (!deliverable.submittedAt) return;
+      if (deliverable.status !== "REPOST_REQUIRED" && !deliverable.submittedAt) return;
       map.set(
         deliverable.match.id,
         buildInfluencer(
@@ -577,11 +577,14 @@ export default function BrandPipelinePage() {
     }
     const reason = requestReason.trim() || undefined;
     try {
-      await fetchJson(`/api/brand/deliverables/${encodeURIComponent(deliverable.deliverableId)}/request`, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ reason }),
-      });
+      await fetchJson(
+        `/api/brand/deliverables/${encodeURIComponent(deliverable.deliverableId)}/request-changes`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ reason }),
+        },
+      );
       showNotice("success", "Changes requested.");
       await loadData();
     } catch {
@@ -713,6 +716,11 @@ export default function BrandPipelinePage() {
                           if (!deliverable) return null;
                           return (
                             <>
+                              {deliverable.status === "REPOST_REQUIRED" ? (
+                                <div className="inline-flex items-center gap-2 border border-neon-yellow bg-neon-yellow/10 px-2 py-1 text-neon-yellow">
+                                  RE-POST REQUIRED
+                                </div>
+                              ) : null}
                               {link ? (
                                 <div className="flex flex-wrap items-center gap-2">
                                   <span className="text-muted-foreground">POST:</span>
