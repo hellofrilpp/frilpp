@@ -92,6 +92,7 @@ export default function InfluencerProfilePage() {
   const [deleteConfirm, setDeleteConfirm] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ email?: string }>({});
   const [profileForm, setProfileForm] = useState({
     fullName: "",
     email: "",
@@ -199,6 +200,11 @@ export default function InfluencerProfilePage() {
     [profileData],
   );
   const profileComplete = missingFields.length === 0;
+  const emailRequiredMessage =
+    "Add an email below to enable billing, receipts, and account recovery.";
+  const showEmailRequirement =
+    Boolean(profileData && !profileData.email) && profileForm.email.trim().length === 0;
+  const emailFieldMessage = fieldErrors.email ?? (showEmailRequirement ? emailRequiredMessage : null);
 
   const handleDeleteAccount = async () => {
     if (deleteConfirm.trim() !== "DELETE") return;
@@ -239,18 +245,6 @@ export default function InfluencerProfilePage() {
         {notice ? (
           <div className="border-2 border-neon-pink text-neon-pink p-3 mb-6 text-xs font-mono">
             {notice}
-          </div>
-        ) : null}
-
-        {profileData && !profileData.email ? (
-          <div className="border-2 border-neon-yellow bg-neon-yellow/10 p-4 mb-8">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="w-4 h-4 text-neon-yellow" />
-              <span className="font-pixel text-xs text-neon-yellow">EMAIL_REQUIRED</span>
-            </div>
-            <p className="mt-2 font-mono text-xs text-muted-foreground">
-              Add an email below to enable billing, receipts, and account recovery.
-            </p>
           </div>
         ) : null}
 
@@ -392,9 +386,23 @@ export default function InfluencerProfilePage() {
                 <Input
                   type="email"
                   value={profileForm.email}
-                  onChange={(event) => setProfileForm((prev) => ({ ...prev, email: event.target.value }))}
-                  className="mt-2 border-2 border-border font-mono"
+                  onChange={(event) => {
+                    const nextValue = event.target.value;
+                    setProfileForm((prev) => ({ ...prev, email: nextValue }));
+                    if (fieldErrors.email) {
+                      setFieldErrors((prev) => ({ ...prev, email: undefined }));
+                    }
+                  }}
+                  className={`mt-2 border-2 font-mono ${
+                    emailFieldMessage ? "border-neon-yellow" : "border-border"
+                  }`}
                 />
+                {emailFieldMessage ? (
+                  <p className="mt-2 flex items-center gap-2 font-mono text-[11px] text-neon-yellow">
+                    <AlertTriangle className="h-3 w-3 text-neon-yellow" />
+                    <span>{emailFieldMessage}</span>
+                  </p>
+                ) : null}
               </div>
             </div>
             <div className="grid md:grid-cols-2 gap-4">
@@ -470,12 +478,13 @@ export default function InfluencerProfilePage() {
               disabled={savingProfile}
               onClick={async () => {
                 try {
+                  setFieldErrors({});
                   setSavingProfile(true);
                   const normalizeOptional = (value: string) => {
                     const trimmed = value.trim();
                     return trimmed.length ? trimmed : null;
                   };
-                  await fetchJson("/api/creator/profile", {
+                  const response = await fetchJson<ProfileResponse>("/api/creator/profile", {
                     method: "PATCH",
                     headers: { "content-type": "application/json" },
                     body: JSON.stringify({
@@ -491,10 +500,28 @@ export default function InfluencerProfilePage() {
                       lng: profileForm.lng,
                     }),
                   });
+                  setProfileData(response.creator);
+                  setProfileForm({
+                    fullName: response.creator.fullName ?? "",
+                    email: response.creator.email ?? "",
+                    phone: response.creator.phone ?? "",
+                    address1: response.creator.address1 ?? "",
+                    address2: response.creator.address2 ?? "",
+                    city: response.creator.city ?? "",
+                    province: response.creator.province ?? "",
+                    zip: response.creator.zip ?? "",
+                    lat: response.creator.lat ?? null,
+                    lng: response.creator.lng ?? null,
+                  });
                   showNotice("Shipping profile updated.");
                 } catch (err) {
                   const apiErr = err as ApiError;
-                  showNotice(apiErr?.message ?? "Failed to save profile");
+                  const message = apiErr?.message ?? "Failed to save profile";
+                  if (message.toLowerCase().includes("email")) {
+                    setFieldErrors({ email: message });
+                  } else {
+                    showNotice(message);
+                  }
                   if (apiErr?.code === "NEEDS_LEGAL_ACCEPTANCE") {
                     window.location.href = "/legal/accept?next=/influencer/profile";
                   }
