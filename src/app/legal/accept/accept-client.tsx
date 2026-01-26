@@ -30,6 +30,34 @@ export default function AcceptClient() {
   const fallback =
     lane === "brand" ? "/brand/dashboard" : lane === "creator" ? "/influencer/discover" : "/";
   const nextPath = sanitizeNextPath(search.get("next"), fallback);
+  const nextLabel = (() => {
+    switch (nextPath) {
+      case "/influencer/discover":
+        return "Discover";
+      case "/influencer/deals":
+        return "Deals";
+      case "/influencer/profile":
+        return "Profile";
+      case "/influencer/onboarding":
+        return "Onboarding";
+      case "/brand/dashboard":
+        return "Dashboard";
+      case "/brand/campaigns":
+        return "Campaigns";
+      case "/brand/settings":
+        return "Settings";
+      case "/brand/pipeline":
+        return "Pipeline";
+      case "/brand/analytics":
+        return "Analytics";
+      case "/brand/offers":
+        return "Offers";
+      case "/":
+        return "Home";
+      default:
+        return null;
+    }
+  })();
 
   const [me, setMe] = useState<MeUser | null>(null);
   const [status, setStatus] = useState<"loading" | "idle" | "saving" | "error">("loading");
@@ -171,20 +199,18 @@ export default function AcceptClient() {
 
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="text-xs text-muted-foreground">
-                {needsTerms || needsPrivacy ? (
-                  <>
-                    Next: <span className="font-mono">{nextPath}</span>
-                  </>
-                ) : (
-                  "All set."
-                )}
+                {needsTerms || needsPrivacy
+                  ? nextLabel
+                    ? `You will return to ${nextLabel}.`
+                    : "Continue to finish."
+                  : "All set."}
               </div>
               <Button
                 variant="secondary"
                 onClick={submit}
                 disabled={status === "saving" || !acceptTerms || !acceptPrivacy}
               >
-                {status === "saving" ? "Saving..." : "Continue"}
+                {status === "saving" ? "Saving..." : nextLabel ? `Continue to ${nextLabel}` : "Continue"}
               </Button>
             </div>
           </CardContent>
