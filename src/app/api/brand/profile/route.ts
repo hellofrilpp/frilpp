@@ -28,6 +28,13 @@ const normalizeOptional = (value: string | undefined) => {
   return trimmed.length ? trimmed : null;
 };
 
+const normalizeUrlOptional = (value: string | undefined) => {
+  const normalized = normalizeOptional(value);
+  if (!normalized) return normalized;
+  if (/^[a-zA-Z][a-zA-Z0-9+.-]*:/.test(normalized)) return normalized;
+  return `https://${normalized}`;
+};
+
 const validateUrl = (value: string | null, field: string) => {
   if (!value) return;
   try {
@@ -93,8 +100,8 @@ export async function PATCH(request: Request) {
   const update: Record<string, unknown> = {
     updatedAt: new Date(),
   };
-  const website = normalizeOptional(parsed.data.website);
-  const logoUrl = normalizeOptional(parsed.data.logoUrl);
+  const website = normalizeUrlOptional(parsed.data.website);
+  const logoUrl = normalizeUrlOptional(parsed.data.logoUrl);
   if (parsed.data.name !== undefined) update.name = parsed.data.name;
   if (website !== undefined) update.website = website;
   if (parsed.data.description !== undefined) update.description = normalizeOptional(parsed.data.description);
