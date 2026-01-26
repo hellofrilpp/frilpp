@@ -1133,13 +1133,21 @@ function BrandCampaignCreatorContent() {
                         <button
                           key={preset.id}
                           type="button"
+                          aria-pressed={formData.presetId === preset.id}
+                          data-selected={formData.presetId === preset.id ? "true" : "false"}
                           onClick={() => applyPreset(preset)}
-                          className={`p-4 border-2 text-left transition-all pixel-btn cursor-pointer ${
+                          className={`relative p-4 border-2 text-left transition-all pixel-btn cursor-pointer ${
                             formData.presetId === preset.id
-                              ? "border-neon-yellow bg-neon-yellow/20"
+                              ? "border-neon-yellow bg-neon-yellow/25 ring-2 ring-neon-yellow/40"
                               : "border-border hover:border-neon-yellow"
                           }`}
                         >
+                          {formData.presetId === preset.id ? (
+                            <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-neon-yellow/50 bg-neon-yellow/15 px-2 py-1 text-[10px] font-mono text-neon-yellow">
+                              <Check className="h-3 w-3" />
+                              SELECTED
+                            </span>
+                          ) : null}
                           <p className="font-pixel text-xs text-neon-yellow">{preset.label}</p>
                           <p className="font-mono text-xs text-muted-foreground mt-1">{preset.description}</p>
                         </button>
@@ -1162,7 +1170,7 @@ function BrandCampaignCreatorContent() {
                             aria-pressed={isActive}
                             data-active={isActive ? "true" : "false"}
                             onClick={enabled ? () => toggleArrayField("platforms", platform.id) : undefined}
-                            className={`p-4 border-2 text-center transition-all pixel-btn ${
+                            className={`relative p-4 border-2 text-center transition-all pixel-btn ${
                               enabled
                                 ? isActive
                                   ? "border-neon-pink bg-neon-pink/25 ring-2 ring-neon-pink/40 cursor-pointer"
@@ -1170,6 +1178,12 @@ function BrandCampaignCreatorContent() {
                                 : "border-border bg-muted/40 text-muted-foreground opacity-60 cursor-not-allowed"
                             }`}
                           >
+                            {isActive ? (
+                              <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-neon-pink/50 bg-neon-pink/15 px-2 py-1 text-[10px] font-mono text-neon-pink">
+                                <Check className="h-3 w-3" />
+                                SELECTED
+                              </span>
+                            ) : null}
                             <span className="mb-2 flex items-center justify-center">
                               <PlatformIcon
                                 id={platform.id}
@@ -1195,12 +1209,18 @@ function BrandCampaignCreatorContent() {
                         key={type.id}
                         type="button"
                         onClick={() => toggleArrayField("contentTypes", type.id)}
-                        className={`p-4 border-2 flex items-center justify-between transition-all pixel-btn cursor-pointer ${
+                        className={`relative p-4 border-2 flex items-center justify-between transition-all pixel-btn cursor-pointer ${
                           formData.contentTypes.includes(type.id)
-                            ? "border-neon-green bg-neon-green/20"
+                            ? "border-neon-green bg-neon-green/20 ring-2 ring-neon-green/40"
                             : "border-border hover:border-neon-green"
                         }`}
                       >
+                        {formData.contentTypes.includes(type.id) ? (
+                          <span className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full border border-neon-green/50 bg-neon-green/15 px-2 py-1 text-[10px] font-mono text-neon-green">
+                            <Check className="h-3 w-3" />
+                            SELECTED
+                          </span>
+                        ) : null}
                         <span className="font-mono text-sm">{type.label}</span>
                         <span className="font-pixel text-xs text-neon-yellow">+{contentTypeXp[type.id] ?? 0}XP</span>
                       </button>
