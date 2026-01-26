@@ -305,6 +305,7 @@ function BrandCampaignCreatorContent() {
     }
 
     try {
+      localStorage.removeItem(DRAFT_KEY);
       const parsed = JSON.parse(raw) as unknown;
       if (!parsed || typeof parsed !== "object") {
         draftReadyRef.current = true;
@@ -322,27 +323,12 @@ function BrandCampaignCreatorContent() {
           ? (draft.formData as Partial<CampaignFormData>)
           : null;
 
-      if (draftForm) {
-        setFormData((prev) => ({
-          ...prev,
-          ...draftForm,
-          platforms: Array.isArray(draftForm.platforms) ? draftForm.platforms : prev.platforms,
-          contentTypes: Array.isArray(draftForm.contentTypes) ? draftForm.contentTypes : prev.contentTypes,
-          niches: Array.isArray(draftForm.niches) ? draftForm.niches : prev.niches,
-          fulfillmentType: "MANUAL",
-        }));
+      if (draftForm || draft.currentStep || draft.draftOfferId) {
+        // Always start fresh for new campaigns.
+        setFormData(initialFormData);
+        setCurrentStep(1);
+        setDraftOfferId(null);
       }
-
-      if (typeof draft.currentStep === "number" && Number.isFinite(draft.currentStep)) {
-        const step = Math.max(1, Math.min(4, Math.floor(draft.currentStep)));
-        setCurrentStep(step);
-      }
-
-      if (typeof draft.draftOfferId === "string" || draft.draftOfferId === null) {
-        setDraftOfferId(draft.draftOfferId ?? null);
-      }
-
-      showNotice("success", "Draft restored");
     } catch {
       // ignore
     } finally {
