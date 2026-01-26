@@ -655,7 +655,7 @@ export default function BrandPipelinePage() {
       </div>
 
       <div className="pb-6">
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {stages.map((stage) => (
             <div
               key={stage.key}
@@ -665,7 +665,7 @@ export default function BrandPipelinePage() {
             >
               <button
                 type="button"
-                className={`w-full text-left px-3 py-2 border-4 ${stage.color} mb-3 bg-card ${
+                className={`w-full text-left px-2.5 py-1.5 border-4 ${stage.color} mb-3 bg-card ${
                   stageFilter === stage.key ? "ring-2 ring-primary/60" : ""
                 }`}
                 onClick={() => setStageFilter((prev) => (prev === stage.key ? "all" : stage.key))}
