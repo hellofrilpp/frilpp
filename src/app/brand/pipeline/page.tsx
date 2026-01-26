@@ -887,8 +887,8 @@ export default function BrandPipelinePage() {
           </AlertDialogHeader>
 
           {activeShipment ? (
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3 lg:gap-6">
+            <div className="space-y-6">
+              <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 lg:gap-8">
                 <Input
                   value={manualForms[activeShipment.id]?.carrier ?? ""}
                   onChange={(event) =>
@@ -932,7 +932,7 @@ export default function BrandPipelinePage() {
                   className="border-2 border-border font-mono text-xs h-11 w-full px-3"
                 />
               </div>
-              <div className="flex justify-end pt-2">
+              <div className="flex justify-end pt-3">
                 <Button
                   size="sm"
                   className="bg-neon-yellow text-background font-pixel text-xs pixel-btn"
