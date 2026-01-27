@@ -61,6 +61,7 @@ type BrandMatch = {
     city: string | null;
     province: string | null;
     zip: string | null;
+    tiktokUserId: string | null;
     shippingReady: boolean;
   };
 };
@@ -550,6 +551,9 @@ export default function BrandCampaignDetailsPage() {
                   </div>
                   <div className="font-mono text-[11px] text-muted-foreground">
                     Followers: {formatFollowers(match.creator.followersCount)}
+                  </div>
+                  <div className="font-mono text-[11px] text-muted-foreground">
+                    TikTok ID: {match.creator.tiktokUserId ?? "not connected"}
                   </div>
                   <div className="font-mono text-[11px] text-muted-foreground">
                     Shipping: {match.creator.shippingReady ? "ready" : "needs address"}

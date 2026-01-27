@@ -1,7 +1,16 @@
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { brands, creators, deliverables, manualShipments, matches, offers, shopifyOrders } from "@/db/schema";
+import {
+  brands,
+  creators,
+  deliverables,
+  manualShipments,
+  matches,
+  offers,
+  shopifyOrders,
+  userSocialAccounts,
+} from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -104,6 +113,7 @@ export async function GET(request: Request) {
       creatorZip: creators.zip,
       creatorLat: creators.lat,
       creatorLng: creators.lng,
+      creatorTikTokId: userSocialAccounts.providerUserId,
     })
     .from(matches)
     .innerJoin(offers, eq(matches.offerId, offers.id))
@@ -111,6 +121,10 @@ export async function GET(request: Request) {
     .leftJoin(deliverables, eq(deliverables.matchId, matches.id))
     .leftJoin(shopifyOrders, eq(shopifyOrders.matchId, matches.id))
     .leftJoin(manualShipments, eq(manualShipments.matchId, matches.id))
+    .leftJoin(
+      userSocialAccounts,
+      and(eq(userSocialAccounts.userId, creators.id), eq(userSocialAccounts.provider, "TIKTOK")),
+    )
     .where(whereClause)
     .orderBy(desc(matches.createdAt))
     .limit(100);
@@ -162,6 +176,7 @@ export async function GET(request: Request) {
           city: r.creatorCity ?? null,
           province: r.creatorProvince ?? null,
           zip: r.creatorZip ?? null,
+          tiktokUserId: r.creatorTikTokId ?? null,
           shippingReady: Boolean(r.creatorAddress1 && r.creatorCity && r.creatorZip),
           distanceKm,
           distanceMiles: distanceKm !== null ? kmToMiles(distanceKm) : null,

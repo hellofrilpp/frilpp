@@ -17,6 +17,7 @@ type MatchRow = {
     id: string;
     username: string | null;
     followersCount: number | null;
+    tiktokUserId: string | null;
     shippingReady: boolean;
   };
 };
@@ -197,6 +198,13 @@ export default function BrandMatchesPage() {
                             Creator:{" "}
                             <span className="font-mono text-foreground">
                               {r.creator.username ?? r.creator.id}
+                            </span>
+                          </span>
+                          <span className="text-muted-foreground/40">•</span>
+                          <span>
+                            TikTok ID:{" "}
+                            <span className="font-mono text-foreground">
+                              {r.creator.tiktokUserId ?? "not connected"}
                             </span>
                           </span>
                           <span className="text-muted-foreground/40">•</span>

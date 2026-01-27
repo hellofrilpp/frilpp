@@ -40,6 +40,7 @@ type BrandMatch = {
     username: string | null;
     fullName: string | null;
     followersCount: number | null;
+    tiktokUserId: string | null;
     distanceKm?: number | null;
     distanceMiles?: number | null;
   };
@@ -94,6 +95,7 @@ type Influencer = {
   stage: Stage;
   avatar: string;
   engagement: string;
+  tiktokUserId?: string | null;
   distanceKm?: number | null;
   distanceMiles?: number | null;
 };
@@ -268,6 +270,7 @@ export default function BrandPipelinePage() {
       campaign: string,
       offerId: string | null | undefined,
       stage: Stage,
+      tiktokUserId?: string | null,
       distanceKm?: number | null,
       distanceMiles?: number | null,
     ): Influencer => {
@@ -290,6 +293,7 @@ export default function BrandPipelinePage() {
         stage,
         avatar: avatar || "CR",
         engagement: "—",
+        tiktokUserId: tiktokUserId ?? null,
         distanceKm: distanceKm ?? null,
         distanceMiles: distanceMiles ?? null,
       };
@@ -311,6 +315,7 @@ export default function BrandPipelinePage() {
           match.offer.title,
           match.offer.id,
           "applied",
+          match.creator.tiktokUserId ?? null,
           match.creator.distanceKm ?? null,
           match.creator.distanceMiles ?? null,
         ),
@@ -328,6 +333,7 @@ export default function BrandPipelinePage() {
           match.offer.title,
           match.offer.id,
           "approved",
+          match.creator.tiktokUserId ?? null,
           match.creator.distanceKm ?? null,
           match.creator.distanceMiles ?? null,
         ),
@@ -354,6 +360,7 @@ export default function BrandPipelinePage() {
           "shipped",
           null,
           null,
+          null,
         ),
       );
     });
@@ -374,6 +381,7 @@ export default function BrandPipelinePage() {
           deliverable.status === "REPOST_REQUIRED" ? "repost_required" : "posted",
           null,
           null,
+          null,
         ),
       );
     });
@@ -391,6 +399,7 @@ export default function BrandPipelinePage() {
             offerIdByTitle.get(deliverable.offer.title) ??
             null,
           "complete",
+          null,
           null,
           null,
         ),
@@ -697,6 +706,9 @@ export default function BrandPipelinePage() {
                         <div>
                           <p className="text-sm font-mono">{influencer.name}</p>
                           <p className="text-xs font-mono text-muted-foreground">{influencer.handle}</p>
+                          <p className="text-[10px] font-mono text-muted-foreground">
+                            TikTok ID: {influencer.tiktokUserId ?? "not connected"}
+                          </p>
                         </div>
                       </div>
                       <Button
