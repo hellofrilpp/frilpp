@@ -7,6 +7,7 @@ import {
   Truck,
   Camera,
   Star,
+  AlertTriangle,
   ChevronRight,
   Package,
   Heart,
@@ -25,10 +26,12 @@ type DealStatus =
   | "post_required"
   | "repost_required"
   | "posted"
-  | "complete";
+  | "complete"
+  | "rejected";
 
 type Deal = {
   id: string;
+  brandId: string;
   brand: string;
   product: string;
   value: string;
@@ -38,10 +41,13 @@ type Deal = {
   trackingNumber?: string;
   trackingUrl?: string;
   carrier?: string;
+  rejectionReason?: string | null;
+  rejectedAt?: string | null;
 };
 
 type CreatorDeal = {
   id: string;
+  brandId: string;
   brand: string;
   product: string;
   valueUsd: number | null;
@@ -51,6 +57,8 @@ type CreatorDeal = {
   trackingNumber: string | null;
   trackingUrl: string | null;
   carrier: string | null;
+  rejectionReason: string | null;
+  rejectedAt: string | null;
 };
 
 type CreatorDeliverable = {
@@ -97,6 +105,7 @@ const statusConfig: Record<DealStatus, { label: string; icon: React.ElementType;
   repost_required: { label: "RE-POST REQUIRED", icon: Camera, color: "bg-neon-yellow text-background" },
   posted: { label: "POSTED", icon: Camera, color: "border-neon-pink text-neon-pink" },
   complete: { label: "COMPLETE", icon: Star, color: "bg-neon-green text-background" },
+  rejected: { label: "REJECTED", icon: AlertTriangle, color: "border-destructive text-destructive bg-destructive/10" },
 };
 
 const normalizeUrl = (value: string) => {
@@ -112,6 +121,7 @@ export default function InfluencerDealsPage() {
   const [filter, setFilter] = useState<DealStatus | "all">("all");
   const [isLoading, setIsLoading] = useState(true);
   const [notice, setNotice] = useState<string | null>(null);
+  const [favoriteBrandIds, setFavoriteBrandIds] = useState<string[]>([]);
   const [submitOpen, setSubmitOpen] = useState(false);
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -135,12 +145,16 @@ export default function InfluencerDealsPage() {
     setIsLoading(true);
     setNotice(null);
     try {
-      const [dealRes, deliverableRes] = await Promise.all([
+      const [dealRes, deliverableRes, favoritesRes] = await Promise.all([
         fetchJson<DealsResponse>("/api/creator/deals"),
         fetchJson<DeliverablesResponse>("/api/creator/deliverables"),
+        fetchJson<{ ok: boolean; favorites: Array<{ brandId: string }> }>(
+          "/api/creator/favorites/brands",
+        ),
       ]);
       const mappedDeals = (dealRes.deals ?? []).map((deal) => ({
         id: deal.id,
+        brandId: deal.brandId,
         brand: deal.brand,
         product: deal.product,
         value: deal.valueUsd ? `$${deal.valueUsd}` : "$0",
@@ -150,9 +164,12 @@ export default function InfluencerDealsPage() {
         trackingNumber: deal.trackingNumber ?? undefined,
         trackingUrl: deal.trackingUrl ?? undefined,
         carrier: deal.carrier ?? undefined,
+        rejectionReason: deal.rejectionReason ?? null,
+        rejectedAt: deal.rejectedAt ?? null,
       }));
       setDeals(mappedDeals);
       setDeliverables(deliverableRes.deliverables ?? []);
+      setFavoriteBrandIds((favoritesRes.favorites ?? []).map((fav) => fav.brandId));
     } catch (err) {
       const apiErr = err as ApiError;
       if (apiErr?.code === "NEEDS_CREATOR_PROFILE") {
@@ -191,9 +208,29 @@ export default function InfluencerDealsPage() {
             )
           : deals.filter((deal) => deal.status === filter);
 
-  const activeDeals = deals.filter((deal) => deal.status !== "complete").length;
+  const activeDeals = deals.filter((deal) => !["complete", "rejected"].includes(deal.status)).length;
   const completedDeals = deals.filter((deal) => deal.status === "complete").length;
   const totalValue = deals.reduce((sum, deal) => sum + Number(deal.value.replace("$", "")), 0);
+
+  const favoriteBrandSet = useMemo(() => new Set(favoriteBrandIds), [favoriteBrandIds]);
+
+  const toggleFavoriteBrand = async (brandId: string, favorite: boolean) => {
+    try {
+      await fetchJson("/api/creator/favorites/brands", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ brandId, favorite }),
+      });
+      setFavoriteBrandIds((prev) => {
+        if (favorite) return Array.from(new Set([...prev, brandId]));
+        return prev.filter((id) => id !== brandId);
+      });
+      setNotice(favorite ? "Brand saved to favorites." : "Brand removed from favorites.");
+    } catch (err) {
+      const apiErr = err as ApiError;
+      setNotice(apiErr?.message ?? "Unable to update favorite");
+    }
+  };
 
   return (
     <InfluencerLayout>
@@ -231,7 +268,9 @@ export default function InfluencerDealsPage() {
         </div>
 
         <div className="flex gap-2 overflow-x-auto pb-4 mb-6">
-          {(["all", "pending", "approved", "shipped", "repost_required", "posted", "complete"] as const).map(
+          {(
+            ["all", "pending", "approved", "shipped", "repost_required", "posted", "complete", "rejected"] as const
+          ).map(
             (status) => (
               <Button
                 key={status}
@@ -288,9 +327,40 @@ export default function InfluencerDealsPage() {
                           <h3 className="font-pixel text-sm text-foreground">{deal.product}</h3>
                           <p className="font-mono text-xs text-muted-foreground">{deal.brand}</p>
                         </div>
-                        <span className={`px-2 py-1 text-xs font-pixel flex-shrink-0 border-2 ${config.color}`}>
-                          {config.label}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 text-xs font-pixel flex-shrink-0 border-2 ${config.color}`}>
+                            {config.label}
+                          </span>
+                          {deal.status === "complete" ? (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 border-2 border-border"
+                              aria-label={
+                                favoriteBrandSet.has(deal.brandId)
+                                  ? "Unfavorite brand"
+                                  : "Favorite brand"
+                              }
+                              onMouseDown={(event) => event.stopPropagation()}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                void toggleFavoriteBrand(
+                                  deal.brandId,
+                                  !favoriteBrandSet.has(deal.brandId),
+                                );
+                              }}
+                            >
+                              <Heart
+                                className={
+                                  favoriteBrandSet.has(deal.brandId)
+                                    ? "w-4 h-4 text-neon-pink"
+                                    : "w-4 h-4 text-muted-foreground"
+                                }
+                                fill={favoriteBrandSet.has(deal.brandId) ? "currentColor" : "none"}
+                              />
+                            </Button>
+                          ) : null}
+                        </div>
                       </div>
 
                       <div className="flex gap-3 mt-3 text-xs font-mono text-muted-foreground">
@@ -336,6 +406,11 @@ export default function InfluencerDealsPage() {
                         <div className="mt-3 flex items-center gap-2 text-neon-pink">
                           <Camera className="w-4 h-4" />
                           <span className="text-xs font-mono">DUE: {deal.deadline}</span>
+                        </div>
+                      ) : null}
+                      {deal.status === "rejected" ? (
+                        <div className="mt-3 border-2 border-destructive/40 bg-destructive/10 p-2 text-xs font-mono text-destructive">
+                          Rejection reason: {deal.rejectionReason ?? "—"}
                         </div>
                       ) : null}
                       {(deal.status === "post_required" ||
@@ -507,6 +582,41 @@ export default function InfluencerDealsPage() {
                   </div>
                 ) : null}
               </div>
+              {detailsDeal.status === "complete" ? (
+                <div className="flex items-center justify-between border-2 border-border bg-muted p-3 text-xs font-mono">
+                  <span className="text-muted-foreground">FAVORITE BRAND</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 border-2 border-border"
+                    aria-label={
+                      favoriteBrandSet.has(detailsDeal.brandId)
+                        ? "Unfavorite brand"
+                        : "Favorite brand"
+                    }
+                    onClick={() =>
+                      void toggleFavoriteBrand(
+                        detailsDeal.brandId,
+                        !favoriteBrandSet.has(detailsDeal.brandId),
+                      )
+                    }
+                  >
+                    <Heart
+                      className={
+                        favoriteBrandSet.has(detailsDeal.brandId)
+                          ? "w-4 h-4 text-neon-pink"
+                          : "w-4 h-4 text-muted-foreground"
+                      }
+                      fill={favoriteBrandSet.has(detailsDeal.brandId) ? "currentColor" : "none"}
+                    />
+                  </Button>
+                </div>
+              ) : null}
+              {detailsDeal.status === "rejected" ? (
+                <div className="border-2 border-destructive/40 bg-destructive/10 p-3 text-xs font-mono text-destructive">
+                  Rejection reason: {detailsDeal.rejectionReason ?? "—"}
+                </div>
+              ) : null}
 
               <div className="border-2 border-border bg-muted p-3">
                 <div className="text-xs font-pixel text-neon-yellow mb-2">TRACKING</div>

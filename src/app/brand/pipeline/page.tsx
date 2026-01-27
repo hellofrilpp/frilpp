@@ -14,9 +14,11 @@ import {
   Star,
   Users,
   AlertTriangle,
+  Heart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   AlertDialog,
@@ -26,6 +28,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { MATCH_REJECTION_REASONS } from "@/lib/picklists";
 
 type Stage = "applied" | "approved" | "shipped" | "posted" | "repost_required" | "complete";
 
@@ -87,6 +90,7 @@ type BrandOffer = { id: string; title: string };
 
 type Influencer = {
   id: string;
+  creatorId: string;
   name: string;
   handle: string;
   followers: string;
@@ -96,6 +100,7 @@ type Influencer = {
   avatar: string;
   engagement: string;
   tiktokUserId?: string | null;
+  isFavorited?: boolean;
   distanceKm?: number | null;
   distanceMiles?: number | null;
 };
@@ -151,6 +156,10 @@ export default function BrandPipelinePage() {
   const [requestOpen, setRequestOpen] = useState(false);
   const [requestReason, setRequestReason] = useState("Missing brand tag");
   const [requestTarget, setRequestTarget] = useState<string | null>(null);
+  const [rejectOpen, setRejectOpen] = useState(false);
+  const [rejectTarget, setRejectTarget] = useState<Influencer | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [rejecting, setRejecting] = useState(false);
 
   const [pendingMatches, setPendingMatches] = useState<BrandMatch[]>([]);
   const [acceptedMatches, setAcceptedMatches] = useState<BrandMatch[]>([]);
@@ -158,6 +167,7 @@ export default function BrandPipelinePage() {
   const [dueDeliverables, setDueDeliverables] = useState<BrandDeliverable[]>([]);
   const [verifiedDeliverables, setVerifiedDeliverables] = useState<BrandDeliverable[]>([]);
   const [offers, setOffers] = useState<BrandOffer[]>([]);
+  const [favoriteCreatorIds, setFavoriteCreatorIds] = useState<string[]>([]);
   const [notice, setNotice] = useState<{ kind: NoticeKind; text: string } | null>(null);
   const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -175,7 +185,7 @@ export default function BrandPipelinePage() {
 
   const loadData = useCallback(async () => {
     try {
-      const [pendingRes, acceptedRes, shipmentsRes, dueRes, verifiedRes, offersRes] =
+      const [pendingRes, acceptedRes, shipmentsRes, dueRes, verifiedRes, offersRes, favoritesRes] =
         await Promise.all([
           fetchJson<{ ok: boolean; matches: BrandMatch[] }>(
             "/api/brand/matches?status=PENDING_APPROVAL",
@@ -189,6 +199,9 @@ export default function BrandPipelinePage() {
             "/api/brand/deliverables?status=VERIFIED",
           ),
           fetchJson<{ ok: boolean; offers: BrandOffer[] }>("/api/brand/offers"),
+          fetchJson<{ ok: boolean; favorites: Array<{ creatorId: string }> }>(
+            "/api/brand/favorites/creators",
+          ),
         ]);
 
       setPendingMatches(pendingRes.matches ?? []);
@@ -197,6 +210,7 @@ export default function BrandPipelinePage() {
       setDueDeliverables(dueRes.deliverables ?? []);
       setVerifiedDeliverables(verifiedRes.deliverables ?? []);
       setOffers(offersRes.offers ?? []);
+      setFavoriteCreatorIds((favoritesRes.favorites ?? []).map((fav) => fav.creatorId));
     } catch (err) {
       const status = err instanceof Error && "status" in err ? (err as ApiError).status : undefined;
       if (status === 401) {
@@ -264,6 +278,7 @@ export default function BrandPipelinePage() {
   const buildInfluencer = useCallback(
     (
       matchId: string,
+      creatorId: string,
       name: string,
       username: string | null,
       followersCount: number | null,
@@ -285,6 +300,7 @@ export default function BrandPipelinePage() {
         .toUpperCase();
       return {
         id: matchId,
+        creatorId,
         name: displayName,
         handle,
         followers: formatFollowers(followersCount),
@@ -303,12 +319,14 @@ export default function BrandPipelinePage() {
 
   const computedInfluencers = useMemo(() => {
     const map = new Map<string, Influencer>();
+    const favoriteSet = new Set(favoriteCreatorIds);
 
     pendingMatches.forEach((match) => {
       map.set(
         match.matchId,
         buildInfluencer(
           match.matchId,
+          match.creator.id,
           match.creator.fullName ?? match.creator.username ?? "Creator",
           match.creator.username ?? null,
           match.creator.followersCount,
@@ -327,6 +345,7 @@ export default function BrandPipelinePage() {
         match.matchId,
         buildInfluencer(
           match.matchId,
+          match.creator.id,
           match.creator.fullName ?? match.creator.username ?? "Creator",
           match.creator.username ?? null,
           match.creator.followersCount,
@@ -350,13 +369,14 @@ export default function BrandPipelinePage() {
         shipment.match.id,
         buildInfluencer(
           shipment.match.id,
+          shipment.creator.id,
           shipment.creator.fullName ?? shipment.creator.username ?? "Creator",
           shipment.creator.username ?? null,
           null,
           shipment.offer.title,
           offerIdByMatch.get(shipment.match.id) ??
             offerIdByTitle.get(shipment.offer.title) ??
-            null,
+          null,
           "shipped",
           null,
           null,
@@ -371,13 +391,14 @@ export default function BrandPipelinePage() {
         deliverable.match.id,
         buildInfluencer(
           deliverable.match.id,
+          deliverable.creator.id,
           deliverable.creator.fullName ?? deliverable.creator.username ?? "Creator",
           deliverable.creator.username ?? null,
           deliverable.creator.followersCount,
           deliverable.offer.title,
           offerIdByMatch.get(deliverable.match.id) ??
             offerIdByTitle.get(deliverable.offer.title) ??
-            null,
+          null,
           deliverable.status === "REPOST_REQUIRED" ? "repost_required" : "posted",
           null,
           null,
@@ -391,13 +412,14 @@ export default function BrandPipelinePage() {
         deliverable.match.id,
         buildInfluencer(
           deliverable.match.id,
+          deliverable.creator.id,
           deliverable.creator.fullName ?? deliverable.creator.username ?? "Creator",
           deliverable.creator.username ?? null,
           deliverable.creator.followersCount,
           deliverable.offer.title,
           offerIdByMatch.get(deliverable.match.id) ??
             offerIdByTitle.get(deliverable.offer.title) ??
-            null,
+          null,
           "complete",
           null,
           null,
@@ -406,7 +428,10 @@ export default function BrandPipelinePage() {
       );
     });
 
-    return Array.from(map.values());
+    return Array.from(map.values()).map((influencer) => ({
+      ...influencer,
+      isFavorited: favoriteSet.has(influencer.creatorId),
+    }));
   }, [
     pendingMatches,
     acceptedMatches,
@@ -416,6 +441,7 @@ export default function BrandPipelinePage() {
     offerIdByMatch,
     offerIdByTitle,
     buildInfluencer,
+    favoriteCreatorIds,
   ]);
 
   const deliverableByMatch = useMemo(() => {
@@ -516,15 +542,48 @@ export default function BrandPipelinePage() {
   };
 
   const handleReject = async (matchId: string) => {
+    const target = influencersList.find((inf) => inf.id === matchId) ?? null;
+    setRejectTarget(target);
+    setRejectReason("");
+    setRejectOpen(true);
+  };
+
+  const handleRejectConfirmed = async () => {
+    if (!rejectTarget || !rejectReason) return;
+    setRejecting(true);
     try {
-      await fetchJson(`/api/brand/matches/${encodeURIComponent(matchId)}/reject`, {
+      await fetchJson(`/api/brand/matches/${encodeURIComponent(rejectTarget.id)}/reject`, {
         method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: rejectReason }),
       });
-      setInfluencersList((prev) => prev.filter((inf) => inf.id !== matchId));
+      setInfluencersList((prev) => prev.filter((inf) => inf.id !== rejectTarget.id));
       showNotice("success", "Creator rejected.");
       await loadData();
+      setRejectOpen(false);
+      setRejectTarget(null);
     } catch {
       showNotice("error", "Reject failed");
+    } finally {
+      setRejecting(false);
+    }
+  };
+
+  const toggleFavoriteCreator = async (creatorId: string, favorite: boolean) => {
+    try {
+      await fetchJson("/api/brand/favorites/creators", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ creatorId, favorite }),
+      });
+      setFavoriteCreatorIds((prev) => {
+        if (favorite) return Array.from(new Set([...prev, creatorId]));
+        return prev.filter((id) => id !== creatorId);
+      });
+      showNotice("success", favorite ? "Creator favorited." : "Creator removed from favorites.");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Unable to update favorite";
+      showNotice("error", message);
     }
   };
 
@@ -711,15 +770,48 @@ export default function BrandPipelinePage() {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 border-2 border-border"
-                        onClick={() => openCampaignDetails(influencer)}
-                        aria-label="View details"
-                      >
-                        <Eye className="w-4 h-4" />
-                      </Button>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 border-2 border-border"
+                          onClick={() => openCampaignDetails(influencer)}
+                          aria-label="View details"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 border-2 border-border"
+                          aria-label={influencer.isFavorited ? "Unfavorite creator" : "Favorite creator"}
+                          disabled={influencer.stage !== "complete"}
+                          title={
+                            influencer.stage !== "complete"
+                              ? "Complete a deal to favorite"
+                              : influencer.isFavorited
+                                ? "Unfavorite creator"
+                                : "Favorite creator"
+                          }
+                          onMouseDown={(event) => event.stopPropagation()}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            void toggleFavoriteCreator(
+                              influencer.creatorId,
+                              !Boolean(influencer.isFavorited),
+                            );
+                          }}
+                        >
+                          <Heart
+                            className={
+                              influencer.isFavorited
+                                ? "w-4 h-4 text-neon-pink"
+                                : "w-4 h-4 text-muted-foreground"
+                            }
+                            fill={influencer.isFavorited ? "currentColor" : "none"}
+                          />
+                        </Button>
+                      </div>
                     </div>
 
                     {formatDistance(influencer) && (
@@ -897,6 +989,69 @@ export default function BrandPipelinePage() {
               onClick={submitRequestChanges}
             >
               REQUEST CHANGES
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={rejectOpen}
+        onOpenChange={(open) => {
+          setRejectOpen(open);
+          if (!open) {
+            setRejectTarget(null);
+            setRejectReason("");
+          }
+        }}
+      >
+        <AlertDialogContent className="border-4 border-border bg-card">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-pixel text-sm text-neon-pink">
+              REJECT CREATOR
+            </AlertDialogTitle>
+            <AlertDialogDescription className="font-mono text-xs">
+              Select a reason. This will be shared with the creator.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="mt-3 space-y-2">
+            <Label className="font-mono text-xs" htmlFor="reject-reason">
+              Rejection reason
+            </Label>
+            <select
+              id="reject-reason"
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              className="h-10 w-full border-2 border-border bg-background px-3 text-xs font-mono"
+            >
+              <option value="" disabled>
+                Select a reason
+              </option>
+              {MATCH_REJECTION_REASONS.map((reason) => (
+                <option key={reason} value={reason}>
+                  {reason}
+                </option>
+              ))}
+            </select>
+          </div>
+          <AlertDialogFooter className="mt-4 flex flex-col gap-2 sm:flex-row sm:justify-end">
+            <Button
+              variant="outline"
+              className="border-2 font-mono text-xs"
+              onClick={() => {
+                setRejectOpen(false);
+                setRejectTarget(null);
+                setRejectReason("");
+              }}
+            >
+              CANCEL
+            </Button>
+            <Button
+              variant="outline"
+              className="border-2 font-mono text-xs text-destructive"
+              disabled={!rejectReason || rejecting}
+              onClick={handleRejectConfirmed}
+            >
+              {rejecting ? "REJECTING..." : "REJECT CREATOR"}
             </Button>
           </AlertDialogFooter>
         </AlertDialogContent>

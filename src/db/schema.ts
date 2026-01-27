@@ -170,6 +170,8 @@ export const matches = pgTable(
 
     status: matchStatusEnum("status").notNull(),
     campaignCode: text("campaign_code").notNull(),
+    rejectionReason: text("rejection_reason"),
+    rejectedAt: timestamp("rejected_at", { withTimezone: true }),
 
     acceptedAt: timestamp("accepted_at", { withTimezone: true }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -199,6 +201,50 @@ export const creatorOfferRejections = pgTable(
     creatorOfferUnique: uniqueIndex("creator_offer_rejections_creator_offer_unique").on(
       t.creatorId,
       t.offerId,
+    ),
+  }),
+);
+
+export const brandCreatorFavorites = pgTable(
+  "brand_creator_favorites",
+  {
+    id: text("id").primaryKey(),
+    brandId: text("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    brandCreatorUnique: uniqueIndex("brand_creator_favorites_brand_creator_unique").on(
+      t.brandId,
+      t.creatorId,
+    ),
+  }),
+);
+
+export const creatorBrandFavorites = pgTable(
+  "creator_brand_favorites",
+  {
+    id: text("id").primaryKey(),
+    creatorId: text("creator_id")
+      .notNull()
+      .references(() => creators.id, { onDelete: "cascade" }),
+    brandId: text("brand_id")
+      .notNull()
+      .references(() => brands.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => ({
+    creatorBrandUnique: uniqueIndex("creator_brand_favorites_creator_brand_unique").on(
+      t.creatorId,
+      t.brandId,
     ),
   }),
 );

@@ -13,6 +13,7 @@ function mapDealStatus(params: {
   submittedAt: Date | null;
 }) {
   if (params.matchStatus === "PENDING_APPROVAL") return "pending";
+  if (params.matchStatus === "REVOKED") return "rejected";
   if (params.matchStatus !== "ACCEPTED") return "pending";
 
   if (params.deliverableStatus === "VERIFIED") return "complete";
@@ -43,8 +44,11 @@ export async function GET(request: Request) {
       matchId: matches.id,
       matchStatus: matches.status,
       matchCreatedAt: matches.createdAt,
+      matchRejectedAt: matches.rejectedAt,
+      matchRejectionReason: matches.rejectionReason,
       offerTitle: offers.title,
       brandName: brands.name,
+      brandId: brands.id,
       orderStatus: shopifyOrders.status,
       trackingNumber: shopifyOrders.trackingNumber,
       trackingUrl: shopifyOrders.trackingUrl,
@@ -65,7 +69,7 @@ export async function GET(request: Request) {
     .where(
       and(
         eq(matches.creatorId, ctx.creator.id),
-        inArray(matches.status, ["PENDING_APPROVAL", "ACCEPTED"]),
+        inArray(matches.status, ["PENDING_APPROVAL", "ACCEPTED", "REVOKED"]),
       ),
     )
     .orderBy(desc(matches.createdAt))
@@ -76,6 +80,7 @@ export async function GET(request: Request) {
     deals: rows.map((row) => ({
       id: row.matchId,
       brand: row.brandName,
+      brandId: row.brandId,
       product: row.offerTitle,
       valueUsd: null,
       status: mapDealStatus({
@@ -86,6 +91,8 @@ export async function GET(request: Request) {
         submittedAt: row.deliverableSubmittedAt ?? null,
       }),
       matchDate: row.matchCreatedAt.toISOString(),
+      rejectionReason: row.matchRejectionReason ?? null,
+      rejectedAt: row.matchRejectedAt?.toISOString() ?? null,
       deadline: row.deliverableDueAt ? row.deliverableDueAt.toISOString() : null,
       trackingNumber: row.trackingNumber ?? row.manualTrackingNumber ?? null,
       trackingUrl: row.trackingUrl ?? row.manualTrackingUrl ?? null,

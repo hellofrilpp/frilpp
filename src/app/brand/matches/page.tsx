@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MATCH_REJECTION_REASONS } from "@/lib/picklists";
 
 type MatchRow = {
   matchId: string;
@@ -23,6 +24,8 @@ type MatchRow = {
 };
 
 type MatchStatusFilter = "PENDING_APPROVAL" | "ACCEPTED";
+
+const DEFAULT_REJECTION_REASON = MATCH_REJECTION_REASONS[0] ?? "Not a fit for campaign";
 
 export default function BrandMatchesPage() {
   const [filter, setFilter] = useState<MatchStatusFilter>("PENDING_APPROVAL");
@@ -94,6 +97,8 @@ export default function BrandMatchesPage() {
     try {
       const res = await fetch(`/api/brand/matches/${encodeURIComponent(matchId)}/reject`, {
         method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: DEFAULT_REJECTION_REASON }),
       });
       const data = (await res.json().catch(() => null)) as
         | { ok: true }

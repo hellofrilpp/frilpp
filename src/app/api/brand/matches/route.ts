@@ -85,6 +85,8 @@ export async function GET(request: Request) {
       campaignCode: matches.campaignCode,
       createdAt: matches.createdAt,
       acceptedAt: matches.acceptedAt,
+      rejectedAt: matches.rejectedAt,
+      rejectionReason: matches.rejectionReason,
       deliverableStatus: deliverables.status,
       deliverableDueAt: deliverables.dueAt,
       deliverableSubmittedAt: deliverables.submittedAt,
@@ -142,6 +144,8 @@ export async function GET(request: Request) {
       return {
         matchId: r.matchId,
         status: r.matchStatus,
+        rejectionReason: r.rejectionReason ?? null,
+        rejectedAt: r.rejectedAt?.toISOString() ?? null,
         campaignCode: r.campaignCode,
         createdAt: r.createdAt.toISOString(),
         acceptedAt: r.acceptedAt?.toISOString() ?? null,

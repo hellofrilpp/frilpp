@@ -53,10 +53,20 @@ export const OFFER_PRESETS = [
   },
 ] as const;
 
+export const MATCH_REJECTION_REASONS = [
+  "Not a fit for campaign",
+  "Low content quality",
+  "Audience mismatch",
+  "Location mismatch",
+  "Already fulfilled",
+  "Suspected fraud",
+] as const;
+
 export type CreatorCategoryId = (typeof CREATOR_CATEGORIES)[number];
 export type CampaignCategoryId = (typeof CAMPAIGN_CATEGORIES)[number];
 export type ContentTypeId = (typeof CONTENT_TYPES)[number];
 export type PlatformId = (typeof PLATFORMS)[number];
+export type MatchRejectionReason = (typeof MATCH_REJECTION_REASONS)[number];
 
 export const LABELS: Record<string, string> = {
   BEAUTY: "Beauty",

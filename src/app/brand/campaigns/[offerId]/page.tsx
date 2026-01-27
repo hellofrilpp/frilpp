@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MATCH_REJECTION_REASONS } from "@/lib/picklists";
 
 type BrandOffer = {
   id: string;
@@ -33,6 +34,8 @@ type BrandMatch = {
   status: string;
   campaignCode: string;
   createdAt: string;
+  rejectionReason: string | null;
+  rejectedAt: string | null;
   deliverable: {
     status: string;
     submittedAt: string | null;
@@ -65,6 +68,8 @@ type BrandMatch = {
     shippingReady: boolean;
   };
 };
+
+const DEFAULT_REJECTION_REASON = MATCH_REJECTION_REASONS[0] ?? "Not a fit for campaign";
 
 async function fetchJson<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { ...init, credentials: "include" });
@@ -327,6 +332,8 @@ export default function BrandCampaignDetailsPage() {
     try {
       await fetchJson(`/api/brand/matches/${encodeURIComponent(matchId)}/reject`, {
         method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: DEFAULT_REJECTION_REASON }),
       });
       await loadMatches();
     } catch {
@@ -563,6 +570,11 @@ export default function BrandCampaignDetailsPage() {
                       .filter((value) => typeof value === "string" && value.trim().length > 0)
                       .join(", ") || "—"}
                   </div>
+                  {match.status === "REVOKED" ? (
+                    <div className="font-mono text-[11px] text-destructive">
+                      Rejection: {match.rejectionReason ?? "—"}
+                    </div>
+                  ) : null}
                 </div>
                 <div className="flex flex-col items-end gap-2">
                   <div className="flex items-center gap-2">
