@@ -25,12 +25,17 @@ async function main() {
     return { ok: true, exitCode: 0 };
   }
 
+  const HARD_TIMEOUT_MS = Number(process.env.MIGRATE_HARD_TIMEOUT_MS ?? 120_000);
+
   console.log("[migrate] starting", {
     hasDirect: Boolean(directConnectionString),
     hasPooled: Boolean(pooledConnectionString),
   });
-
-  const HARD_TIMEOUT_MS = Number(process.env.MIGRATE_HARD_TIMEOUT_MS ?? 60_000);
+  console.log("[migrate] config", {
+    migrateOnDeploy: shouldRun,
+    hardTimeoutMs: HARD_TIMEOUT_MS,
+    migrationsFolder: "drizzle",
+  });
   const hardTimeout = setTimeout(() => {
     console.log("[migrate] timed out; skipping (build will continue)");
     process.exit(0);
