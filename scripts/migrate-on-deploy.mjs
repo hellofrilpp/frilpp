@@ -30,7 +30,7 @@ async function main() {
     hasPooled: Boolean(pooledConnectionString),
   });
 
-  const HARD_TIMEOUT_MS = Number(process.env.MIGRATE_HARD_TIMEOUT_MS ?? 15_000);
+  const HARD_TIMEOUT_MS = Number(process.env.MIGRATE_HARD_TIMEOUT_MS ?? 60_000);
   const hardTimeout = setTimeout(() => {
     console.log("[migrate] timed out; skipping (build will continue)");
     process.exit(0);
