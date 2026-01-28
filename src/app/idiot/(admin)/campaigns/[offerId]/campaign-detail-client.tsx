@@ -89,7 +89,7 @@ export default function CampaignDetailClient({ offerId }: { offerId: string }) {
     <div className="space-y-6">
       <div>
         <Link href="/idiot/campaigns" className="text-xs font-mono text-muted-foreground">
-          <- Back to campaigns
+          {"<- Back to campaigns"}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">{campaign.title}</h1>
         <p className="text-sm text-muted-foreground">

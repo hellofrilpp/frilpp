@@ -101,7 +101,7 @@ export default function CreatorDetailClient({ creatorId }: { creatorId: string }
     <div className="space-y-6">
       <div>
         <Link href="/idiot/creators" className="text-xs font-mono text-muted-foreground">
-          <- Back to creators
+          {"<- Back to creators"}
         </Link>
         <h1 className="mt-2 text-2xl font-semibold">
           {creator.fullName || creator.username || "Unnamed creator"}
