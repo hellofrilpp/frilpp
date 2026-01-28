@@ -5,9 +5,10 @@ import { requireAdmin } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
-type Params = { params: { offerId: string } };
-
-export async function GET(request: Request, { params }: Params) {
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ offerId: string }> },
+) {
   if (!process.env.DATABASE_URL) {
     return Response.json(
       { ok: false, error: "DATABASE_URL is not configured" },
@@ -17,6 +18,8 @@ export async function GET(request: Request, { params }: Params) {
 
   const sessionOrResponse = await requireAdmin(request);
   if (sessionOrResponse instanceof Response) return sessionOrResponse;
+
+  const { offerId } = await context.params;
 
   const offerRows = await db
     .select({
@@ -35,7 +38,7 @@ export async function GET(request: Request, { params }: Params) {
     })
     .from(offers)
     .innerJoin(brands, eq(brands.id, offers.brandId))
-    .where(eq(offers.id, params.offerId))
+    .where(eq(offers.id, offerId))
     .limit(1);
 
   const offer = offerRows[0];
@@ -46,14 +49,14 @@ export async function GET(request: Request, { params }: Params) {
   const matchCounts = await db
     .select({ status: matches.status, total: count(matches.id) })
     .from(matches)
-    .where(eq(matches.offerId, params.offerId))
+    .where(eq(matches.offerId, offerId))
     .groupBy(matches.status);
 
   const deliverableCounts = await db
     .select({ status: deliverables.status, total: count(deliverables.id) })
     .from(deliverables)
     .innerJoin(matches, eq(matches.id, deliverables.matchId))
-    .where(eq(matches.offerId, params.offerId))
+    .where(eq(matches.offerId, offerId))
     .groupBy(deliverables.status);
 
   return Response.json({

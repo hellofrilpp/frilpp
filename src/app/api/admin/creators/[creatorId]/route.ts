@@ -5,9 +5,10 @@ import { requireAdmin } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
-type Params = { params: { creatorId: string } };
-
-export async function GET(request: Request, { params }: Params) {
+export async function GET(
+  request: Request,
+  context: { params: Promise<{ creatorId: string }> },
+) {
   if (!process.env.DATABASE_URL) {
     return Response.json(
       { ok: false, error: "DATABASE_URL is not configured" },
@@ -17,6 +18,8 @@ export async function GET(request: Request, { params }: Params) {
 
   const sessionOrResponse = await requireAdmin(request);
   if (sessionOrResponse instanceof Response) return sessionOrResponse;
+
+  const { creatorId } = await context.params;
 
   const creatorRows = await db
     .select({
@@ -37,7 +40,7 @@ export async function GET(request: Request, { params }: Params) {
       createdAt: creators.createdAt,
     })
     .from(creators)
-    .where(eq(creators.id, params.creatorId))
+    .where(eq(creators.id, creatorId))
     .limit(1);
 
   const creator = creatorRows[0];
@@ -58,7 +61,7 @@ export async function GET(request: Request, { params }: Params) {
     .from(matches)
     .innerJoin(offers, eq(offers.id, matches.offerId))
     .innerJoin(brands, eq(brands.id, offers.brandId))
-    .where(eq(matches.creatorId, params.creatorId))
+    .where(eq(matches.creatorId, creatorId))
     .orderBy(desc(matches.createdAt))
     .limit(50);
 
