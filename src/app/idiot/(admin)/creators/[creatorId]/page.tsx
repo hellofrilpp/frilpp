@@ -2,8 +2,9 @@ import CreatorDetailClient from "./creator-detail-client";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = { params: { creatorId: string } };
+type PageProps = { params: Promise<{ creatorId: string }> };
 
-export default function CreatorDetailPage({ params }: PageProps) {
-  return <CreatorDetailClient creatorId={params.creatorId} />;
+export default async function CreatorDetailPage({ params }: PageProps) {
+  const { creatorId } = await params;
+  return <CreatorDetailClient creatorId={creatorId} />;
 }

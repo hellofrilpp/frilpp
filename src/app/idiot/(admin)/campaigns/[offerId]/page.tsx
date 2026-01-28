@@ -2,8 +2,9 @@ import CampaignDetailClient from "./campaign-detail-client";
 
 export const dynamic = "force-dynamic";
 
-type PageProps = { params: { offerId: string } };
+type PageProps = { params: Promise<{ offerId: string }> };
 
-export default function CampaignDetailPage({ params }: PageProps) {
-  return <CampaignDetailClient offerId={params.offerId} />;
+export default async function CampaignDetailPage({ params }: PageProps) {
+  const { offerId } = await params;
+  return <CampaignDetailClient offerId={offerId} />;
 }
