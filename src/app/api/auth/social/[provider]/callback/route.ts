@@ -10,6 +10,7 @@ import { exchangeTikTokCode, fetchTikTokProfile } from "@/lib/tiktok";
 import { exchangeYouTubeCode, fetchYouTubeChannel } from "@/lib/youtube";
 import { exchangeGoogleCode, fetchGoogleUserInfo } from "@/lib/google";
 import { getCreatorProfileMissingFields } from "@/lib/creator-profile";
+import { getAdminEmail } from "@/lib/admin";
 
 export const runtime = "nodejs";
 
@@ -429,6 +430,96 @@ export async function GET(request: Request, context: { params: Promise<{ provide
     jar.delete("social_oauth_role");
 
     return Response.redirect(new URL("/brand/setup?mode=signup", origin), 302);
+  }
+
+  // Handle admin Google OAuth login (restricted to admin email only)
+  if (provider === "google" && roleCookie === "admin") {
+    const adminEmail = getAdminEmail();
+
+    // Verify the Google email matches the admin email
+    if (!googleEmail || googleEmail.toLowerCase() !== adminEmail) {
+      jar.delete("social_oauth_state");
+      jar.delete("social_oauth_provider");
+      jar.delete("social_oauth_next");
+      jar.delete("social_oauth_role");
+      return redirectWithError(url.origin, "Admin access is restricted to authorized accounts only");
+    }
+
+    // Find or create the admin user
+    const existingUserRows = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.email, adminEmail))
+      .limit(1);
+
+    let userId: string;
+    if (existingUserRows[0]) {
+      userId = existingUserRows[0].id;
+      // Link Google account if not already linked
+      const existingGoogleAccount = await db
+        .select({ id: userSocialAccounts.id })
+        .from(userSocialAccounts)
+        .where(and(eq(userSocialAccounts.userId, userId), eq(userSocialAccounts.provider, "GOOGLE")))
+        .limit(1);
+
+      if (!existingGoogleAccount[0]) {
+        await db.insert(userSocialAccounts).values({
+          id: crypto.randomUUID(),
+          userId,
+          provider: "GOOGLE",
+          providerUserId: providerUserId!,
+          username,
+          accessTokenEncrypted,
+          refreshTokenEncrypted,
+          expiresAt,
+          scopes,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      }
+    } else {
+      // Create new admin user
+      const now = new Date();
+      userId = crypto.randomUUID();
+
+      await db.insert(users).values({
+        id: userId,
+        email: adminEmail,
+        name: username,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      await db.insert(userSocialAccounts).values({
+        id: crypto.randomUUID(),
+        userId,
+        provider: "GOOGLE",
+        providerUserId: providerUserId!,
+        username,
+        accessTokenEncrypted,
+        refreshTokenEncrypted,
+        expiresAt,
+        scopes,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    await createSession(userId);
+    jar.set("frilpp_lane", "admin", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
+    jar.delete("social_oauth_state");
+    jar.delete("social_oauth_provider");
+    jar.delete("social_oauth_next");
+    jar.delete("social_oauth_role");
+
+    return Response.redirect(new URL("/idiot/dashboard", origin), 302);
   }
 
   if (roleCookie === "creator") {

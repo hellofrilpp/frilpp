@@ -10,7 +10,7 @@ import { buildGoogleOAuthUrl } from "@/lib/google";
 export const runtime = "nodejs";
 
 const providerSchema = z.enum(["instagram", "tiktok", "youtube", "google"]);
-const roleSchema = z.enum(["brand", "creator"]);
+const roleSchema = z.enum(["brand", "creator", "admin"]);
 
 export async function GET(request: Request, context: { params: Promise<{ provider: string }> }) {
   if (!process.env.DATABASE_URL) {
