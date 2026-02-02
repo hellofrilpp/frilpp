@@ -1,14 +1,10 @@
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { getShopifyStoreForBrand } from "@/db/shopify";
-import { brands, creators, deliverables, matchDiscounts, matches, offerProducts, offers } from "@/db/schema";
+import { brands, creators, deliverables, matches, offers } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
-import { decryptSecret } from "@/lib/crypto";
 import { enqueueNotification } from "@/lib/notifications";
-import { createDiscountForMatch } from "@/lib/shopify-discounts";
 import { ensureManualShipmentForMatch } from "@/lib/manual-shipments";
-import { ensureShopifyOrderForMatch } from "@/lib/shopify-orders";
 
 export const runtime = "nodejs";
 
@@ -64,77 +60,9 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
     });
   }
 
-  let discountCreated = false;
-  let orderCreated = false;
   const errors: string[] = [];
 
-  const store = await getShopifyStoreForBrand(offer.brandId);
-  const offerProductRows = store
-    ? await db
-        .select({ shopifyProductId: offerProducts.shopifyProductId })
-        .from(offerProducts)
-        .where(eq(offerProducts.offerId, offer.id))
-        .limit(20)
-    : [];
-  const fulfillmentType =
-    typeof offer.metadata === "object" && offer.metadata
-      ? String((offer.metadata as Record<string, unknown>).fulfillmentType ?? "")
-      : "";
-  const wantsManual = fulfillmentType === "MANUAL";
-  const needsManualShipment =
-    offer.deliverableType !== "UGC_ONLY" &&
-    (wantsManual || !store || offerProductRows.length === 0);
-
-  try {
-    if (store && offer.deliverableType !== "UGC_ONLY") {
-      const existingDiscount = await db
-        .select({ id: matchDiscounts.id })
-        .from(matchDiscounts)
-        .where(eq(matchDiscounts.matchId, matchId))
-        .limit(1);
-      if (!existingDiscount[0]) {
-        if (!offerProductRows.length) {
-          throw new Error("Offer has no Shopify products selected");
-        }
-        const percent = Number(process.env.DEFAULT_CREATOR_DISCOUNT_PERCENT ?? "10");
-        const token = decryptSecret(store.accessTokenEncrypted);
-
-        const created = await createDiscountForMatch({
-          shopDomain: store.shopDomain,
-          accessToken: token,
-          code: match.campaignCode,
-          entitledProductIds: offerProductRows.map((p) => p.shopifyProductId),
-          percentOff: Number.isFinite(percent) ? percent : 10,
-          daysValid: 30,
-        });
-
-        await db
-          .insert(matchDiscounts)
-          .values({
-            id: crypto.randomUUID(),
-            matchId,
-            shopDomain: store.shopDomain,
-            shopifyPriceRuleId: created.shopifyPriceRuleId,
-            shopifyDiscountCodeId: created.shopifyDiscountCodeId,
-          })
-          .onConflictDoNothing();
-      }
-      discountCreated = true;
-    }
-  } catch (err) {
-    errors.push(err instanceof Error ? err.message : "Discount creation failed");
-  }
-
-  if (store) {
-    try {
-      await ensureShopifyOrderForMatch(matchId);
-      orderCreated = true;
-    } catch (err) {
-      errors.push(err instanceof Error ? err.message : "Order creation failed");
-    }
-  }
-
-  if (needsManualShipment) {
+  if (offer.deliverableType !== "UGC_ONLY") {
     try {
       await ensureManualShipmentForMatch(matchId);
     } catch (err) {
@@ -172,8 +100,6 @@ export async function POST(request: Request, context: { params: Promise<{ matchI
       acceptedAt: acceptedAt.toISOString(),
       campaignCode: match.campaignCode,
       shareUrlPath: `/r/${encodeURIComponent(match.campaignCode)}`,
-      discountCreated,
-      orderCreated,
     },
     errors,
   });

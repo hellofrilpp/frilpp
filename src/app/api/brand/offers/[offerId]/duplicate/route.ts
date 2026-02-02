@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, offerProducts, offers } from "@/db/schema";
+import { brands, offers } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 
 export const runtime = "nodejs";
@@ -42,12 +42,6 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
   const offer = offerRows[0];
   if (!offer) return Response.json({ ok: false, error: "Offer not found" }, { status: 404 });
 
-  const products = await db
-    .select()
-    .from(offerProducts)
-    .where(eq(offerProducts.offerId, offer.id))
-    .limit(50);
-
   const newId = crypto.randomUUID();
   const now = new Date();
 
@@ -66,22 +60,11 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     usageRightsScope: offer.usageRightsScope,
     acceptanceFollowersThreshold: offer.acceptanceFollowersThreshold,
     acceptanceAboveThresholdAutoAccept: false,
+    metadata: offer.metadata,
     publishedAt: now,
     createdAt: now,
     updatedAt: now,
   });
-
-  if (products.length) {
-    await db.insert(offerProducts).values(
-      products.map((p) => ({
-        id: crypto.randomUUID(),
-        offerId: newId,
-        shopifyProductId: p.shopifyProductId,
-        shopifyVariantId: p.shopifyVariantId,
-        quantity: p.quantity,
-      })),
-    );
-  }
 
   return Response.json({ ok: true, offerId: newId });
 }

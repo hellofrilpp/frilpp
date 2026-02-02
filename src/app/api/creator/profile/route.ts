@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { creators, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
 import { CREATOR_CATEGORIES } from "@/lib/picklists";
+import { checkRequestSize, RequestSizeLimits } from "@/lib/request-size";
 
 export const runtime = "nodejs";
 
@@ -96,6 +97,9 @@ export async function PATCH(request: Request) {
     );
   }
 
+  const sizeCheck = checkRequestSize(request, RequestSizeLimits.SMALL);
+  if (sizeCheck) return sizeCheck;
+
   const sessionOrResponse = await requireUser(request);
   if (sessionOrResponse instanceof Response) return sessionOrResponse;
 
@@ -151,7 +155,6 @@ export async function PATCH(request: Request) {
         .where(eq(users.id, userId));
     }
   } catch (err) {
-    console.error("creator profile save failed", err);
     const message = err instanceof Error ? err.message : "Failed to save creator profile";
     const pgError = err && typeof err === "object" && "cause" in err ? (err as { cause?: unknown }).cause : null;
     const constraint =

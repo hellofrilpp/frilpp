@@ -423,6 +423,18 @@ export const loginTokens = pgTable("login_tokens", {
     .defaultNow(),
 });
 
+export const adminOtps = pgTable("admin_otps", {
+  id: text("id").primaryKey(),
+  email: text("email").notNull(),
+  codeHash: text("code_hash").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  usedAt: timestamp("used_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
+
 export const brandMemberships = pgTable("brand_memberships", {
   id: text("id").primaryKey(),
   brandId: text("brand_id")
@@ -549,30 +561,6 @@ END;
 $$ LANGUAGE plpgsql;
 `;
 
-export const shopifyStores = pgTable("shopify_stores", {
-  id: text("id").primaryKey(),
-  brandId: text("brand_id")
-    .notNull()
-    .references(() => brands.id, { onDelete: "cascade" }),
-  shopDomain: text("shop_domain").notNull(),
-  accessTokenEncrypted: text("access_token_encrypted").notNull(),
-  scopes: text("scopes").notNull(),
-  installedAt: timestamp("installed_at", { withTimezone: true })
-    .notNull()
-    .defaultNow(),
-  uninstalledAt: timestamp("uninstalled_at", { withTimezone: true }),
-});
-
-export const offerProducts = pgTable("offer_products", {
-  id: text("id").primaryKey(),
-  offerId: text("offer_id")
-    .notNull()
-    .references(() => offers.id, { onDelete: "cascade" }),
-  shopifyProductId: text("shopify_product_id").notNull(),
-  shopifyVariantId: text("shopify_variant_id").notNull(),
-  quantity: integer("quantity").notNull().default(1),
-});
-
 export const linkClicks = pgTable("link_clicks", {
   id: text("id").primaryKey(),
   matchId: text("match_id")
@@ -625,68 +613,10 @@ export const attributedRefunds = pgTable(
   }),
 );
 
-export const matchDiscounts = pgTable(
-  "match_discounts",
-  {
-    id: text("id").primaryKey(),
-    matchId: text("match_id")
-      .notNull()
-      .references(() => matches.id, { onDelete: "cascade" }),
-    shopDomain: text("shop_domain").notNull(),
-    shopifyPriceRuleId: text("shopify_price_rule_id").notNull(),
-    shopifyDiscountCodeId: text("shopify_discount_code_id").notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => ({
-    matchIdUnique: uniqueIndex("match_discounts_match_id_unique").on(t.matchId),
-  }),
-);
-
-export const shopifyOrderStatusEnum = pgEnum("shopify_order_status", [
-  "PENDING",
-  "DRAFT_CREATED",
-  "COMPLETED",
-  "FULFILLED",
-  "CANCELED",
-  "ERROR",
-]);
-
 export const manualShipmentStatusEnum = pgEnum("manual_shipment_status", [
   "PENDING",
   "SHIPPED",
 ]);
-
-export const shopifyOrders = pgTable(
-  "shopify_orders",
-  {
-    id: text("id").primaryKey(),
-    matchId: text("match_id")
-      .notNull()
-      .references(() => matches.id, { onDelete: "cascade" }),
-    shopDomain: text("shop_domain").notNull(),
-
-    status: shopifyOrderStatusEnum("status").notNull().default("PENDING"),
-    shopifyDraftOrderId: text("shopify_draft_order_id"),
-    shopifyOrderId: text("shopify_order_id"),
-    shopifyOrderName: text("shopify_order_name"),
-
-    trackingNumber: text("tracking_number"),
-    trackingUrl: text("tracking_url"),
-
-    error: text("error"),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (t) => ({
-    matchIdUnique: uniqueIndex("shopify_orders_match_id_unique").on(t.matchId),
-  }),
-);
 
 export const manualShipments = pgTable(
   "manual_shipments",

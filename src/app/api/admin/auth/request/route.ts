@@ -2,10 +2,8 @@ import crypto from "node:crypto";
 import { cookies } from "next/headers";
 import { z } from "zod";
 import { db } from "@/db";
-import { loginTokens } from "@/db/schema";
-import { generateLoginToken, hashLoginToken } from "@/lib/auth";
+import { adminOtps } from "@/db/schema";
 import { sendEmail } from "@/lib/email";
-import { renderMagicLinkEmail } from "@/lib/email-templates/magic-link";
 import { log } from "@/lib/logger";
 import { ipKey, rateLimit } from "@/lib/rate-limit";
 import { getAdminEmail } from "@/lib/admin";
@@ -15,6 +13,20 @@ export const runtime = "nodejs";
 const bodySchema = z.object({
   email: z.string().email(),
 });
+
+function generateOtp(): string {
+  const digits = "0123456789";
+  let otp = "";
+  const randomBytes = crypto.randomBytes(6);
+  for (let i = 0; i < 6; i++) {
+    otp += digits[randomBytes[i]! % 10];
+  }
+  return otp;
+}
+
+function hashOtp(otp: string): string {
+  return crypto.createHash("sha256").update(otp).digest("hex");
+}
 
 export async function POST(request: Request) {
   if (!process.env.DATABASE_URL) {
@@ -75,34 +87,29 @@ export async function POST(request: Request) {
     });
   }
 
-  const token = generateLoginToken();
-  const tokenHash = hashLoginToken(token);
-  const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+  const otp = generateOtp();
+  const codeHash = hashOtp(otp);
+  const otpId = crypto.randomUUID();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-  await db.insert(loginTokens).values({
-    id: crypto.randomUUID(),
+  await db.insert(adminOtps).values({
+    id: otpId,
     email,
-    tokenHash,
+    codeHash,
+    attempts: 0,
     expiresAt,
     createdAt: new Date(),
   });
 
   const jar = await cookies();
-  jar.set("auth_next", "/idiot/setup", {
+  jar.set("admin_otp_id", otpId, {
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: "strict",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 10,
+    maxAge: 60 * 5, // 5 minutes
   });
-  jar.set("pending_tos", "1", {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 10,
-  });
-  jar.set("pending_privacy", "1", {
+  jar.set("auth_next", "/idiot/dashboard", {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
@@ -110,21 +117,36 @@ export async function POST(request: Request) {
     maxAge: 60 * 10,
   });
 
-  const origin = process.env.NEXT_PUBLIC_APP_URL ?? new URL(request.url).origin;
-  const callbackUrl = `${origin}/auth/callback#token=${encodeURIComponent(token)}`;
-
-  const html = renderMagicLinkEmail({
-    callbackUrl,
-    logoUrl: `${origin}/email/frilpp-logo.png`,
-    copyIconUrl: `${origin}/email/icons/copy.svg`,
-    expiresMinutes: 10,
-  });
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #000; color: #fff; padding: 40px; }
+    .container { max-width: 400px; margin: 0 auto; text-align: center; }
+    .otp { font-size: 32px; font-family: monospace; letter-spacing: 8px; background: #111; padding: 20px 30px; border-radius: 8px; border: 1px solid #333; margin: 30px 0; }
+    .expires { color: #888; font-size: 14px; }
+    h1 { color: #0f0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Frilpp Admin Login</h1>
+    <p>Your one-time verification code is:</p>
+    <div class="otp">${otp}</div>
+    <p class="expires">This code expires in 5 minutes.</p>
+    <p class="expires">Do not share this code with anyone.</p>
+  </div>
+</body>
+</html>
+  `.trim();
 
   const send = await sendEmail({
     to: email,
-    subject: "Your Frilpp admin sign-in link",
+    subject: `${otp} is your Frilpp admin verification code`,
     html,
-    text: `Frilpp admin sign-in link (expires in 10 minutes): ${callbackUrl}`,
+    text: `Your Frilpp admin verification code is: ${otp}\n\nThis code expires in 5 minutes. Do not share this code with anyone.`,
   });
 
   if (!send.ok) {
@@ -134,5 +156,5 @@ export async function POST(request: Request) {
     );
   }
 
-  return Response.json({ ok: true, sent: true });
+  return Response.json({ ok: true, sent: true, requiresOtp: true });
 }

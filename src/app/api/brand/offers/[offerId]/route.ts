@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
-import { brands, deliverables, manualShipments, matches, offerProducts, offers, shopifyOrders } from "@/db/schema";
+import { brands, deliverables, manualShipments, matches, offers } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 import { hasActiveSubscription } from "@/lib/billing";
 import { templateToDeliverableType, type OfferTemplateId } from "@/lib/offer-template";
@@ -21,15 +21,6 @@ const patchSchema = z
     usageRightsRequired: z.boolean().optional(),
     usageRightsScope: z.enum(USAGE_RIGHTS_SCOPES).optional(),
     status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).optional(),
-    products: z
-      .array(
-        z.object({
-          shopifyProductId: z.string().min(1),
-          shopifyVariantId: z.string().min(1),
-          quantity: z.number().int().min(1).max(100).default(1),
-        }),
-      )
-      .optional(),
     metadata: z.record(z.string(), z.unknown()).optional(),
   })
   .strict();
@@ -54,16 +45,6 @@ export async function GET(request: Request, context: { params: Promise<{ offerId
   const offer = offerRows[0];
   if (!offer) return Response.json({ ok: false, error: "Offer not found" }, { status: 404 });
 
-  const products = await db
-    .select({
-      shopifyProductId: offerProducts.shopifyProductId,
-      shopifyVariantId: offerProducts.shopifyVariantId,
-      quantity: offerProducts.quantity,
-    })
-    .from(offerProducts)
-    .where(eq(offerProducts.offerId, offer.id))
-    .limit(50);
-
   return Response.json({
     ok: true,
     offer: {
@@ -83,7 +64,6 @@ export async function GET(request: Request, context: { params: Promise<{ offerId
       publishedAt: offer.publishedAt?.toISOString() ?? null,
       createdAt: offer.createdAt.toISOString(),
       updatedAt: offer.updatedAt.toISOString(),
-      products,
     },
   });
 }
@@ -129,7 +109,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
     return Response.json({ ok: false, error: "Cannot revert to draft" }, { status: 400 });
   }
 
-  const nextCountriesAllowed = patch.countriesAllowed ?? existing.countriesAllowed;
   const nextTemplate = (patch.template ?? existing.template) as OfferTemplateId;
 
   const publishing = patch.status === "PUBLISHED" && existing.status !== "PUBLISHED";
@@ -225,21 +204,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ offer
       await tx.execute(sql`set local lock_timeout = '3s'`);
       await tx.execute(sql`set local statement_timeout = '10s'`);
 
-      if (patch.products) {
-        await tx.delete(offerProducts).where(eq(offerProducts.offerId, offerId));
-        if (patch.products.length) {
-          await tx.insert(offerProducts).values(
-            patch.products.map((p) => ({
-              id: crypto.randomUUID(),
-              offerId,
-              shopifyProductId: p.shopifyProductId,
-              shopifyVariantId: p.shopifyVariantId,
-              quantity: p.quantity,
-            })),
-          );
-        }
-      }
-
       return tx
         .update(offers)
         .set(update)
@@ -318,27 +282,11 @@ export async function DELETE(request: Request, context: { params: Promise<{ offe
     );
   }
 
-  const [shopifyOrderRow] = await db
-    .select({ id: shopifyOrders.id })
-    .from(shopifyOrders)
-    .innerJoin(matches, eq(shopifyOrders.matchId, matches.id))
-    .where(eq(matches.offerId, offerId))
-    .limit(1);
-  if (shopifyOrderRow) {
-    return Response.json(
-      { ok: false, error: "Campaign has shipments and cannot be deleted", code: "OFFER_HAS_ACTIVITY" },
-      { status: 409 },
-    );
-  }
-
-  const deleted = await db.transaction(async (tx) => {
-    await tx.delete(offerProducts).where(eq(offerProducts.offerId, offerId));
-    return tx
-      .delete(offers)
-      .where(and(eq(offers.id, offerId), eq(offers.brandId, ctx.brandId)))
-      .returning({ id: offers.id })
-      .catch(() => []);
-  });
+  const deleted = await db
+    .delete(offers)
+    .where(and(eq(offers.id, offerId), eq(offers.brandId, ctx.brandId)))
+    .returning({ id: offers.id })
+    .catch(() => []);
 
   if (!deleted.length) return Response.json({ ok: false, error: "Offer not found" }, { status: 404 });
   return Response.json({ ok: true });

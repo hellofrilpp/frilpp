@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { desc, eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { offerProducts, offers, brands } from "@/db/schema";
+import { offers, brands } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
 import { templateToDeliverableType, type OfferTemplateId } from "@/lib/offer-template";
 import { USAGE_RIGHTS_SCOPES } from "@/lib/usage-rights";
@@ -9,6 +9,7 @@ import { hasActiveSubscription } from "@/lib/billing";
 import { log } from "@/lib/logger";
 import { getDbErrorText, isMigrationSchemaError } from "@/lib/runtime-migrations";
 import { coerceDraftMetadata, validatePublishMetadata } from "@/lib/offer-metadata";
+import { checkRequestSize, RequestSizeLimits } from "@/lib/request-size";
 
 export const runtime = "nodejs";
 export const maxDuration = 30;
@@ -25,16 +26,6 @@ const createOfferSchema = z.object({
   followersThreshold: z.number().int().min(0).max(100_000_000).default(0),
   usageRightsRequired: z.boolean().optional().default(false),
   usageRightsScope: z.enum(USAGE_RIGHTS_SCOPES).optional(),
-  products: z
-    .array(
-      z.object({
-        shopifyProductId: z.string().min(1),
-        shopifyVariantId: z.string().min(1),
-        quantity: z.number().int().min(1).max(100).default(1),
-      }),
-    )
-    .optional()
-    .default([]),
   metadata: z.record(z.string(), z.unknown()).optional().default({}),
 });
 
@@ -110,6 +101,9 @@ export async function POST(request: Request) {
       { status: 500 },
     );
   }
+
+  const sizeCheck = checkRequestSize(request, RequestSizeLimits.MEDIUM);
+  if (sizeCheck) return sizeCheck;
 
   const errorId = crypto.randomUUID();
   const timeoutMs = 25_000;
@@ -233,17 +227,6 @@ export async function POST(request: Request) {
           publishedAt: desiredStatus === "PUBLISHED" ? new Date() : null,
         });
 
-        if (input.products.length) {
-          await tx.insert(offerProducts).values(
-            input.products.map((p) => ({
-              id: crypto.randomUUID(),
-              offerId: id,
-              shopifyProductId: p.shopifyProductId,
-              shopifyVariantId: p.shopifyVariantId,
-              quantity: p.quantity,
-            })),
-          );
-        }
       });
       phase = "insert:done";
     };

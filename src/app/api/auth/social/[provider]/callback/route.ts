@@ -23,7 +23,7 @@ const creatorProfilePath = "/influencer/profile";
 
 async function createSession(userId: string) {
   const sessionId = crypto.randomUUID();
-  const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
   await db.insert(sessions).values({
     id: sessionId,
     userId,
@@ -42,7 +42,7 @@ async function createSession(userId: string) {
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: 60 * 60 * 24 * 7, // 7 days
   });
   if (user?.tosAcceptedAt && user?.privacyAcceptedAt) {
     jar.set("frilpp_legal", "1", {

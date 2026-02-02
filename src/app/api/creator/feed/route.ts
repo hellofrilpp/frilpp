@@ -199,9 +199,9 @@ export async function GET(request: Request) {
         };
       }),
     });
-  } catch (err) {
+  } catch {
     return Response.json(
-      { ok: false, error: err instanceof Error ? err.message : "DB error" },
+      { ok: false, error: "Failed to load offers" },
       { status: 500 },
     );
   }

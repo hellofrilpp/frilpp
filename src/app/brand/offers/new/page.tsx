@@ -11,9 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { formatUsageRightsScope } from "@/lib/usage-rights";
 
 type TemplateId = "REEL" | "FEED" | "REEL_PLUS_STORY" | "UGC_ONLY";
-type WizardStep = 0 | 1 | 2 | 3;
-
-const SHOPIFY_ENABLED = false;
+type WizardStep = 1 | 2 | 3;
 
 type OfferDraft = {
   template: TemplateId;
@@ -23,27 +21,11 @@ type OfferDraft = {
   deadlineDaysAfterDelivery: number;
   usageRightsRequired: boolean;
   usageRightsScope: "PAID_ADS_12MO" | "PAID_ADS_6MO" | "PAID_ADS_UNLIMITED" | "ORGANIC_ONLY";
-  fulfillmentType: "SHOPIFY" | "MANUAL";
   manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY";
   manualFulfillmentNotes: string;
   locationRadiusKm: number | null;
   ctaUrl: string;
   platforms: Array<"TIKTOK" | "YOUTUBE">;
-};
-
-type ShopifyProduct = {
-  id: string;
-  title: string;
-  imageUrl: string | null;
-  variants: Array<{ id: string; title: string }>;
-};
-
-type SelectedProduct = {
-  shopifyProductId: string;
-  shopifyVariantId: string;
-  quantity: number;
-  title: string;
-  variantTitle: string;
 };
 
 type NearbyCreator = {
@@ -105,7 +87,7 @@ function StepPill(props: {
 }
 
 export default function NewOfferPage() {
-  const [step, setStep] = useState<WizardStep>(SHOPIFY_ENABLED ? 0 : 1);
+  const [step, setStep] = useState<WizardStep>(1);
   const [origin, setOrigin] = useState("");
 
   const [draft, setDraft] = useState<OfferDraft>(() => ({
@@ -113,7 +95,6 @@ export default function NewOfferPage() {
     countriesAllowed: [],
     usageRightsRequired: false,
     usageRightsScope: "PAID_ADS_12MO",
-    fulfillmentType: "MANUAL",
     manualFulfillmentMethod: "PICKUP",
     manualFulfillmentNotes: "",
     locationRadiusKm: 25 * 1.609344,
@@ -127,24 +108,6 @@ export default function NewOfferPage() {
   const [publishError, setPublishError] = useState<string | null>(null);
   const [publishPaywall, setPublishPaywall] = useState(false);
 
-  const [shopifyConnected, setShopifyConnected] = useState(false);
-  const [shopifyShopDomain, setShopifyShopDomain] = useState<string | null>(null);
-  const [shopInput, setShopInput] = useState("");
-  const [webhookStatus, setWebhookStatus] = useState<"idle" | "ok" | "error">("idle");
-  const [isRegisteringWebhook, setIsRegisteringWebhook] = useState(false);
-
-  const [productQuery, setProductQuery] = useState("");
-  const [products, setProducts] = useState<ShopifyProduct[]>([]);
-  const [isLoadingProducts, setIsLoadingProducts] = useState(false);
-  const [productsError, setProductsError] = useState<string | null>(null);
-  const [selectedProducts, setSelectedProducts] = useState<SelectedProduct[]>([]);
-  const [variantDraftByProductId, setVariantDraftByProductId] = useState<Record<string, string>>(
-    {},
-  );
-  const [quantityDraftByProductId, setQuantityDraftByProductId] = useState<Record<string, number>>(
-    {},
-  );
-
   const [nearby, setNearby] = useState<{
     radiusKm: number;
     creatorCount: number;
@@ -154,10 +117,6 @@ export default function NewOfferPage() {
   const [nearbyError, setNearbyError] = useState<string | null>(null);
 
   const campaignCodeExample = useMemo(() => "FRILP-A1B2C3", []);
-  const productsSelectedCount = useMemo(
-    () => selectedProducts.reduce((acc, p) => acc + (p.quantity || 0), 0),
-    [selectedProducts],
-  );
 
   useEffect(() => {
     const radiusKm = draft.locationRadiusKm ?? null;
@@ -214,25 +173,14 @@ export default function NewOfferPage() {
     };
   }, [draft.locationRadiusKm]);
 
-  const stepOrder = useMemo<WizardStep[]>(
-    () => (SHOPIFY_ENABLED ? [0, 1, 2, 3] : [1, 2, 3]),
-    [],
-  );
+  const stepOrder = useMemo<WizardStep[]>(() => [1, 2, 3], []);
 
   const steps = useMemo(
-    () =>
-      SHOPIFY_ENABLED
-        ? [
-            { title: "Products", description: "Pick products (optional)." },
-            { title: "Template", description: "Pick the deliverable type." },
-            { title: "Details", description: "Local radius and tracking link." },
-            { title: "Review + publish", description: "One-click publish and share." },
-          ]
-        : [
-            { title: "Template", description: "Pick the deliverable type." },
-            { title: "Details", description: "Local radius and tracking link." },
-            { title: "Review + publish", description: "One-click publish and share." },
-          ],
+    () => [
+      { title: "Template", description: "Pick the deliverable type." },
+      { title: "Details", description: "Local radius and tracking link." },
+      { title: "Review + publish", description: "One-click publish and share." },
+    ],
     [],
   );
 
@@ -242,80 +190,6 @@ export default function NewOfferPage() {
   useEffect(() => {
     setOrigin(window.location.origin);
   }, []);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const res = await fetch("/api/shopify/status", { method: "GET" });
-      const data = (await res.json().catch(() => null)) as
-        | { ok: true; connected: boolean; shopDomain: string | null }
-        | { ok: false; error?: string };
-      if (!res.ok || !data || !("ok" in data) || data.ok !== true) return;
-      if (cancelled) return;
-      setShopifyConnected(Boolean(data.connected));
-      setShopifyShopDomain(data.shopDomain ?? null);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  async function loadProducts() {
-    setIsLoadingProducts(true);
-    setProductsError(null);
-    try {
-      const url = new URL("/api/shopify/products", window.location.origin);
-      url.searchParams.set("limit", "10");
-      if (productQuery.trim()) url.searchParams.set("query", productQuery.trim());
-      const res = await fetch(url.toString(), { method: "GET" });
-      const data = (await res.json().catch(() => null)) as
-        | { ok: true; products: ShopifyProduct[] }
-        | { ok: false; error?: string };
-      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
-        throw new Error((data && "error" in data && data.error) || "Failed to load products");
-      }
-      setProducts(data.products);
-      setVariantDraftByProductId((prev) => {
-        const next = { ...prev };
-        for (const p of data.products) {
-          if (!next[p.id]) next[p.id] = p.variants[0]?.id ?? "";
-        }
-        return next;
-      });
-      setQuantityDraftByProductId((prev) => {
-        const next = { ...prev };
-        for (const p of data.products) {
-          if (!next[p.id]) next[p.id] = 1;
-        }
-        return next;
-      });
-    } catch (err) {
-      setProductsError(err instanceof Error ? err.message : "Failed to load products");
-    } finally {
-      setIsLoadingProducts(false);
-    }
-  }
-
-  async function registerWebhook() {
-    setIsRegisteringWebhook(true);
-    setWebhookStatus("idle");
-    try {
-      const res = await fetch("/api/shopify/webhooks/register", { method: "POST" });
-      const data = (await res.json().catch(() => null)) as { ok: true } | { ok: false; error?: string };
-      if (!res.ok || !data || !("ok" in data) || data.ok !== true) {
-        throw new Error(
-          data && "error" in data && typeof data.error === "string"
-            ? data.error
-            : "Webhook registration failed",
-        );
-      }
-      setWebhookStatus("ok");
-    } catch {
-      setWebhookStatus("error");
-    } finally {
-      setIsRegisteringWebhook(false);
-    }
-  }
 
   const hasMinimumDetails =
     draft.title.trim().length >= 3 &&
@@ -341,20 +215,12 @@ export default function NewOfferPage() {
           deadlineDaysAfterDelivery: draft.deadlineDaysAfterDelivery,
           usageRightsRequired: draft.usageRightsRequired,
           usageRightsScope: draft.usageRightsScope,
-          products: selectedProducts.map((p) => ({
-            shopifyProductId: p.shopifyProductId,
-            shopifyVariantId: p.shopifyVariantId,
-            quantity: p.quantity,
-          })),
           metadata: {
-            fulfillmentType: draft.fulfillmentType,
-            manualFulfillmentMethod: draft.fulfillmentType === "MANUAL" ? draft.manualFulfillmentMethod : null,
-            manualFulfillmentNotes:
-              draft.fulfillmentType === "MANUAL" && draft.manualFulfillmentNotes.trim()
-                ? draft.manualFulfillmentNotes.trim()
-                : null,
+            fulfillmentType: "MANUAL",
+            manualFulfillmentMethod: draft.manualFulfillmentMethod,
+            manualFulfillmentNotes: draft.manualFulfillmentNotes.trim() || null,
             locationRadiusKm: draft.locationRadiusKm,
-            ctaUrl: draft.ctaUrl.trim() ? draft.ctaUrl.trim() : null,
+            ctaUrl: draft.ctaUrl.trim() || null,
             platforms: draft.platforms,
           },
         }),
@@ -411,13 +277,11 @@ export default function NewOfferPage() {
     if (!publishedOfferId) return "";
     const link = origin ? `${origin}/o/${publishedOfferId}` : `/o/${publishedOfferId}`;
     const fulfillmentLine =
-      draft.fulfillmentType === "MANUAL"
-        ? draft.manualFulfillmentMethod === "LOCAL_DELIVERY"
-          ? "- This is local delivery: add your delivery address in Profile before claiming."
-          : "- This is pickup: your location is used for eligibility."
-        : "- Fulfillment details will be shared after you claim.";
+      draft.manualFulfillmentMethod === "LOCAL_DELIVERY"
+        ? "- This is local delivery: add your delivery address in Profile before claiming."
+        : "- This is pickup: your location is used for eligibility.";
     return [
-      "Hey! We’d love to send you a free product in exchange for content.",
+      "Hey! We'd love to send you a free product in exchange for content.",
       "",
       `Claim here: ${link}`,
       "",
@@ -426,7 +290,7 @@ export default function NewOfferPage() {
       fulfillmentLine,
       "- If posting is required, include the unique code in your caption.",
     ].join("\n");
-  }, [draft.fulfillmentType, draft.manualFulfillmentMethod, origin, publishedOfferId]);
+  }, [draft.manualFulfillmentMethod, origin, publishedOfferId]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -578,188 +442,6 @@ export default function NewOfferPage() {
                   </Link>
                 </CardContent>
               ) : null}
-            </Card>
-          ) : null}
-
-          {SHOPIFY_ENABLED && step === 0 ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>1) Products (optional)</CardTitle>
-                <CardDescription>
-                  Pick products (optional).
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-4">
-                {shopifyConnected ? (
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div className="text-sm">
-                      <span className="text-muted-foreground">Connected:</span>{" "}
-                      <span className="font-mono">{shopifyShopDomain}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={registerWebhook}
-                        disabled={isRegisteringWebhook}
-                      >
-                        {isRegisteringWebhook ? "Registering..." : "Register webhooks"}
-                      </Button>
-                      {webhookStatus === "ok" ? (
-                        <Badge variant="success">Webhook ready</Badge>
-                      ) : webhookStatus === "error" ? (
-                        <Badge variant="danger">Webhook error</Badge>
-                      ) : (
-                        <Badge variant="success">Connected</Badge>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
-                    <div className="grid gap-2">
-                      <Label htmlFor="shopDomain">Shop domain</Label>
-                      <Input
-                        id="shopDomain"
-                        placeholder="your-store.example.com"
-                        value={shopInput}
-                        onChange={(e) => setShopInput(e.target.value)}
-                      />
-                      <div className="text-xs text-muted-foreground">
-                        This integration requires a public app URL; on localhost use a tunnel (ngrok/cloudflared) and set the integration app URL.
-                      </div>
-                    </div>
-                    <a href={`/api/shopify/install?shop=${encodeURIComponent(shopInput || "")}`}>
-                      <Button disabled={!shopInput.trim()}>Connect store</Button>
-                    </a>
-                  </div>
-                )}
-
-                <div className="rounded-lg border bg-muted p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="text-sm font-semibold">Products</div>
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder="Search by title"
-                        value={productQuery}
-                        onChange={(e) => setProductQuery(e.target.value)}
-                      />
-                      <Button
-                        variant="secondary"
-                        onClick={loadProducts}
-                        disabled={!shopifyConnected || isLoadingProducts}
-                      >
-                        {isLoadingProducts ? "Loading..." : "Load"}
-                      </Button>
-                    </div>
-                  </div>
-
-                  {productsError ? (
-                    <div className="mt-3 text-sm text-danger">{productsError}</div>
-                  ) : null}
-
-                  <div className="mt-3 grid gap-3">
-                    {products.map((p) => {
-                      const selected = selectedProducts.find((x) => x.shopifyProductId === p.id);
-                      return (
-                        <div key={p.id} className="rounded-lg border bg-background p-3">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <div className="text-sm font-medium">{p.title}</div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <select
-                                className="h-9 rounded-md border border-input bg-background px-3 text-sm"
-                                value={variantDraftByProductId[p.id] ?? ""}
-                                onChange={(e) =>
-                                  setVariantDraftByProductId((prev) => ({
-                                    ...prev,
-                                    [p.id]: e.target.value,
-                                  }))
-                                }
-                              >
-                                {p.variants.map((v) => (
-                                  <option key={v.id} value={v.id}>
-                                    {v.title}
-                                  </option>
-                                ))}
-                              </select>
-                              <Input
-                                type="number"
-                                min={1}
-                                className="h-9 w-24"
-                                value={quantityDraftByProductId[p.id] ?? 1}
-                                onChange={(e) =>
-                                  setQuantityDraftByProductId((prev) => ({
-                                    ...prev,
-                                    [p.id]: Number(e.target.value),
-                                  }))
-                                }
-                              />
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => {
-                                  const variantId = variantDraftByProductId[p.id];
-                                  const variantTitle =
-                                    p.variants.find((v) => v.id === variantId)?.title ?? "";
-                                  const qty = quantityDraftByProductId[p.id] ?? 1;
-                                  if (!variantId) return;
-                                  setSelectedProducts((prev) => {
-                                    const existingIndex = prev.findIndex((x) => x.shopifyProductId === p.id);
-                                    const next: SelectedProduct = {
-                                      shopifyProductId: p.id,
-                                      shopifyVariantId: variantId,
-                                      quantity: qty,
-                                      title: p.title,
-                                      variantTitle,
-                                    };
-                                    if (existingIndex >= 0) {
-                                      const copy = prev.slice();
-                                      copy[existingIndex] = next;
-                                      return copy;
-                                    }
-                                    return [...prev, next];
-                                  });
-                                }}
-                              >
-                                {selected ? "Update" : "Add"}
-                              </Button>
-                            </div>
-                          </div>
-                          {selected ? (
-                            <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-md border bg-muted px-3 py-2 text-xs">
-                              <div className="text-muted-foreground">
-                                Selected:{" "}
-                                <span className="font-mono text-foreground">{selected.variantTitle}</span> ×{" "}
-                                <span className="font-mono text-foreground">{selected.quantity}</span>
-                              </div>
-                              <button
-                                type="button"
-                                className="text-danger hover:underline"
-                                onClick={() =>
-                                  setSelectedProducts((prev) => prev.filter((x) => x.shopifyProductId !== p.id))
-                                }
-                              >
-                                Remove
-                              </button>
-                            </div>
-                          ) : null}
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-background p-3">
-                    <div className="text-xs text-muted-foreground">
-                      Selected items:{" "}
-                      <span className="font-mono text-foreground">{productsSelectedCount}</span>
-                    </div>
-                    {productsSelectedCount > 0 ? (
-                      <Badge variant="success">Ready for auto-ship</Badge>
-                    ) : (
-                      <Badge variant="warning">Select a product to auto-ship</Badge>
-                    )}
-                  </div>
-                </div>
-              </CardContent>
             </Card>
           ) : null}
 
@@ -986,60 +668,48 @@ export default function NewOfferPage() {
 
                     <div>
                       <div className="text-xs font-semibold text-muted-foreground">Fulfillment</div>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <Button
-                          size="sm"
-                          type="button"
-                          variant={draft.fulfillmentType === "MANUAL" ? "default" : "outline"}
-                          onClick={() => setDraft((d) => ({ ...d, fulfillmentType: "MANUAL" }))}
-                        >
-                          Manual
-                        </Button>
-                      </div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        Manual works for local delivery/pickup.
+                        Local delivery or pickup.
                       </div>
 
-                      {draft.fulfillmentType === "MANUAL" ? (
-                        <div className="mt-3 grid gap-3 rounded-lg border bg-card p-3">
-                          <div>
-                            <div className="text-xs font-semibold text-muted-foreground">
-                              Manual mode
-                            </div>
-                            <div className="mt-2 flex flex-wrap gap-2">
-                              <Button
-                                size="sm"
-                                type="button"
-                                variant={draft.manualFulfillmentMethod === "PICKUP" ? "default" : "outline"}
-                                onClick={() => setDraft((d) => ({ ...d, manualFulfillmentMethod: "PICKUP" }))}
-                              >
-                                Pickup
-                              </Button>
-                              <Button
-                                size="sm"
-                                type="button"
-                                variant={draft.manualFulfillmentMethod === "LOCAL_DELIVERY" ? "default" : "outline"}
-                                onClick={() => setDraft((d) => ({ ...d, manualFulfillmentMethod: "LOCAL_DELIVERY" }))}
-                              >
-                                Local delivery
-                              </Button>
-                            </div>
-                            <div className="mt-1 text-xs text-muted-foreground">
-                              Pickup uses your brand address. Local delivery asks creators for an address at claim time.
-                            </div>
+                      <div className="mt-3 grid gap-3 rounded-lg border bg-card p-3">
+                        <div>
+                          <div className="text-xs font-semibold text-muted-foreground">
+                            Fulfillment method
                           </div>
-
-                          <div className="grid gap-2">
-                            <Label htmlFor="manualNotes">Instructions (optional)</Label>
-                            <Input
-                              id="manualNotes"
-                              placeholder="Pickup window / delivery notes…"
-                              value={draft.manualFulfillmentNotes}
-                              onChange={(e) => setDraft((d) => ({ ...d, manualFulfillmentNotes: e.target.value }))}
-                            />
+                          <div className="mt-2 flex flex-wrap gap-2">
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant={draft.manualFulfillmentMethod === "PICKUP" ? "default" : "outline"}
+                              onClick={() => setDraft((d) => ({ ...d, manualFulfillmentMethod: "PICKUP" }))}
+                            >
+                              Pickup
+                            </Button>
+                            <Button
+                              size="sm"
+                              type="button"
+                              variant={draft.manualFulfillmentMethod === "LOCAL_DELIVERY" ? "default" : "outline"}
+                              onClick={() => setDraft((d) => ({ ...d, manualFulfillmentMethod: "LOCAL_DELIVERY" }))}
+                            >
+                              Local delivery
+                            </Button>
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">
+                            Pickup uses your brand address. Local delivery asks creators for an address at claim time.
                           </div>
                         </div>
-                      ) : null}
+
+                        <div className="grid gap-2">
+                          <Label htmlFor="manualNotes">Instructions (optional)</Label>
+                          <Input
+                            id="manualNotes"
+                            placeholder="Pickup window / delivery notes…"
+                            value={draft.manualFulfillmentNotes}
+                            onChange={(e) => setDraft((d) => ({ ...d, manualFulfillmentNotes: e.target.value }))}
+                          />
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1116,16 +786,6 @@ export default function NewOfferPage() {
                       <Badge variant="secondary">Usage rights: {formatUsageRightsScope(draft.usageRightsScope)}</Badge>
                     ) : null}
                   </div>
-                  {SHOPIFY_ENABLED ? (
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant={shopifyConnected ? "success" : "warning"}>
-                        {shopifyConnected ? "Store connected" : "Store not connected"}
-                      </Badge>
-                      <Badge variant={productsSelectedCount > 0 ? "success" : "warning"}>
-                        Products selected: {productsSelectedCount}
-                      </Badge>
-                    </div>
-                  ) : null}
                 </div>
 
                 <div className="rounded-lg border bg-muted p-4 text-sm">

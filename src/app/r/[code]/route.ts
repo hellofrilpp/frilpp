@@ -1,20 +1,15 @@
 import crypto from "node:crypto";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { getShopifyStoreForBrand } from "@/db/shopify";
-import { brands, linkClicks, matches, offerProducts, offers } from "@/db/schema";
-import { decryptSecret } from "@/lib/crypto";
+import { brands, linkClicks, matches, offers } from "@/db/schema";
 import { log } from "@/lib/logger";
 import { ipKey, rateLimit } from "@/lib/rate-limit";
-import { shopifyRest } from "@/lib/shopify";
 
 export const runtime = "nodejs";
 
 function sha256Base64(input: string) {
   return crypto.createHash("sha256").update(input).digest("base64");
 }
-
-type ShopifySingleProductResponse = { product: { id: number; handle: string } };
 
 export async function GET(request: Request, context: { params: Promise<{ code: string }> }) {
   if (!process.env.DATABASE_URL) {
@@ -77,46 +72,18 @@ export async function GET(request: Request, context: { params: Promise<{ code: s
     referer,
   });
 
-  const store = await getShopifyStoreForBrand(match.brandId);
-
-  const offerProductRows = await db
-    .select({ shopifyProductId: offerProducts.shopifyProductId })
-    .from(offerProducts)
-    .where(eq(offerProducts.offerId, match.offerId))
-    .limit(1);
-
   let targetUrl: string | null = null;
 
-  if (store) {
-    targetUrl = `https://${store.shopDomain}`;
-    if (offerProductRows[0]) {
-      try {
-        const token = decryptSecret(store.accessTokenEncrypted);
-        const productId = offerProductRows[0].shopifyProductId;
-        const productJson = await shopifyRest<ShopifySingleProductResponse>(
-          store.shopDomain,
-          token,
-          `/products/${productId}.json?fields=id,handle`,
-        );
-        targetUrl = `https://${store.shopDomain}/products/${productJson.product.handle}`;
-      } catch {
-        targetUrl = `https://${store.shopDomain}`;
-      }
-    }
-  }
-
-  if (!targetUrl) {
-    const metadata =
-      match.offerMetadata && typeof match.offerMetadata === "object"
-        ? (match.offerMetadata as Record<string, unknown>)
-        : null;
-    const ctaUrl = metadata && typeof metadata.ctaUrl === "string" ? metadata.ctaUrl.trim() : "";
-    if (ctaUrl) {
-      try {
-        targetUrl = new URL(ctaUrl).toString();
-      } catch {
-        targetUrl = null;
-      }
+  const metadata =
+    match.offerMetadata && typeof match.offerMetadata === "object"
+      ? (match.offerMetadata as Record<string, unknown>)
+      : null;
+  const ctaUrl = metadata && typeof metadata.ctaUrl === "string" ? metadata.ctaUrl.trim() : "";
+  if (ctaUrl) {
+    try {
+      targetUrl = new URL(ctaUrl).toString();
+    } catch {
+      targetUrl = null;
     }
   }
 
@@ -150,9 +117,6 @@ export async function GET(request: Request, context: { params: Promise<{ code: s
   target.searchParams.set("utm_campaign", match.offerId);
   target.searchParams.set("utm_content", campaignCode);
   target.searchParams.set("code", campaignCode);
-  if (store) {
-    target.searchParams.set("discount", campaignCode);
-  }
 
   return Response.redirect(target, 302);
 }

@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { sendEmail } from "@/lib/email";
 import { ipKey, rateLimit } from "@/lib/rate-limit";
+import { checkRequestSize, RequestSizeLimits } from "@/lib/request-size";
 
 const contactSchema = z.object({
   name: z.string().min(1).max(200),
@@ -10,6 +11,9 @@ const contactSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  const sizeCheck = checkRequestSize(request, RequestSizeLimits.SMALL);
+  if (sizeCheck) return sizeCheck;
+
   try {
     const json = await request.json();
     const parsed = contactSchema.safeParse(json);

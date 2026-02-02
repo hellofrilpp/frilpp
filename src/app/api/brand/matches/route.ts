@@ -8,7 +8,6 @@ import {
   manualShipments,
   matches,
   offers,
-  shopifyOrders,
   userSocialAccounts,
 } from "@/db/schema";
 import { requireBrandContext } from "@/lib/auth";
@@ -94,9 +93,6 @@ export async function GET(request: Request) {
       deliverableSubmittedNotes: deliverables.submittedNotes,
       deliverableVerifiedAt: deliverables.verifiedAt,
       deliverableVerifiedPermalink: deliverables.verifiedPermalink,
-      orderStatus: shopifyOrders.status,
-      orderTrackingNumber: shopifyOrders.trackingNumber,
-      orderTrackingUrl: shopifyOrders.trackingUrl,
       manualStatus: manualShipments.status,
       manualCarrier: manualShipments.carrier,
       manualTrackingNumber: manualShipments.trackingNumber,
@@ -121,7 +117,6 @@ export async function GET(request: Request) {
     .innerJoin(offers, eq(matches.offerId, offers.id))
     .innerJoin(creators, eq(matches.creatorId, creators.id))
     .leftJoin(deliverables, eq(deliverables.matchId, matches.id))
-    .leftJoin(shopifyOrders, eq(shopifyOrders.matchId, matches.id))
     .leftJoin(manualShipments, eq(manualShipments.matchId, matches.id))
     .leftJoin(
       userSocialAccounts,
@@ -161,13 +156,10 @@ export async function GET(request: Request) {
             }
           : null,
         shipment: {
-          orderStatus: r.orderStatus ?? null,
-          orderTrackingNumber: r.orderTrackingNumber ?? null,
-          orderTrackingUrl: r.orderTrackingUrl ?? null,
-          manualStatus: r.manualStatus ?? null,
-          manualCarrier: r.manualCarrier ?? null,
-          manualTrackingNumber: r.manualTrackingNumber ?? null,
-          manualTrackingUrl: r.manualTrackingUrl ?? null,
+          status: r.manualStatus ?? null,
+          carrier: r.manualCarrier ?? null,
+          trackingNumber: r.manualTrackingNumber ?? null,
+          trackingUrl: r.manualTrackingUrl ?? null,
         },
         offer: { id: r.offerId, title: r.offerTitle },
         creator: {

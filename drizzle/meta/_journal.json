@@ -183,6 +183,13 @@
       "when": 1769491790124,
       "tag": "0024_match_rejections_favorites",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1769994179176,
+      "tag": "0026_first_moon_knight",
+      "breakpoints": true
     }
   ]
 }

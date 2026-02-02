@@ -454,12 +454,16 @@ export async function POST(request: Request, context: { params: Promise<{ offerI
     if (err && typeof err === "object" && "status" in err && "code" in err) {
       const status = typeof err.status === "number" ? err.status : 500;
       const code = typeof err.code === "string" ? err.code : "CLAIM_FAILED";
-      const message = err instanceof Error ? err.message : "Claim failed";
+      const isInternalError = status >= 500;
+      const message = isInternalError && process.env.NODE_ENV === "production"
+        ? "Claim failed"
+        : err instanceof Error ? err.message : "Claim failed";
       return Response.json({ ok: false, error: message, code }, { status });
     }
 
+    log("error", "claim failed", { error: err instanceof Error ? err.message : "unknown", offerId });
     return Response.json(
-      { ok: false, error: err instanceof Error ? err.message : "Claim failed" },
+      { ok: false, error: "Claim failed" },
       { status: 500 },
     );
   }

@@ -9,24 +9,20 @@ import { Input } from "@/components/ui/input";
 
 type ShipmentRow = {
   id: string;
-  fulfillmentType: "SHOPIFY" | "MANUAL";
+  fulfillmentType: "MANUAL";
   status: string;
-  shopDomain: string | null;
-  shopifyOrderId: string | null;
-  shopifyOrderName: string | null;
   trackingNumber: string | null;
   trackingUrl: string | null;
-  error: string | null;
   carrier?: string | null;
   updatedAt: string;
   match: { id: string; campaignCode: string };
   offer: {
     title: string;
-    fulfillmentType: "SHOPIFY" | "MANUAL" | null;
+    fulfillmentType: "MANUAL" | null;
     manualFulfillmentMethod: "PICKUP" | "LOCAL_DELIVERY" | null;
     manualFulfillmentNotes: string | null;
   };
-  creator: { id: string; username: string | null; email: string | null };
+  creator: { id: string; username: string | null; fullName: string | null; email: string | null };
 };
 
 type Filter = "ALL" | "PENDING" | "SHIPPED";
@@ -57,11 +53,10 @@ export default function BrandShipmentsPage() {
           data && "error" in data && typeof data.error === "string" ? data.error : "Failed to load",
         );
       }
-      setRows(data.shipments.filter((shipment) => shipment.fulfillmentType === "MANUAL"));
+      setRows(data.shipments);
       setCarrierDraft((prev) => {
         const next = { ...prev };
         for (const r of data.shipments) {
-          if (r.fulfillmentType !== "MANUAL") continue;
           if (typeof next[r.id] !== "string") next[r.id] = (r.carrier ?? "") as string;
         }
         return next;
@@ -225,13 +220,11 @@ export default function BrandShipmentsPage() {
                         <div className="mt-3 flex flex-wrap gap-2">
                           <Badge
                             variant={
-                              r.status === "FULFILLED"
+                              r.status === "SHIPPED"
                                 ? "success"
-                                : r.status === "ERROR"
-                                  ? "danger"
-                                  : r.status === "PENDING"
-                                    ? "warning"
-                                    : "outline"
+                                : r.status === "PENDING"
+                                  ? "warning"
+                                  : "outline"
                             }
                           >
                             {r.status}
@@ -240,9 +233,6 @@ export default function BrandShipmentsPage() {
                             <Badge variant="secondary">Tracking: {r.trackingNumber}</Badge>
                           ) : null}
                         </div>
-                        {r.error ? (
-                          <div className="mt-3 text-sm text-danger">{r.error}</div>
-                        ) : null}
                         {r.trackingUrl ? (
                           <a
                             className="mt-3 block break-all text-xs underline"
@@ -254,8 +244,7 @@ export default function BrandShipmentsPage() {
                           </a>
                         ) : null}
 
-                        {r.fulfillmentType === "MANUAL" ? (
-                          <div className="mt-4 grid gap-2 rounded-lg border bg-muted p-3 text-xs">
+                        <div className="mt-4 grid gap-2 rounded-lg border bg-muted p-3 text-xs">
                             <div className="font-semibold text-muted-foreground">Manual fulfillment</div>
                             <div className="flex flex-wrap gap-2">
                               {r.offer.manualFulfillmentMethod ? (
@@ -309,7 +298,6 @@ export default function BrandShipmentsPage() {
                               </Button>
                             </div>
                           </div>
-                        ) : null}
                       </div>
 
                       <div className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
