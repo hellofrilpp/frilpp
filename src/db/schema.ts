@@ -480,7 +480,7 @@ export const notificationStatusEnum = pgEnum("notification_status", [
   "ERROR",
 ]);
 
-export const socialProviderEnum = pgEnum("social_provider", ["INSTAGRAM", "TIKTOK", "YOUTUBE"]);
+export const socialProviderEnum = pgEnum("social_provider", ["INSTAGRAM", "TIKTOK", "YOUTUBE", "GOOGLE"]);
 
 export const notifications = pgTable("notifications", {
   id: text("id").primaryKey(),

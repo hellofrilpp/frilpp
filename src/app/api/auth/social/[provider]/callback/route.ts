@@ -2,17 +2,18 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { brands, creators, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
+import { brandMemberships, brands, creators, pendingSocialAccounts, sessions, userSocialAccounts, users } from "@/db/schema";
 import { getSessionUser, SESSION_COOKIE_NAME } from "@/lib/auth";
 import { sanitizeNextPath } from "@/lib/redirects";
 import { discoverInstagramAccount, exchangeMetaCode, fetchInstagramProfile } from "@/lib/meta";
 import { exchangeTikTokCode, fetchTikTokProfile } from "@/lib/tiktok";
 import { exchangeYouTubeCode, fetchYouTubeChannel } from "@/lib/youtube";
+import { exchangeGoogleCode, fetchGoogleUserInfo } from "@/lib/google";
 import { getCreatorProfileMissingFields } from "@/lib/creator-profile";
 
 export const runtime = "nodejs";
 
-const providerSchema = z.enum(["instagram", "tiktok", "youtube"]);
+const providerSchema = z.enum(["instagram", "tiktok", "youtube", "google"]);
 const callbackSchema = z.object({
   code: z.string().min(1),
   state: z.string().min(1),
@@ -99,7 +100,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   }
 
   const provider = providerParsed.data;
-  const providerId = provider === "instagram" ? "INSTAGRAM" : provider === "tiktok" ? "TIKTOK" : "YOUTUBE";
+  const providerId = provider === "instagram" ? "INSTAGRAM" : provider === "tiktok" ? "TIKTOK" : provider === "google" ? "GOOGLE" : "YOUTUBE";
   const parsed = callbackSchema.safeParse({
     code: url.searchParams.get("code"),
     state: url.searchParams.get("state"),
@@ -115,7 +116,9 @@ export async function GET(request: Request, context: { params: Promise<{ provide
       ? process.env.TIKTOK_REDIRECT_URL
       : provider === "youtube" && process.env.YOUTUBE_REDIRECT_URL
         ? process.env.YOUTUBE_REDIRECT_URL
-        : defaultRedirectUri;
+        : provider === "google" && process.env.GOOGLE_REDIRECT_URL
+          ? process.env.GOOGLE_REDIRECT_URL
+          : defaultRedirectUri;
   const redirectOrigin = new URL(redirectUri).origin;
   if (redirectOrigin !== url.origin) {
     const canonicalUrl = new URL(url.pathname + url.search, redirectOrigin);
@@ -148,6 +151,7 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   let refreshTokenEncrypted: string | null = null;
   let expiresAt: Date | null = null;
   let scopes: string | null = null;
+  let googleEmail: string | null = null;
 
   if (provider === "instagram") {
     const exchanged = await exchangeMetaCode({ code: parsed.data.code, redirectUri });
@@ -175,6 +179,17 @@ export async function GET(request: Request, context: { params: Promise<{ provide
 
     const profile = await fetchTikTokProfile({ accessToken: exchanged.accessToken }).catch(() => null);
     username = profile?.displayName ?? null;
+  } else if (provider === "google") {
+    const exchanged = await exchangeGoogleCode({ code: parsed.data.code, redirectUri });
+    accessTokenEncrypted = exchanged.accessTokenEncrypted;
+    refreshTokenEncrypted = exchanged.refreshTokenEncrypted;
+    expiresAt = exchanged.expiresAt;
+    scopes = exchanged.scopes;
+
+    const userInfo = await fetchGoogleUserInfo({ accessToken: exchanged.accessToken });
+    providerUserId = userInfo.googleUserId;
+    username = userInfo.name;
+    googleEmail = userInfo.email;
   } else {
     const exchanged = await exchangeYouTubeCode({ code: parsed.data.code, redirectUri });
     accessTokenEncrypted = exchanged.accessTokenEncrypted;
@@ -284,7 +299,8 @@ export async function GET(request: Request, context: { params: Promise<{ provide
   if (existing) {
     await createSession(existing.userId);
 
-    jar.set("frilpp_lane", "creator", {
+    const laneCookie = roleCookie === "brand" ? "brand" : "creator";
+    jar.set("frilpp_lane", laneCookie, {
       httpOnly: false,
       sameSite: "lax",
       secure: process.env.NODE_ENV === "production",
@@ -299,8 +315,120 @@ export async function GET(request: Request, context: { params: Promise<{ provide
 
     const target = isCreatorFlow
       ? await resolveCreatorNextPath(existing.userId, nextPath || creatorDashboardPath)
-      : nextPath || creatorDashboardPath;
+      : nextPath || "/brand/dashboard";
     return Response.redirect(new URL(target, origin), 302);
+  }
+
+  // Handle brand Google OAuth login/signup
+  if (provider === "google" && roleCookie === "brand") {
+    // First check if a user exists with this email
+    let userId: string | null = null;
+    if (googleEmail) {
+      const existingUserRows = await db
+        .select({ id: users.id, activeBrandId: users.activeBrandId })
+        .from(users)
+        .where(eq(users.email, googleEmail))
+        .limit(1);
+      const existingUser = existingUserRows[0] ?? null;
+
+      if (existingUser) {
+        // User exists with this email - link Google account and log in
+        userId = existingUser.id;
+        await db.insert(userSocialAccounts).values({
+          id: crypto.randomUUID(),
+          userId,
+          provider: "GOOGLE",
+          providerUserId: providerUserId!,
+          username,
+          accessTokenEncrypted,
+          refreshTokenEncrypted,
+          expiresAt,
+          scopes,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+
+        await createSession(userId);
+        jar.set("frilpp_lane", "brand", {
+          httpOnly: false,
+          sameSite: "lax",
+          secure: process.env.NODE_ENV === "production",
+          path: "/",
+          maxAge: 60 * 60 * 24 * 30,
+        });
+
+        jar.delete("social_oauth_state");
+        jar.delete("social_oauth_provider");
+        jar.delete("social_oauth_next");
+        jar.delete("social_oauth_role");
+
+        // Check if user has a brand, if not redirect to setup
+        if (existingUser.activeBrandId) {
+          return Response.redirect(new URL("/brand/dashboard", origin), 302);
+        }
+        return Response.redirect(new URL("/brand/setup?mode=signup", origin), 302);
+      }
+    }
+
+    // No existing user - create new user + brand + membership
+    const now = new Date();
+    userId = crypto.randomUUID();
+    const brandId = crypto.randomUUID();
+
+    await db.insert(users).values({
+      id: userId,
+      email: googleEmail,
+      name: username,
+      activeBrandId: brandId,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await db.insert(userSocialAccounts).values({
+      id: crypto.randomUUID(),
+      userId,
+      provider: "GOOGLE",
+      providerUserId: providerUserId!,
+      username,
+      accessTokenEncrypted,
+      refreshTokenEncrypted,
+      expiresAt,
+      scopes,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await db.insert(brands).values({
+      id: brandId,
+      name: username ?? "My Brand",
+      countriesDefault: ["US"],
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    await db.insert(brandMemberships).values({
+      id: crypto.randomUUID(),
+      brandId,
+      userId,
+      role: "OWNER",
+      createdAt: now,
+    });
+
+    await createSession(userId);
+    jar.set("frilpp_lane", "brand", {
+      httpOnly: false,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+
+    jar.delete("social_oauth_state");
+    jar.delete("social_oauth_provider");
+    jar.delete("social_oauth_next");
+    jar.delete("social_oauth_role");
+
+    return Response.redirect(new URL("/brand/setup?mode=signup", origin), 302);
   }
 
   if (roleCookie === "creator") {

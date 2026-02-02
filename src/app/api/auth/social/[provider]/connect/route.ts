@@ -5,10 +5,11 @@ import { sanitizeNextPath } from "@/lib/redirects";
 import { buildInstagramOAuthUrl } from "@/lib/meta";
 import { buildTikTokOAuthUrl } from "@/lib/tiktok";
 import { buildYouTubeOAuthUrl } from "@/lib/youtube";
+import { buildGoogleOAuthUrl } from "@/lib/google";
 
 export const runtime = "nodejs";
 
-const providerSchema = z.enum(["instagram", "tiktok", "youtube"]);
+const providerSchema = z.enum(["instagram", "tiktok", "youtube", "google"]);
 const roleSchema = z.enum(["brand", "creator"]);
 
 export async function GET(request: Request, context: { params: Promise<{ provider: string }> }) {
@@ -48,7 +49,9 @@ export async function GET(request: Request, context: { params: Promise<{ provide
       ? process.env.TIKTOK_REDIRECT_URL
       : provider === "youtube" && process.env.YOUTUBE_REDIRECT_URL
         ? process.env.YOUTUBE_REDIRECT_URL
-        : defaultRedirectUri;
+        : provider === "google" && process.env.GOOGLE_REDIRECT_URL
+          ? process.env.GOOGLE_REDIRECT_URL
+          : defaultRedirectUri;
 
   const redirectOrigin = new URL(redirectUri).origin;
   if (redirectOrigin !== url.origin) {
@@ -114,7 +117,17 @@ export async function GET(request: Request, context: { params: Promise<{ provide
         redirectUri,
         state,
         scopes: ["user.info.basic", "user.info.profile", "user.info.stats"],
-
+      });
+    }
+    if (provider === "google") {
+      return buildGoogleOAuthUrl({
+        redirectUri,
+        state,
+        scopes: [
+          "openid",
+          "https://www.googleapis.com/auth/userinfo.email",
+          "https://www.googleapis.com/auth/userinfo.profile",
+        ],
       });
     }
     return buildYouTubeOAuthUrl({

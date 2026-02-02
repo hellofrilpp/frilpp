@@ -190,6 +190,13 @@
       "when": 1769994179176,
       "tag": "0026_first_moon_knight",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1769997351134,
+      "tag": "0027_robust_nighthawk",
+      "breakpoints": true
     }
   ]
 }
